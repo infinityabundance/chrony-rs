@@ -32,6 +32,7 @@
 
 pub mod addrfilt;
 pub mod clock;
+pub mod cmdparse;
 pub mod config;
 pub mod hash;
 pub mod md5;

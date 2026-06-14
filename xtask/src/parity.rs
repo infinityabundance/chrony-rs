@@ -79,9 +79,9 @@ const MAP: &[Row] = &[
     Row { c: "conf.c", role: "config file parser + 93-directive dispatch (CNF_*)",
         rust: &["config/parser.rs", "config/lexer.rs", "config/diagnostics.rs", "config/model.rs", "config/mod.rs"],
         port: Port::Partial, note: "directive recognition (93/93), comment rules, diagnostics witnessed vs 4.5; per-directive value semantics partial" },
-    Row { c: "cmdparse.c", role: "source-line option parsing (CPS_ParseNTPSourceAdd)",
-        rust: &["config/parser.rs"], port: Port::Partial,
-        note: "server/pool/peer flag+value option set ported and oracle-anchored" },
+    Row { c: "cmdparse.c", role: "command/config line parsing (CPS_*)",
+        rust: &["config/parser.rs", "cmdparse.rs"], port: Port::Partial,
+        note: "6/8: source-option set (oracle-anchored) + word split, line normalize, refid pack, key spec; ParseAllowDeny (DNS) and ParseLocal (float sscanf) are gaps" },
 
     // ---- NTP protocol ----
     Row { c: "ntp_core.c", role: "NTP protocol engine: poll, process-response, offset/delay (NCR_*)",
@@ -217,7 +217,17 @@ const MAP: &[Row] = &[
 /// coverage.
 const PORTED_FNS: &[(&str, &[&str])] = &[
     ("conf.c", &["CNF_ParseLine", "parse_source"]),
-    ("cmdparse.c", &["CPS_ParseNTPSourceAdd", "CPS_GetSelectOption"]),
+    (
+        "cmdparse.c",
+        &[
+            "CPS_ParseNTPSourceAdd",
+            "CPS_GetSelectOption",
+            "CPS_SplitWord",
+            "CPS_NormalizeLine",
+            "CPS_ParseRefid",
+            "CPS_ParseKey",
+        ],
+    ),
     (
         "client.c",
         &[
