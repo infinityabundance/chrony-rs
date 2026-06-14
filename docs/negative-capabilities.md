@@ -39,9 +39,13 @@ corresponding court and evidence to exist first.
 
 ## Discipline / sources / state
 
-- **No measurement stage.** Offsets/delays are not yet computed from NTP packet
-  timestamps. This gates almost everything downstream (filtering, selection input,
-  discipline). Offsets are never fabricated to advance a court.
+- **Measurement exists; live exchange tracking does not.** Offset/delay are now
+  computed from the four NTP timestamps via the RFC 5905 algebra
+  (`ntp::Measurement`), and selection has been driven by *computed* offsets in an
+  integration court. What is still missing is the daemon-side tracking that
+  records T1 (our transmit) and T4 (our receive) for a live poll/response, so the
+  measurement stage is **not yet wired into the replay runner**. Offsets are never
+  fabricated to advance a court.
 - **Source selection is partial and algorithmic, not oracle-witnessed.** The
   reachability register and selectability gate are reconstructed precisely; the
   falseticker intersection reproduces the *core idea* only — no clustering/

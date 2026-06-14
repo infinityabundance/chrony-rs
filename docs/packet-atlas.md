@@ -52,6 +52,24 @@ are preserved verbatim.
   *policy* decision for source selection, not a wire-format error. Decode accepts
   any 48+ byte buffer.
 
+## Measurement (RFC 5905 §8)
+
+`ntp::Measurement::from_exchange` computes, from the four exchange timestamps:
+
+```text
+offset θ = ((T2 - T1) + (T3 - T4)) / 2
+delay  δ = (T4 - T1) - (T3 - T2)
+```
+
+Implemented in `ntp/measurements.rs`. Key fidelity point: timestamp differences
+are taken on the **raw 64-bit values with wrapping arithmetic** (reinterpreted as
+signed), never via absolute-seconds conversion — so the algebra is exact across
+the 2036 era rollover. `delay` is returned raw (slightly-negative values from
+coarse resolution are a filter-stage policy, not a wire-format clamp). Tested with
+symmetric, asymmetric, negative-offset, and era-rollover vectors, plus an
+end-to-end `tests/pipeline.rs` that feeds **computed** offsets into source
+selection.
+
 ## No-panic guarantee
 
 `NtpPacket::decode` returns `Result<_, PacketError>`; the only failure is a

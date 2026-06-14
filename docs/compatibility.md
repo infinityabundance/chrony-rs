@@ -29,6 +29,8 @@ reproducible test or receipt.
 | CHRONY.SOURCE.2 | 8-bit reachability register: shift/mask, reachable⇔≠0, decay after 8 misses, octal display | `sources/reachability.rs` tests |
 | CHRONY.SOURCE.6/.7 | selectability gate: offline/unreachable/no-sample/stratum-0/stratum-16 excluded before interval math | `sources/source.rs` + `selection.rs` tests |
 | CHRONY.FILTER.8 (subset, **algorithmic**) | falseticker rejection by majority-clique interval intersection; min-root-distance stand-in pick | `sources/selection.rs` tests |
+| (measurement) | offset/delay from four-timestamp exchange (RFC 5905 §8); era-safe wrapping differences; negative-offset & rollover vectors | `ntp/measurements.rs` tests |
+| (pipeline, **algorithmic**) | computed offsets → sample summaries → falseticker selection, end to end | `tests/pipeline.rs` |
 
 ## Oracle status
 

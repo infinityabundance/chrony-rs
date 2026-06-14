@@ -34,6 +34,7 @@ the excavation campaign, not yet completed findings.
 | config tokenizing | `getword`-style splitting, `cmdparse.c` | `config/lexer.rs` |
 | NTP packet decode/encode | `ntp_io.c` / `ntp_core.c` packet structs | `ntp/packet.rs` |
 | NTP timestamps | `ntp.h` `NTP_int64`, `ntp_core.c` | `ntp/timestamp.rs` |
+| offset/delay measurement | `ntp_core.c` (`NCR_ProcessResponse`) | `ntp/measurements.rs` (RFC 5905 §8 algebra) |
 | `tracking` report | `client.c` (`process_cmd_tracking`) / `reports.h` | `report.rs` |
 | source reachability | `sources.c` (`SRC_UpdateReachability`) | `sources/reachability.rs` (implemented) |
 | source selectability | `sources.c` (selectability checks) | `sources/source.rs` (implemented) |

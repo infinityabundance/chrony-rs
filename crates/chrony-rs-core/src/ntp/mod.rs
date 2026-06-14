@@ -15,8 +15,10 @@
 //! we own the wire format here and witness it against both chronyd captures and
 //! independent RFC fixtures.
 
+mod measurements;
 mod packet;
 mod timestamp;
 
+pub use measurements::{ts_diff_seconds, Measurement};
 pub use packet::{LeapIndicator, Mode, NtpPacket, PacketError, NTP_PACKET_MIN_LEN};
 pub use timestamp::{NtpShort, NtpTimestamp};

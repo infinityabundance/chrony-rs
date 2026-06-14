@@ -8,18 +8,19 @@ implemented**; this document records the plan and the one piece that exists.
 
 | ID | Description | Where |
 |----|-------------|-------|
-| CHRONY.FILTER.8 (subset) | falseticker scenario — a clear outlier among agreeing sources is rejected by interval intersection | `sources/selection.rs` |
+| (measurement) | offset/delay from the four-timestamp exchange (RFC 5905 §8), era-safe differences | `ntp/measurements.rs` |
+| CHRONY.FILTER.4 (partial) | root distance `disp + delay/2`; per-sample summary derived from a measurement | `sources/source.rs` + `ntp/measurements.rs` |
+| CHRONY.FILTER.8 (subset) | falseticker scenario — a clear outlier among agreeing sources is rejected by interval intersection, driven by **computed** offsets | `sources/selection.rs` + `tests/pipeline.rs` |
 
 ## Not yet implemented
 
 | ID | Description | Blocking dependency |
 |----|-------------|---------------------|
-| CHRONY.FILTER.1 | first sample | measurement stage (offset/delay from timestamps) |
+| CHRONY.FILTER.1 | first sample | sample history container |
 | CHRONY.FILTER.2 | jitter | sample history + regression |
-| CHRONY.FILTER.3 | delay | measurement stage |
-| CHRONY.FILTER.4 | root distance | partially present (`SampleSummary::root_distance`) |
+| CHRONY.FILTER.3 | delay | sample history (per-sample delay now available) |
 | CHRONY.FILTER.5 | sample aging | dispersion growth over time |
-| CHRONY.FILTER.6 | sample rejection | measurement stage |
+| CHRONY.FILTER.6 | sample rejection | sample history + bounds |
 | CHRONY.FILTER.7 | noisy source | regression estimator |
 | CHRONY.FILTER.9 | source clustering | chrony cluster/combine stage |
 | CHRONY.FILTER.10 | source combining | chrony combine stage |
@@ -27,13 +28,14 @@ implemented**; this document records the plan and the one piece that exists.
 | CHRONY.FILTER.12 | trust/require | admission TBD |
 | CHRONY.FILTER.13 | adversarial source | hostile-input campaign |
 
-## The dependency that gates the rest
+## Dependency status
 
-Almost everything here needs **measurement**: turning the four NTP timestamps
-(origin/receive/transmit + local receive) into an offset and round-trip delay.
-That computation is the next campaign. Selection (`source-selection-atlas.md`) is
-built and unit-tested but cannot be fed real intervals until measurement lands —
-and we do not fabricate offsets to make a court look further along than it is.
+Measurement — turning the four NTP timestamps into an offset and round-trip delay
+— is **now implemented** (`ntp/measurements.rs`), and `tests/pipeline.rs` drives
+selection with computed offsets end to end. What remains before the daemon can do
+this on live traffic is *exchange tracking*: recording T1 (our transmit) and T4
+(our receive) per poll, which is daemon state not yet built. So the pieces exist
+and compose, but are not yet wired into the live/replay loop.
 
 ## Oracle status
 

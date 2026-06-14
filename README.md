@@ -20,7 +20,8 @@ where chrony policy differs from generic protocol truth.
 | `chronyc tracking` output layout | byte-stable layout court `CHRONYC.1` (offline render) |
 | Deterministic trace schema (`chrony-rs-trace-v1`) | parse + structural validation |
 | `chronyd-rs --replay` | **deterministic replay** through a simulated clock; reproducible decision-log hash + pinned-hash regression check (chrony selection/discipline policy not yet applied) |
-| Source reachability + selection | 8-bit reach register (exact); selectability gate; falseticker interval intersection (`sources/`) — algorithmic, not yet oracle-witnessed |
+| NTP offset/delay measurement | RFC 5905 §8 algebra, era-safe differences (`ntp::Measurement`) |
+| Source reachability + selection | 8-bit reach register (exact); selectability gate; falseticker interval intersection driven by computed offsets (`sources/`, `tests/pipeline.rs`) — algorithmic, not yet oracle-witnessed |
 | SHA-256 receipts | dependency-free, FIPS-vectored (`hash.rs`) |
 | Simulated clock | side-effect-free time base, no host mutation (`clock.rs`) |
 | Source archaeology + ecology docs | scaffolded under `docs/` |
@@ -29,7 +30,7 @@ Run:
 
 ```sh
 cargo build
-cargo test                                    # 64 tests, deterministic
+cargo test                                    # 71 tests, deterministic
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>
