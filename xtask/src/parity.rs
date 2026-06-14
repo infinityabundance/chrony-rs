@@ -139,7 +139,7 @@ const MAP: &[Row] = &[
     // ---- utilities (subsumed by std, or partially ported) ----
     Row { c: "util.c", role: "time/UTI/byte utilities (UTI_*)",
         rust: &["util.rs", "ntp/timestamp.rs", "ntp/measurements.rs"], port: Port::Partial,
-        note: "pure primitives ported: NTP short/era algebra, log2->seconds, hex codec; broad UTI_* surface (files, sockets, randomness) not" },
+        note: "pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not" },
     Row { c: "array.c", role: "generic dynamic array (ARR_*)", rust: &[], port: Port::None, note: "subsumed by std Vec; not a port target" },
     Row { c: "memory.c", role: "xmalloc/xrealloc wrappers", rust: &[], port: Port::None, note: "subsumed by std; not a port target" },
     Row { c: "logging.c", role: "logging subsystem (LOG_*)", rust: &[], port: Port::None,
@@ -256,10 +256,13 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
         &[
             "UTI_Ntp32ToDouble",
             "UTI_DoubleToNtp32",
+            "UTI_Ntp64ToDouble",
+            "UTI_DoubleToNtp64",
             "UTI_DiffNtp64ToDouble",
             "UTI_Log2ToDouble",
             "UTI_BytesToHex",
             "UTI_HexToBytes",
+            "UTI_RefidToString",
         ],
     ),
     ("main.c", &["main"]),

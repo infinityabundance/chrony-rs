@@ -82,7 +82,31 @@ impl NtpTimestamp {
     pub const fn to_be_bytes(self) -> [u8; 8] {
         self.0.to_be_bytes()
     }
+
+    /// Interpret as seconds — a port of chrony `UTI_Ntp64ToDouble` (`util.c`),
+    /// which is `UTI_DiffNtp64ToDouble` against zero: the seconds field is read as
+    /// a **signed** 32-bit value, plus the binary fraction over 2³².
+    pub fn to_seconds_f64(self) -> f64 {
+        (self.seconds() as i32) as f64 + self.fraction() as f64 / (1.0e9 * NSEC_PER_NTP64)
+    }
+
+    /// Encode seconds — a port of chrony `UTI_DoubleToNtp64` (`util.c`). The value
+    /// is clamped to the signed 32-bit second range, the seconds field is the floor
+    /// (round-then-step-down), and the fraction is the remainder scaled by 2³².
+    pub fn from_seconds_f64(src: f64) -> Self {
+        let src = src.clamp(i32::MIN as f64, i32::MAX as f64);
+        let mut hi = src.round() as i32;
+        if hi as f64 > src {
+            hi = hi.wrapping_sub(1); // round() may round up; step down to the floor
+        }
+        let lo = ((src - hi as f64) * (1.0e9 * NSEC_PER_NTP64)) as u32;
+        NtpTimestamp(((hi as u32 as u64) << 32) | lo as u64)
+    }
 }
+
+/// chrony's `NSEC_PER_NTP64` (`util.c`): `2³² / 1e9`, so `1e9 * NSEC_PER_NTP64`
+/// is exactly `2³²`, the number of binary-fraction units per second.
+const NSEC_PER_NTP64: f64 = 4.294967296;
 
 impl core::fmt::Debug for NtpTimestamp {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -179,6 +203,25 @@ mod tests {
         let s = NtpShort::from_be_bytes([0x00, 0x00, 0x80, 0x00]);
         assert!((s.as_seconds_f64() - 0.5).abs() < 1e-12);
         assert_eq!(s.to_be_bytes(), [0x00, 0x00, 0x80, 0x00]);
+    }
+
+    #[test]
+    fn ntp64_double_roundtrip_and_known_values() {
+        // UTI_DoubleToNtp64 / UTI_Ntp64ToDouble.
+        let half = NtpTimestamp::from_seconds_f64(0.5);
+        assert_eq!(half.seconds(), 0);
+        assert_eq!(half.fraction(), 0x8000_0000); // exactly half
+        assert!((half.to_seconds_f64() - 0.5).abs() < 1e-12);
+
+        let two = NtpTimestamp::from_seconds_f64(2.0);
+        assert_eq!(two.seconds(), 2);
+        assert_eq!(two.fraction(), 0);
+
+        // floor behaviour and round-trip for a few values
+        for &x in &[0.0, 1.25, 3.999_999, 100.5, -1.5, -0.25] {
+            let r = NtpTimestamp::from_seconds_f64(x).to_seconds_f64();
+            assert!((r - x).abs() < 1e-6, "roundtrip {x} -> {r}");
+        }
     }
 
     #[test]
