@@ -20,7 +20,7 @@ method, provenance, and how the doxygen runs were produced on both sides.
 - **Files fully ported:** 4 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 609 / 1373 C functions (44.4%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 296 named functions + 42 closures across 31 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 299 named functions + 43 closures across 31 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -74,7 +74,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `refclock_shm.c` | 3 | 0.0% | SHM refclock driver | — | · none |
 | `refclock_sock.c` | 3 | 0.0% | socket refclock driver | — | · none |
 | `reference.c` | 45 | 0.0% | tracking + drift state, leap handling (REF_*) | `report.rs`<br>`clock.rs` | ◑ partial |
-| `regress.c` | 11 | 45.5% | robust linear regression + statistical primitives | `regress.rs` | ◑ partial |
+| `regress.c` | 11 | 54.5% | robust linear regression + statistical primitives | `regress.rs` | ◑ partial |
 | `rtc.c` | 9 | 0.0% | RTC abstraction | — | · none |
 | `rtc_linux.c` | 26 | 0.0% | Linux RTC driver | — | · none |
 | `samplefilt.c` | 18 | 0.0% | per-source sample filtering | — | · none |
@@ -107,7 +107,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
 - **`pktlength.c`** — length checks partial via the codec _(≈14 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
-- **`regress.c`** — pure dependency-free subset ported: t/chi2 critical-value tables + order-statistic median (validated vs sort oracle); weighted/robust regressions are a gap _(≈9 Rust `fn` in mapped modules)_
+- **`regress.c`** — 6/11: weighted least-squares fit (exact perfect-line recovery + reference case) + t/chi2 tables + order-statistic median; the robust outlier-pruning wrappers (FindBestRobustRegression etc.) remain gaps _(≈12 Rust `fn` in mapped modules)_
 - **`quantiles.c`** — complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable _(≈14 Rust `fn` in mapped modules)_
 - **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈42 Rust `fn` in mapped modules)_
 - **`local.c`** — side-effect-free simulated clock; no real read/adjust _(≈12 Rust `fn` in mapped modules)_
