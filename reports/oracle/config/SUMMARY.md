@@ -1,4 +1,4 @@
-# Config oracle differential (2026-06-14T17:13:19Z)
+# Config oracle differential (2026-06-14T17:18:36Z)
 
 Oracle: `chronyd (chrony) version 4.5 (+CMDMON +NTP +REFCLOCK +RTC +PRIVDROP +SCFILTER +SIGND +ASYNCDNS +NTS +SECHASH +IPV6 -DEBUG)`
 
@@ -11,5 +11,6 @@ Oracle: `chronyd (chrony) version 4.5 (+CMDMON +NTP +REFCLOCK +RTC +PRIVDROP +SC
 | err_unknown_directive.conf | 1 | 1 | yes | `Fatal error : Invalid directive at line 1 in file <FILE>` |
 | valid_comments.conf | 0 | 0 | yes | `(none)` |
 | valid_minimal.conf | 0 | 0 | yes | `(none)` |
+| valid_ubuntu_default.conf | 0 | 0 | yes | `(none)` |
 
 Disagreements on accept/reject: 0

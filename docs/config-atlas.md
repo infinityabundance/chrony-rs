@@ -26,6 +26,11 @@ Two distinct sets, deliberately kept apart:
 An **unknown** directive (not in the recognized set) is a fatal error
 (`CFG_UNKNOWN_DIRECTIVE`), matching chrony's rejection.
 
+The recognized set (`KNOWN_DIRECTIVES`, 82 entries) is **oracle-anchored to chrony
+4.5**: every entry is verified recognized by `chronyd -p` via
+`tools/oracle/directive-recognition.sh`. The oracle caught five fabricated entries
+in the original hand-written list — see `oracle.md`.
+
 ## Court status (`CHRONY.CONFIG.*`)
 
 | ID | Description | Status |
@@ -42,7 +47,7 @@ An **unknown** directive (not in the recognized set) is a fatal error
 | 10 | bind/address options | deferred (recognized, unmodeled) |
 | 11 | nts options | deferred (recognized, unmodeled) |
 | 12 | invalid directive diagnostics | admitted (`CFG_UNKNOWN_DIRECTIVE`) |
-| 13 | distro default configs | planned |
+| 13 | distro default configs | **oracle-witnessed** — Ubuntu 24.04 default accepted, matches chrony 4.5 (`distro-defaults.md`) |
 | 14 | exact diagnostic parity | **oracle-witnessed against chrony 4.5** for 5 error classes (see below) |
 
 ## Oracle-witnessed diagnostics (chrony 4.5)

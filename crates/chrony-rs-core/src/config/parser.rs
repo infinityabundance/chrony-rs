@@ -33,29 +33,32 @@ impl ParseOutput {
     }
 }
 
-/// The set of directive keywords chrony recognizes. Sourced from chrony's
-/// `commands[]`/`conf.c` dispatch table for the target version
-/// ([`crate::TARGET_CHRONY_VERSION`]). This list governs *recognition* only —
-/// being on it does not imply chrony-rs models the directive's behavior.
+/// The set of directive keywords chrony recognizes. This list governs
+/// *recognition* only — being on it does not imply chrony-rs models the
+/// directive's behavior.
 ///
-/// Kept deliberately explicit (not derived) so that adding a keyword is a
-/// reviewable, version-anchored change tied to `docs/version-lineage.md`.
+/// **Oracle-anchored to chrony 4.5.** Every entry was verified to be recognized
+/// by `chronyd -p` via `tools/oracle/directive-recognition.sh`; the witnessed
+/// count is pinned by a test below. The oracle previously caught five *fabricated*
+/// entries here (guessed NTS names + a nonexistent `open_commands`/`ntpcache`),
+/// which is exactly why the set is measured, not guessed. Adding a keyword is a
+/// version-anchored change tied to `docs/version-lineage.md` and must be
+/// re-witnessed.
 const KNOWN_DIRECTIVES: &[&str] = &[
-    "acquisitionport", "allow", "authselectmode", "bindacqaddress", "bindaddress",
-    "bindcmdaddress", "broadcast", "clientloglimit", "cmdallow", "cmddeny",
-    "cmdport", "combinelimit", "confdir", "corrtimeratio", "deny", "driftfile",
-    "dscp", "dumpdir", "dumponexit", "fallbackdrift", "hwclockfile", "hwtimestamp",
-    "include", "initstepslew", "keyfile", "leapsecmode", "leapsectz", "local",
-    "lock_all", "log", "logbanner", "logchange", "logdir", "mailonchange",
-    "makestep", "manual", "maxchange", "maxclockerror", "maxdistance", "maxdrift",
-    "maxjitter", "maxntsconnections", "maxsamples", "maxslewrate", "maxupdateskew",
-    "minsamples", "minsources", "noclientlog", "nocerttimecheck", "ntpsigndsocket",
-    "ntsca", "ntscert", "ntsdumpdir", "ntskey", "ntsntpserver", "ntsport",
-    "ntsprocesses", "ntsratelimit", "ntsrefresh", "ntsrotate", "ntsserverkey",
-    "ntstrustedcerts", "ntpcache", "open_commands", "peer", "pidfile", "pool",
-    "port", "ratelimit", "refclock", "reselectdist", "rtcautotrim", "rtcdevice",
+    "acquisitionport", "allow", "authselectmode", "bindacqaddress", "bindaddress", "bindcmdaddress",
+    "broadcast", "clientloglimit", "cmdallow", "cmddeny", "cmdport", "cmdratelimit",
+    "combinelimit", "confdir", "corrtimeratio", "deny", "driftfile", "dscp",
+    "dumpdir", "dumponexit", "fallbackdrift", "hwclockfile", "hwtimestamp", "include",
+    "initstepslew", "keyfile", "leapsecmode", "leapsectz", "local", "lock_all",
+    "log", "logbanner", "logchange", "logdir", "mailonchange", "makestep",
+    "manual", "maxchange", "maxclockerror", "maxdistance", "maxdrift", "maxjitter",
+    "maxntsconnections", "maxsamples", "maxslewrate", "maxupdateskew", "minsamples", "minsources",
+    "nocerttimecheck", "noclientlog", "ntpsigndsocket", "ntscachedir", "ntsdumpdir", "ntsntpserver",
+    "ntsport", "ntsprocesses", "ntsratelimit", "ntsrefresh", "ntsrotate", "ntsservercert",
+    "ntsserverkey", "ntstrustedcerts", "peer", "pidfile", "pool", "port",
+    "ratelimit", "refclock", "refresh", "reselectdist", "rtcautotrim", "rtcdevice",
     "rtcfile", "rtconutc", "rtcsync", "sched_priority", "server", "smoothtime",
-    "stratumweight", "tempcomp", "user",
+    "sourcedir", "stratumweight", "tempcomp", "user",
 ];
 
 fn is_known_directive(keyword: &str) -> bool {
@@ -305,6 +308,23 @@ rtcsync
             out.config.directives[0].1,
             Directive::Unmodeled { .. }
         ));
+    }
+
+    #[test]
+    fn known_directive_set_is_oracle_anchored_to_chrony_4_5() {
+        // The recognition set was measured, not guessed: every entry is recognized
+        // by `chronyd -p` in chrony 4.5 (tools/oracle/directive-recognition.sh).
+        // Pin the count and a few entries the oracle specifically corrected, so a
+        // regression toward fabricated directives is caught.
+        assert_eq!(KNOWN_DIRECTIVES.len(), 82, "witnessed chrony 4.5 directive count");
+        // Previously-fabricated names that chrony 4.5 rejects must NOT reappear.
+        for bogus in ["ntsca", "ntscert", "ntskey", "ntpcache", "open_commands"] {
+            assert!(!is_known_directive(bogus), "{bogus} is not a chrony 4.5 directive");
+        }
+        // Names the oracle taught us (correct NTS names, sourcedir) must be present.
+        for real in ["ntsservercert", "ntsserverkey", "ntstrustedcerts", "sourcedir", "cmdratelimit"] {
+            assert!(is_known_directive(real), "{real} is a real chrony 4.5 directive");
+        }
     }
 
     #[test]

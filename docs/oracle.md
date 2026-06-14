@@ -24,7 +24,8 @@ oracle for config acceptance and diagnostics.
 over `tools/oracle/config-fixtures/` and compares. Captured result (receipts under
 `reports/oracle/config/`):
 
-- **7/7 fixtures agree on accept/reject** with chrony 4.5 — 0 disagreements.
+- **8/8 fixtures agree on accept/reject** with chrony 4.5 — 0 disagreements
+  (including the real Ubuntu 24.04 default config; see `distro-defaults.md`).
 - chrony-rs reproduces chrony 4.5's **exact diagnostic phrasing** (normalized for
   the host-specific timestamp prefix and absolute path):
 
@@ -38,6 +39,20 @@ over `tools/oracle/config-fixtures/` and compares. Captured result (receipts und
 
   This phrasing is produced by `Diagnostic::chrony_message()` and pinned by
   `diagnostics_match_witnessed_chrony_4_5_messages` in `config/parser.rs`.
+
+## Directive recognition — ORACLE-WITNESSED
+
+`tools/oracle/directive-recognition.sh` probes every keyword in chrony-rs's
+`KNOWN_DIRECTIVES` against `chronyd -p` (an unknown keyword yields "Invalid
+directive"; a known one yields a different error). Result: **all 82 entries are
+recognized by chrony 4.5** (receipt: `reports/oracle/config/directive-recognition.md`).
+
+This harness caught **five fabricated entries** in chrony-rs's original list —
+guessed NTS names (`ntsca`, `ntscert`, `ntskey`) and nonexistent `open_commands`
+/`ntpcache` — and the correct names (`ntsservercert`, `ntsserverkey`,
+`ntstrustedcerts`, `ntscachedir`, `sourcedir`, `cmdratelimit`, `refresh`) were
+learned from the oracle. The set is now measured, not guessed, and pinned by
+`known_directive_set_is_oracle_anchored_to_chrony_4_5` in `config/parser.rs`.
 
 ### Admitted divergence (documented, not hidden)
 
@@ -62,9 +77,11 @@ resident; the steps are in `tools/oracle/` for when one is available.
 ## Reproducing
 
 ```sh
-sudo apt-get install -y chrony          # provides the 4.5 oracle here
-bash tools/oracle/capture-config.sh     # exits non-zero on any accept/reject disagreement
+sudo apt-get install -y chrony              # provides the 4.5 oracle here
+bash tools/oracle/capture-config.sh         # accept/reject + diagnostic differential
+bash tools/oracle/directive-recognition.sh  # KNOWN_DIRECTIVES vs chrony's recognized set
 ```
+Both exit non-zero on any disagreement.
 
 Receipts land under `reports/oracle/config/` (a per-fixture `.receipt` and
 `SUMMARY.md`).

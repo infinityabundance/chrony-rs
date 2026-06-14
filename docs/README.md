@@ -11,6 +11,7 @@ preserves the reasoning, courts, and ecology maps.
 | [compatibility.md](compatibility.md) | the court matrix — what is admitted and its evidence |
 | [oracle.md](oracle.md) | oracle strategy + witnessed chrony 4.5 results; what was environmental |
 | [version-lineage.md](version-lineage.md) | declared target version and the gap to newer chrony |
+| [distro-defaults.md](distro-defaults.md) | shipped distro configs witnessed (Ubuntu 24.04) |
 | [deployment-boundary.md](deployment-boundary.md) | the Stage 0–9 ladder and current position |
 | [negative-capabilities.md](negative-capabilities.md) | what is deliberately not done yet |
 | [source-archaeology.md](source-archaeology.md) | chrony semantics → C source → chrony-rs module |
@@ -25,7 +26,7 @@ preserves the reasoning, courts, and ecology maps.
 
 `time-discipline-atlas.md`, `slew-step-atlas.md`, `drift-atlas.md`,
 `nts-atlas.md`, `refclock-atlas.md`, `os-clock-ecology.md`,
-`privilege-boundary.md`, `vendor-ecology.md`, `distro-defaults.md`,
+`privilege-boundary.md`, `vendor-ecology.md`,
 `operational-knowledge.md`, `porting-lessons.md`.
 
 These are written as their campaigns begin; an empty promise here is preferable to

@@ -16,7 +16,7 @@ where chrony policy differs from generic protocol truth.
 |---------|--------|
 | NTP packet decode/encode (48-byte header) | byte-roundtrip courts `CHRONY.PACKET.1–.13` (subset admitted) |
 | NTP timestamp / short fixed-point types | bit-exact roundtrip |
-| chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; **oracle-witnessed against chrony 4.5** — 7/7 accept/reject agreement + exact diagnostic phrasing for 5 error classes |
+| chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; **oracle-witnessed against chrony 4.5** — 8/8 accept/reject agreement (incl. Ubuntu default) + exact phrasing for 5 error classes; 82-directive set oracle-anchored |
 | `chronyc tracking` output layout | byte-stable layout court `CHRONYC.1` (offline render) |
 | Deterministic trace schema (`chrony-rs-trace-v1`) | parse + structural validation |
 | `chronyd-rs --replay` | **deterministic replay** through a simulated clock; reproducible decision-log hash + pinned-hash regression check (chrony selection/discipline policy not yet applied) |
@@ -30,7 +30,7 @@ Run:
 
 ```sh
 cargo build
-cargo test                                    # 72 tests, deterministic
+cargo test                                    # 73 tests, deterministic
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>
