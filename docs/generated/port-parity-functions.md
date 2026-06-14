@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 70 / 1373 C functions have a direct counterpart (5.1%).** The other 1303 are gaps.
+**Overall: 71 / 1373 C functions have a direct counterpart (5.2%).** The other 1302 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -26,6 +26,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `cmdparse.c` | 8 | 7 | 1 | 87.5% |
 | `regress.c` | 11 | 5 | 6 | 45.5% |
+| `nameserv.c` | 4 | 1 | 3 | 25.0% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 9 | 67 | 11.8% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
@@ -48,7 +49,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `logging.c` | 17 | 0 | 17 | 0.0% |
 | `manual.c` | 11 | 0 | 11 | 0.0% |
 | `memory.c` | 6 | 0 | 6 | 0.0% |
-| `nameserv.c` | 4 | 0 | 4 | 0.0% |
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
 | `ntp_auth.c` | 17 | 0 | 17 | 0.0% |
 | `ntp_ext.c` | 6 | 0 | 6 | 0.0% |
@@ -157,6 +157,13 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `find_median`
 - ✓ `find_ordered_entry_with_flags`
 - · `n_runs_from_residuals`
+
+### `nameserv.c` — 1/4 (25.0%)
+
+- · `DNS_IPAddress2Name`
+- ✓ `DNS_Name2IPAddress`
+- · `DNS_Reload`
+- · `DNS_SetAddressFamily`
 
 ### `client.c` — 13/90 (14.4%)
 

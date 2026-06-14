@@ -26,9 +26,15 @@ archive (`docs/`, `reports/`, and — as campaigns land — `research/`).
 | `report` | `chronyc` output rendering (`tracking` today) | byte (output) |
 | `trace` | `chrony-rs-trace-v1` schema + structural validation | foundation |
 
-Everything in `core` is total and side-effect-free: no file I/O, no sockets, no
-clock reads. That keeps the unit tests deterministic and lets the same code run
-under a simulated clock during replay.
+Everything in `core` is total and side-effect-free — no file I/O, no sockets, no
+clock reads — **with one documented exception**: [`nameserv`](../crates/chrony-rs-core/src/nameserv.rs)
+performs hostname resolution via the system resolver (`getaddrinfo`), because
+chrony's `allow`/`deny` parsing (`CPS_ParseAllowDeny`) resolves hostnames and that
+branch is ported rather than deferred. Resolution is the single non-deterministic,
+network-capable entry point; it is isolated in that one module, clearly labelled,
+and nothing on the pure path calls it (its tests use only `localhost`/`.invalid`).
+The rest of `core` stays deterministic, which keeps the unit tests reproducible and
+lets the same code run under a simulated clock during replay.
 
 ## Trait boundaries (planned)
 

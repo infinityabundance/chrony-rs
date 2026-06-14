@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 16 / 70 (3 full, 9 partial, 4 scaffold); **54** have none.
+- **Files with any chrony-rs counterpart:** 17 / 70 (3 full, 10 partial, 4 scaffold); **53** have none.
 - **Files fully ported:** 3 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 605 / 1373 C functions (44.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Loose upper bound on function coverage:** files with a counterpart contain 609 / 1373 C functions (44.4%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 289 named functions + 39 closures across 30 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 292 named functions + 40 closures across 31 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -50,7 +50,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `manual.c` | 11 | 0.0% | manual time input (settime) | — | · none |
 | `md5.c` | 4 | 100.0% | MD5 digest (RFC 1321 reference, NTP symmetric-key auth) | `md5.rs` | ● full |
 | `memory.c` | 6 | 0.0% | xmalloc/xrealloc wrappers | — | · none |
-| `nameserv.c` | 4 | 0.0% | synchronous DNS resolution | — | · none |
+| `nameserv.c` | 4 | 25.0% | synchronous DNS resolution | `nameserv.rs` | ◑ partial |
 | `nameserv_async.c` | 0 | 0.0% | async DNS resolution | — | · none |
 | `ntp_auth.c` | 17 | 0.0% | NTP authentication (MAC/NTS dispatch) | — | · none |
 | `ntp_core.c` | 69 | 2.9% | NTP protocol engine: poll, process-response, offset/delay (NCR_*) | `ntp/measurements.rs`<br>`ntp/packet.rs` | ◑ partial |
@@ -102,7 +102,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 ## Coverage notes (files with a counterpart)
 
 - **`conf.c`** — directive recognition (93/93), comment rules, diagnostics witnessed vs 4.5; per-directive value semantics partial _(≈33 Rust `fn` in mapped modules)_
-- **`cmdparse.c`** — 7/8: source options + word split/normalize/refid/key + allow-deny parse (drives addrfilt, end-to-end vs `chronyc accheck`; DNS hostname branch deferred); only ParseLocal (float sscanf) is a gap _(≈33 Rust `fn` in mapped modules)_
+- **`cmdparse.c`** — 7/8: source options + word split/normalize/refid/key + full allow-deny parse (incl. DNS hostname via nameserv; drives addrfilt end-to-end vs `chronyc accheck`); only ParseLocal (float sscanf) is a gap _(≈33 Rust `fn` in mapped modules)_
 - **`ntp_core.c`** — RFC 5905 §8 offset/delay algebra + 48-byte header codec; poll state machine not ported _(≈23 Rust `fn` in mapped modules)_
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
 - **`pktlength.c`** — length checks partial via the codec _(≈14 Rust `fn` in mapped modules)_
@@ -117,6 +117,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`util.c`** — pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not _(≈37 Rust `fn` in mapped modules)_
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
+- **`nameserv.c`** — DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported _(≈3 Rust `fn` in mapped modules)_
 
 ## What "partial"/"scaffold" deliberately does not mean
 

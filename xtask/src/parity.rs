@@ -81,7 +81,7 @@ const MAP: &[Row] = &[
         port: Port::Partial, note: "directive recognition (93/93), comment rules, diagnostics witnessed vs 4.5; per-directive value semantics partial" },
     Row { c: "cmdparse.c", role: "command/config line parsing (CPS_*)",
         rust: &["config/parser.rs", "cmdparse.rs"], port: Port::Partial,
-        note: "7/8: source options + word split/normalize/refid/key + allow-deny parse (drives addrfilt, end-to-end vs `chronyc accheck`; DNS hostname branch deferred); only ParseLocal (float sscanf) is a gap" },
+        note: "7/8: source options + word split/normalize/refid/key + full allow-deny parse (incl. DNS hostname via nameserv; drives addrfilt end-to-end vs `chronyc accheck`); only ParseLocal (float sscanf) is a gap" },
 
     // ---- NTP protocol ----
     Row { c: "ntp_core.c", role: "NTP protocol engine: poll, process-response, offset/delay (NCR_*)",
@@ -199,7 +199,8 @@ const MAP: &[Row] = &[
     Row { c: "addrfilt.c", role: "NTP/cmd access-control subnet trie (ADF_*)",
         rust: &["addrfilt.rs"], port: Port::Full,
         note: "complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5" },
-    Row { c: "nameserv.c", role: "synchronous DNS resolution", rust: &[], port: Port::None, note: "" },
+    Row { c: "nameserv.c", role: "synchronous DNS resolution", rust: &["nameserv.rs"], port: Port::Partial,
+        note: "DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported" },
     Row { c: "nameserv_async.c", role: "async DNS resolution", rust: &[], port: Port::None, note: "not in Linux preprocessing (0 fns)" },
     Row { c: "clientlog.c", role: "client access log / rate limiting", rust: &[], port: Port::None, note: "" },
     Row { c: "manual.c", role: "manual time input (settime)", rust: &[], port: Port::None, note: "" },
@@ -267,6 +268,7 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
         ],
     ),
     ("main.c", &["main"]),
+    ("nameserv.c", &["DNS_Name2IPAddress"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     (
         "regress.c",

@@ -36,6 +36,7 @@ pub mod cmdparse;
 pub mod config;
 pub mod hash;
 pub mod md5;
+pub mod nameserv;
 pub mod ntp;
 pub mod quantiles;
 pub mod regress;
