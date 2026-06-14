@@ -6,12 +6,29 @@ Behavior court for chrony configuration parsing. Implemented in
 ## Grammar reproduced
 
 chrony configs are line-oriented: each non-blank, non-comment line is a directive
-keyword followed by whitespace-separated arguments. Key fidelity points:
+keyword followed by whitespace-separated arguments. Key fidelity points (all
+witnessed against chrony 4.5):
 
 - Directive keywords match **case-insensitively** (chrony uses `strcasecmp`).
-- `#` begins a comment **only at a token boundary**; `host#1` keeps the `#1`.
+- A line is a **comment only when its first non-whitespace character** is one of
+  `# % ! ;` — **not** mid-line. `server host iburst # primary` is an *error*
+  (chrony parses `#` as an argument), and `host#1` keeps the `#1`. An earlier
+  lexer stripped mid-line `#` and silently accepted configs chrony rejects; the
+  oracle caught it. See `config::lexer::COMMENT_CHARS`.
 - Leading whitespace is insignificant; blank/comment-only lines yield nothing.
 - Directive **order is preserved** — later single-valued directives win.
+- The recognized directive set is **93 entries**, extracted from `conf.c` and
+  oracle-verified (see "Recognized vs modeled" below).
+
+## Source-directive options (1:1 with chrony 4.5)
+
+`server`/`pool`/`peer` options are validated exactly as
+`cmdparse.c::CPS_ParseNTPSourceAdd` does: flag options consume nothing, value
+options consume one word, and any **unknown option** (or value option missing its
+value) is rejected as `Could not parse <kw> directive` — matching chrony. The
+flag/value/select option tables are extracted from the C source
+(`research/source-archaeology/`) and exposed via
+`config::source_flag_options()` / `source_value_options()`.
 
 ## Recognized vs modeled
 
@@ -26,7 +43,7 @@ Two distinct sets, deliberately kept apart:
 An **unknown** directive (not in the recognized set) is a fatal error
 (`CFG_UNKNOWN_DIRECTIVE`), matching chrony's rejection.
 
-The recognized set (`KNOWN_DIRECTIVES`, 82 entries) is **oracle-anchored to chrony
+The recognized set (`KNOWN_DIRECTIVES`, 93 entries) is **oracle-anchored to chrony
 4.5**: every entry is verified recognized by `chronyd -p` via
 `tools/oracle/directive-recognition.sh`. The oracle caught five fabricated entries
 in the original hand-written list — see `oracle.md`.

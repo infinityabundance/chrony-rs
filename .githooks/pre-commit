@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# chrony-rs pre-commit gate: refuse the commit if generated docs are stale.
+#
+# Enforces the "no stale generated docs" doctrine: docs/generated/* is produced
+# from the code by `cargo xtask gen`, and this hook fails the commit if those
+# files (or the documented `unsafe` count) no longer match what the code says.
+#
+# Activate in a fresh clone with:
+#     git config core.hooksPath .githooks
+#
+# Bypass in an emergency with `git commit --no-verify` (and then fix it).
+set -euo pipefail
+
+# Run from the repo root so cargo finds the workspace regardless of CWD.
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if ! command -v cargo >/dev/null 2>&1; then
+    echo "pre-commit: cargo not found; cannot verify doc freshness." >&2
+    echo "pre-commit: install Rust or bypass with 'git commit --no-verify'." >&2
+    exit 1
+fi
+
+if ! cargo xtask check; then
+    echo >&2
+    echo "pre-commit: generated docs are stale. Run 'cargo xtask gen' and stage the result." >&2
+    exit 1
+fi

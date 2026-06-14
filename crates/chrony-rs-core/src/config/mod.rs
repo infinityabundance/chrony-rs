@@ -29,4 +29,6 @@ pub mod parser;
 
 pub use diagnostics::{Diagnostic, Severity};
 pub use model::{Config, Directive, ServerKind, SourceDirective};
-pub use parser::{parse, ParseOutput};
+pub use parser::{
+    known_directives, parse, source_flag_options, source_value_options, ParseOutput,
+};

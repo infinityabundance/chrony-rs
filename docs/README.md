@@ -7,6 +7,7 @@ preserves the reasoning, courts, and ecology maps.
 
 | Doc | Purpose |
 |-----|---------|
+| [generated/status.md](generated/status.md) | **machine-generated** facts (`cargo xtask gen`); freshness-gated |
 | [architecture.md](architecture.md) | workspace layout, trait boundaries, design rationale |
 | [compatibility.md](compatibility.md) | the court matrix — what is admitted and its evidence |
 | [oracle.md](oracle.md) | oracle strategy + witnessed chrony 4.5 results; what was environmental |
@@ -31,3 +32,13 @@ preserves the reasoning, courts, and ecology maps.
 
 These are written as their campaigns begin; an empty promise here is preferable to
 a stale doc, so they are listed but not stubbed.
+
+## Freshness gate
+
+Machine-derivable facts (target version, the 93-directive set, source-option
+tables, `unsafe` count, oracle fixture inventory) live in
+[`generated/status.md`](generated/status.md), produced by `cargo xtask gen` from
+the code — the single source of truth. The pre-commit hook (`.githooks/pre-commit`,
+activate with `git config core.hooksPath .githooks`) runs `cargo xtask check` and
+**refuses any commit whose generated docs are stale** or whose documented `unsafe`
+count is wrong. This is the "no stale generated docs" doctrine, enforced.

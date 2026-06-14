@@ -59,11 +59,33 @@ crates/
   chrony-rs-core   deterministic time-discipline brain (no host clock, no sockets)
   chronyd-rs       daemon/replay binary (lab & offline modes only)
   chronyc-rs       control client & output-parity tool
+xtask              doc generation + freshness gating (cargo xtask gen|check)
 ```
 
 Host mutation (clock, sockets, privileges) is kept behind narrow trait boundaries
 so the brain is testable without the real system clock. See
 [`docs/architecture.md`](docs/architecture.md).
+
+## Generated docs & freshness gate
+
+Machine-derivable facts (target chrony version, the 93-directive recognition set,
+source-option tables, `unsafe` count, oracle fixtures) are generated from the code
+into [`docs/generated/`](docs/generated/) by `cargo xtask gen`. A pre-commit hook
+runs `cargo xtask check` and rejects any commit whose generated docs are stale —
+nothing documented can silently drift from the code. Activate the hook with:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+## Source archaeology
+
+The chrony 4.5 C source is the structural oracle. Its directive dispatch
+(`conf.c`) and source-option tables (`cmdparse.c`) were extracted by Doxygen-style
+indexing and diffed against chrony-rs — see [`research/`](research/) and
+[`docs/source-archaeology.md`](docs/source-archaeology.md). That diff plus the
+live `chronyd -p` oracle is how the config surface reached 1:1: 93/93 directives
+recognized, exact diagnostics, and source-option validation matching chrony.
 
 ## Doctrine
 

@@ -37,32 +37,55 @@ impl ParseOutput {
 /// *recognition* only — being on it does not imply chrony-rs models the
 /// directive's behavior.
 ///
-/// **Oracle-anchored to chrony 4.5.** Every entry was verified to be recognized
-/// by `chronyd -p` via `tools/oracle/directive-recognition.sh`; the witnessed
-/// count is pinned by a test below. The oracle previously caught five *fabricated*
-/// entries here (guessed NTS names + a nonexistent `open_commands`/`ntpcache`),
-/// which is exactly why the set is measured, not guessed. Adding a keyword is a
-/// version-anchored change tied to `docs/version-lineage.md` and must be
+/// **Extracted from chrony 4.5 `conf.c`** (the complete `strcasecmp(command, …)`
+/// dispatch, 93 entries) and cross-checked with `chronyd -p` via
+/// `tools/oracle/directive-recognition.sh`. The witnessed count is pinned by a
+/// test below. The set was built in two passes the oracle/source archaeology
+/// drove: first the oracle caught five *fabricated* entries (guessed NTS names,
+/// `open_commands`, `ntpcache`); then doxygen-style extraction of `conf.c` found
+/// eleven *missing* ones (the `bind*device`, `linux_*`, `commandkey`/
+/// `generatecommandkey` compat directives, `ptpport`, etc.). Measured, not
+/// guessed. Adding a keyword is a version-anchored change tied to
+/// `docs/version-lineage.md` and `docs/source-archaeology.md`, and must be
 /// re-witnessed.
 const KNOWN_DIRECTIVES: &[&str] = &[
-    "acquisitionport", "allow", "authselectmode", "bindacqaddress", "bindaddress", "bindcmdaddress",
-    "broadcast", "clientloglimit", "cmdallow", "cmddeny", "cmdport", "cmdratelimit",
-    "combinelimit", "confdir", "corrtimeratio", "deny", "driftfile", "dscp",
-    "dumpdir", "dumponexit", "fallbackdrift", "hwclockfile", "hwtimestamp", "include",
-    "initstepslew", "keyfile", "leapsecmode", "leapsectz", "local", "lock_all",
-    "log", "logbanner", "logchange", "logdir", "mailonchange", "makestep",
-    "manual", "maxchange", "maxclockerror", "maxdistance", "maxdrift", "maxjitter",
-    "maxntsconnections", "maxsamples", "maxslewrate", "maxupdateskew", "minsamples", "minsources",
-    "nocerttimecheck", "noclientlog", "ntpsigndsocket", "ntscachedir", "ntsdumpdir", "ntsntpserver",
-    "ntsport", "ntsprocesses", "ntsratelimit", "ntsrefresh", "ntsrotate", "ntsservercert",
-    "ntsserverkey", "ntstrustedcerts", "peer", "pidfile", "pool", "port",
-    "ratelimit", "refclock", "refresh", "reselectdist", "rtcautotrim", "rtcdevice",
-    "rtcfile", "rtconutc", "rtcsync", "sched_priority", "server", "smoothtime",
-    "sourcedir", "stratumweight", "tempcomp", "user",
+    "acquisitionport", "allow", "authselectmode", "bindacqaddress", "bindacqdevice", "bindaddress",
+    "bindcmdaddress", "bindcmddevice", "binddevice", "broadcast", "clientloglimit", "clockprecision",
+    "cmdallow", "cmddeny", "cmdport", "cmdratelimit", "combinelimit", "commandkey",
+    "confdir", "corrtimeratio", "deny", "driftfile", "dscp", "dumpdir",
+    "dumponexit", "fallbackdrift", "generatecommandkey", "hwclockfile", "hwtimestamp", "hwtstimeout",
+    "include", "initstepslew", "keyfile", "leapsecmode", "leapsectz", "linux_freq_scale",
+    "linux_hz", "local", "lock_all", "log", "logbanner", "logchange",
+    "logdir", "mailonchange", "makestep", "manual", "maxchange", "maxclockerror",
+    "maxdistance", "maxdrift", "maxjitter", "maxntsconnections", "maxsamples", "maxslewrate",
+    "maxupdateskew", "minsamples", "minsources", "nocerttimecheck", "noclientlog", "nosystemcert",
+    "ntpsigndsocket", "ntscachedir", "ntsdumpdir", "ntsntpserver", "ntsport", "ntsprocesses",
+    "ntsratelimit", "ntsrefresh", "ntsrotate", "ntsservercert", "ntsserverkey", "ntstrustedcerts",
+    "peer", "pidfile", "pool", "port", "ptpport", "ratelimit",
+    "refclock", "refresh", "reselectdist", "rtcautotrim", "rtcdevice", "rtcfile",
+    "rtconutc", "rtcsync", "sched_priority", "server", "smoothtime", "sourcedir",
+    "stratumweight", "tempcomp", "user",
 ];
 
 fn is_known_directive(keyword: &str) -> bool {
     KNOWN_DIRECTIVES.contains(&keyword)
+}
+
+/// The oracle-anchored directive recognition set (chrony 4.5). Exposed so the
+/// doc generator (`xtask`) renders the list from the *source of truth*, making it
+/// impossible for the documented set to drift from the code.
+pub fn known_directives() -> &'static [&'static str] {
+    KNOWN_DIRECTIVES
+}
+
+/// Source (`server`/`pool`/`peer`) options that take no value. See `parse_source`.
+pub fn source_flag_options() -> &'static [&'static str] {
+    SOURCE_FLAG_OPTS
+}
+
+/// Source options that consume one value argument. See `parse_source`.
+pub fn source_value_options() -> &'static [&'static str] {
+    SOURCE_VALUE_OPTS
 }
 
 /// Parse a full chrony config file.
@@ -124,6 +147,25 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
     }
 }
 
+/// Source options that take **no** value. Extracted verbatim from chrony 4.5
+/// `cmdparse.c::CPS_ParseNTPSourceAdd` (the boolean branches) plus the select
+/// options from `CPS_GetSelectOption`. See `docs/source-archaeology.md`.
+const SOURCE_FLAG_OPTS: &[&str] = &[
+    "auto_offline", "burst", "copy", "iburst", "offline", "nts", "xleave",
+    // select options (CPS_GetSelectOption):
+    "noselect", "prefer", "require", "trust",
+];
+
+/// Source options that consume exactly **one** value argument. Extracted from the
+/// `cmdparse.c::CPS_ParseNTPSourceAdd` branches that read a following word and
+/// `return 0` (error) when it is missing.
+const SOURCE_VALUE_OPTS: &[&str] = &[
+    "certset", "key", "asymmetry", "extfield", "filter", "maxdelay", "maxdelayratio",
+    "maxdelaydevratio", "maxdelayquant", "maxpoll", "maxsamples", "maxsources", "mindelay",
+    "minpoll", "minsamples", "minstratum", "ntsport", "offset", "port", "polltarget",
+    "presend", "version",
+];
+
 fn parse_source(kind: ServerKind, line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
     let kw = match kind {
         ServerKind::Server => "server",
@@ -153,43 +195,70 @@ fn parse_source(kind: ServerKind, line_no: usize, args: Vec<String>, out: &mut P
         raw_options: Vec::new(),
     };
 
-    // chrony options are a flat list of flags and key/value pairs after the
-    // address. We model the common, well-understood ones and preserve the rest.
+    // Validate options exactly as chrony does: a flag option consumes nothing, a
+    // value option consumes one following word, and ANY unrecognized option (or a
+    // value option missing its value) makes chrony's parser `return 0`, which
+    // conf.c reports as "Could not parse <kw> directive". We reproduce that — an
+    // earlier version silently kept unknown options, which the oracle flagged as a
+    // divergence (`server host iburst # primary` must be rejected, not accepted).
     while let Some(opt) = iter.next() {
-        match opt.as_str() {
-            "iburst" => src.iburst = true,
-            "burst" => src.burst = true,
-            "minpoll" => parse_poll_opt(line_no, "minpoll", &mut iter, &mut src.minpoll, out),
-            "maxpoll" => parse_poll_opt(line_no, "maxpoll", &mut iter, &mut src.maxpoll, out),
-            _ => src.raw_options.push(opt),
+        let lc = opt.to_ascii_lowercase();
+        if SOURCE_FLAG_OPTS.contains(&lc.as_str()) {
+            match lc.as_str() {
+                "iburst" => src.iburst = true,
+                "burst" => src.burst = true,
+                _ => src.raw_options.push(opt), // recognized flag, not yet modeled
+            }
+        } else if SOURCE_VALUE_OPTS.contains(&lc.as_str()) {
+            let Some(value) = iter.next() else {
+                // chrony: missing value → return 0 → "Could not parse <kw> directive".
+                out.diagnostics
+                    .push(source_parse_error(line_no, kw, format!("{opt} requires a value")));
+                return;
+            };
+            // minpoll/maxpoll are modeled as integers; chrony also rejects a
+            // non-integer here (its number parse fails → return 0).
+            match lc.as_str() {
+                "minpoll" | "maxpoll" => match value.parse::<i32>() {
+                    Ok(n) => {
+                        if lc == "minpoll" {
+                            src.minpoll = Some(n);
+                        } else {
+                            src.maxpoll = Some(n);
+                        }
+                    }
+                    Err(_) => {
+                        out.diagnostics.push(source_parse_error(
+                            line_no,
+                            kw,
+                            format!("{opt} expects an integer, found '{value}'"),
+                        ));
+                        return;
+                    }
+                },
+                _ => {
+                    // recognized value option, not yet modeled: preserve both tokens.
+                    src.raw_options.push(opt);
+                    src.raw_options.push(value);
+                }
+            }
+        } else {
+            // Unknown option — chrony rejects the whole directive here.
+            out.diagnostics
+                .push(source_parse_error(line_no, kw, format!("unknown option '{opt}'")));
+            return;
         }
     }
 
     out.config.directives.push((line_no, Directive::Source(src)));
 }
 
-fn parse_poll_opt(
-    line_no: usize,
-    name: &str,
-    iter: &mut std::vec::IntoIter<String>,
-    slot: &mut Option<i32>,
-    out: &mut ParseOutput,
-) {
-    match iter.next() {
-        Some(v) => match v.parse::<i32>() {
-            Ok(n) => *slot = Some(n),
-            Err(_) => out.diagnostics.push(Diagnostic::error(
-                line_no,
-                "CFG_BAD_NUMBER",
-                format!("{name} expects an integer, found '{v}'"),
-            )),
-        },
-        None => out.diagnostics.push(Diagnostic::error(
-            line_no,
-            "CFG_MISSING_VALUE",
-            format!("{name} requires a value"),
-        )),
-    }
+/// Build the diagnostic chrony emits for any failure inside a source directive.
+/// chrony has a single message for all of them — "Could not parse <kw> directive"
+/// — so the code is uniform (`CFG_BAD_NUMBER` keeps `chrony_message()` mapping to
+/// that exact wording).
+fn source_parse_error(line_no: usize, kw: &str, detail: String) -> Diagnostic {
+    Diagnostic::error(line_no, "CFG_BAD_NUMBER", format!("{kw}: {detail}")).for_directive(kw)
 }
 
 fn parse_driftfile(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
@@ -316,7 +385,7 @@ rtcsync
         // by `chronyd -p` in chrony 4.5 (tools/oracle/directive-recognition.sh).
         // Pin the count and a few entries the oracle specifically corrected, so a
         // regression toward fabricated directives is caught.
-        assert_eq!(KNOWN_DIRECTIVES.len(), 82, "witnessed chrony 4.5 directive count");
+        assert_eq!(KNOWN_DIRECTIVES.len(), 93, "full chrony 4.5 conf.c directive count");
         // Previously-fabricated names that chrony 4.5 rejects must NOT reappear.
         for bogus in ["ntsca", "ntscert", "ntskey", "ntpcache", "open_commands"] {
             assert!(!is_known_directive(bogus), "{bogus} is not a chrony 4.5 directive");

@@ -1,0 +1,3 @@
+# Make `cargo xtask ...` invoke the automation crate (the conventional pattern).
+[alias]
+xtask = "run --package xtask --quiet --"

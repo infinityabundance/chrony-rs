@@ -1,0 +1,11 @@
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Build/automation tasks for chrony-rs: documentation generation and freshness gating."
+
+[dependencies]
+chrony-rs-core = { path = "../crates/chrony-rs-core" }

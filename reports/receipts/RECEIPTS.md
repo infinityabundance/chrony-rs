@@ -16,8 +16,8 @@ the hashes/results below are unchanged. A diff is a real regression, not noise.
 
 Oracle: `chronyd (chrony) version 4.5 (+CMDMON +NTP +REFCLOCK +RTC +PRIVDROP +SCFILTER +SIGND +ASYNCDNS +NTS +SECHASH +IPV6 -DEBUG)`
 
-Differential `chronyd -p` vs `chronyd-rs --check-config` over 7 config fixtures:
-**0 accept/reject disagreements**, exact diagnostic phrasing for 5 error classes.
+Differential `chronyd -p` vs `chronyd-rs --check-config` over 14 config fixtures:
+**0 accept/reject disagreements**, exact diagnostic phrasing for 5 error classes; 93/93 directives recognized.
 Per-fixture receipts and table: `reports/oracle/config/` (SUMMARY.md + *.receipt).
 
 ## Test suite

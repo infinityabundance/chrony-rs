@@ -24,7 +24,7 @@ oracle for config acceptance and diagnostics.
 over `tools/oracle/config-fixtures/` and compares. Captured result (receipts under
 `reports/oracle/config/`):
 
-- **8/8 fixtures agree on accept/reject** with chrony 4.5 — 0 disagreements
+- **14/14 fixtures agree on accept/reject** with chrony 4.5 — 0 disagreements
   (including the real Ubuntu 24.04 default config; see `distro-defaults.md`).
 - chrony-rs reproduces chrony 4.5's **exact diagnostic phrasing** (normalized for
   the host-specific timestamp prefix and absolute path):
@@ -44,7 +44,7 @@ over `tools/oracle/config-fixtures/` and compares. Captured result (receipts und
 
 `tools/oracle/directive-recognition.sh` probes every keyword in chrony-rs's
 `KNOWN_DIRECTIVES` against `chronyd -p` (an unknown keyword yields "Invalid
-directive"; a known one yields a different error). Result: **all 82 entries are
+directive"; a known one yields a different error). Result: **all 93 entries are
 recognized by chrony 4.5** (receipt: `reports/oracle/config/directive-recognition.md`).
 
 This harness caught **five fabricated entries** in chrony-rs's original list —

@@ -9,12 +9,29 @@ the excavation campaign, not yet completed findings.
 > line number, because line numbers drift across versions. Version-anchored
 > findings belong in `version-lineage.md`.
 
+## Doxygen method
+
+The chrony 4.5 source is indexed with Doxygen (~310 entities; `conf.c` alone has
+~135 functions). The index is regenerable, not vendored — see
+`research/doxygen/README.md`. Diffing the C surface against chrony-rs is how the
+recognition/option tables were made exact:
+
+- The **config directive set** was extracted from `conf.c`'s `strcasecmp(command,
+  …)` dispatch (93 entries) and diffed against `KNOWN_DIRECTIVES`. The diff found
+  **11 directives chrony-rs was missing**; an earlier `chronyd -p` oracle sweep had
+  found **5 fabricated** entries. Net: a measured 93-entry set, 1:1 with chrony 4.5.
+- The **source-option tables** (`server`/`pool`/`peer`) came from
+  `cmdparse.c::CPS_ParseNTPSourceAdd` and `CPS_GetSelectOption`.
+- The **comment characters** (`# % ! ;`, line-start only) came from `conf.c`.
+
+Extracted tables and provenance: `research/source-archaeology/`.
+
 ## Archaeology index (`CHRONY.ARCHAEOLOGY.*`)
 
 | ID | Map | Status |
 |----|-----|--------|
-| 1 | source file map | partial (below) |
-| 2 | call graph | planned |
+| 1 | source file map | partial (below) + Doxygen index (`research/doxygen/`) |
+| 2 | call graph | Doxygen XML available; map planned |
 | 3 | global state atlas | planned |
 | 4 | event loop map | planned |
 | 5 | source-selection flow map | planned |
@@ -30,8 +47,9 @@ the excavation campaign, not yet completed findings.
 
 | Behavior | chrony C role | chrony-rs location |
 |----------|---------------|--------------------|
-| config parsing | `conf.c` (directive dispatch table) | `config/parser.rs` |
-| config tokenizing | `getword`-style splitting, `cmdparse.c` | `config/lexer.rs` |
+| config parsing | `conf.c` (`CNF_ParseLine` dispatch, 93 directives) | `config/parser.rs` |
+| config tokenizing | `conf.c` line handling; comment chars `# % ! ;` | `config/lexer.rs` |
+| source options | `cmdparse.c::CPS_ParseNTPSourceAdd`, `CPS_GetSelectOption` | `config/parser.rs::parse_source` |
 | NTP packet decode/encode | `ntp_io.c` / `ntp_core.c` packet structs | `ntp/packet.rs` |
 | NTP timestamps | `ntp.h` `NTP_int64`, `ntp_core.c` | `ntp/timestamp.rs` |
 | offset/delay measurement | `ntp_core.c` (`NCR_ProcessResponse`) | `ntp/measurements.rs` (RFC 5905 §8 algebra) |

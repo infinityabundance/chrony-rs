@@ -30,9 +30,11 @@ corresponding court and evidence to exist first.
 
 ## Config
 
-- **Recognized ≠ modeled.** All known chrony directives are *recognized* (so a
-  valid file passes `--check-config`), but only a small subset is given typed
-  semantics. Unmodeled directives are preserved, not executed.
+- **Recognized ≠ modeled.** All 93 chrony 4.5 directives are *recognized* (so a
+  valid file passes `--check-config`) and `server`/`pool`/`peer` *options* are
+  validated 1:1 (unknown options rejected as chrony does), but only a small subset
+  of directives is given typed *semantics*. Unmodeled directives are preserved,
+  not executed.
 - **No `include`/`confdir` expansion.** Recognized as keywords, not followed.
 - **No exact diagnostic-text parity** beyond what `config-atlas.md` admits;
   messages are normalized until witnessed against the oracle.

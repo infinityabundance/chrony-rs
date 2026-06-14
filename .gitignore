@@ -10,3 +10,8 @@ Cargo.lock.orig
 /fuzz/corpus
 /fuzz/artifacts
 *.vmlog
+
+# Doxygen output is regenerable (research/doxygen/README.md), not vendored
+/research/doxygen/output
+chrony-*/
+*.doxyfile

@@ -4,6 +4,7 @@ members = [
     "crates/chrony-rs-core",
     "crates/chronyd-rs",
     "crates/chronyc-rs",
+    "xtask",
 ]
 
 [workspace.package]
