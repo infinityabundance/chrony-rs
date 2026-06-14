@@ -1,6 +1,6 @@
 {
   "trace_schema": "chrony-rs-trace-v1",
-  "chrony_version": "4.6",
+  "chrony_version": "4.5",
   "platform": "x86_64-linux",
   "kernel": "6.18.5",
   "config_sha256": "0000000000000000000000000000000000000000000000000000000000000000",

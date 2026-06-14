@@ -6,7 +6,7 @@ previous stage's evidence exists. Skipping stages is forbidden.
 | Stage | Description | Status |
 |------:|-------------|--------|
 | 0 | Archaeology only — source/design maps, no daemon claim | in progress |
-| 1 | Config/control tools — `--check-config`, `chronyc`-compatible output where admitted | **current** |
+| 1 | Config/control tools — `--check-config`, `chronyc`-compatible output where admitted | **current** — config diagnostics now **oracle-witnessed against chrony 4.5** (see `oracle.md`) |
 | 2 | Packet engine — NTP encode/decode byte parity, hostile-input safe | **current** |
 | 3 | Trace replay — deterministic chronyd trace replay (simulated clock/network) | **partial** — runner executes events deterministically; chrony selection/discipline policy not yet applied |
 | 4 | Source-selection brain — accepted/rejected samples & source decisions match admitted traces | **partial** — reachability + selectability + falseticker intersection built & unit-tested (algorithmic, not yet oracle-witnessed or fed by real measurements) |

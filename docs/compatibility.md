@@ -4,7 +4,8 @@ The single source of truth for what `chrony-rs` claims, and the evidence behind
 each claim. A behavior is "admitted" only if it appears here with a court and a
 reproducible test or receipt.
 
-- **Target oracle:** chrony 4.6 (`TARGET_CHRONY_VERSION`).
+- **Target oracle:** chrony 4.5 (`TARGET_CHRONY_VERSION`) — the version we can
+  actually run and witness here. See `oracle.md` and `version-lineage.md`.
 - **Trace schema:** `chrony-rs-trace-v1`.
 - **Evidence:** unit/CLI tests in-tree; byte receipts under `reports/`.
 
@@ -21,6 +22,7 @@ reproducible test or receipt.
 | (timestamp) | NTP timestamp/short fixed-point bit-exact roundtrip | `ntp/timestamp.rs` tests |
 | CHRONY.CONFIG.2/.3/.7/.8/.12 (subset) | comment/blank handling; server/pool/peer; makestep; driftfile; unknown-directive error | `config/*` tests |
 | CHRONY.CONFIG (exit codes) | `--check-config` exits 0 clean / 1 on config error / 2 on usage-IO error | `chronyd-rs/tests/cli.rs` |
+| CHRONY.CONFIG.14 (**oracle-witnessed, chrony 4.5**) | accept/reject agreement (7/7) + exact diagnostic phrasing for 5 error classes | `tools/oracle/capture-config.sh` + `reports/oracle/config/` + `config/parser.rs` test |
 | CHRONYC.1 | `chronyc tracking` label-aligned layout, byte-stable | `report.rs` + `chronyc-rs/tests/cli.rs` + receipt |
 | (trace) | `chrony-rs-trace-v1` parse + monotonic-order + schema validation | `trace.rs` tests |
 | (replay) | deterministic event processing: same trace ⇒ same decision-log hash; reject/decode of packets via the packet court; pinned-hash regression check | `replay.rs` tests + `chronyd-rs/tests/cli.rs` + receipt |
@@ -34,11 +36,19 @@ reproducible test or receipt.
 
 ## Oracle status
 
-No differential receipt against real `chronyd` exists yet. All current courts are
-*internal* parity (against fixtures and reconstructed expectations). Promoting any
-court to "oracle-witnessed" requires a captured `chronyd` artifact and a recorded
-comparison under `reports/oracle/`. Until then, claims are scoped to the declared
-fixtures, and numeric/diagnostic *wording* is marked normalized where noted.
+**First oracle-witnessed court landed:** config diagnostics against real chrony
+4.5. `tools/oracle/capture-config.sh` records 0 accept/reject disagreements over 7
+fixtures, and chrony-rs reproduces chrony 4.5's exact error phrasing for 5 error
+classes (receipts under `reports/oracle/config/`; see `oracle.md`).
+
+Other courts remain *internal/algorithmic* parity (fixtures and reconstructed
+expectations), not yet oracle-witnessed:
+
+- `chronyc tracking` layout — live capture was **environmental** (a resident
+  `chronyd` would not run in this sandbox); validated against a reconstructed
+  fixture only. See `oracle.md`.
+- packet/measurement — RFC-anchored, not yet diffed against chrony captures.
+- source selection — algorithmic reconstruction, no oracle capture yet.
 
 ## Explicitly not admitted
 

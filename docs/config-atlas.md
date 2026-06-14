@@ -43,7 +43,29 @@ An **unknown** directive (not in the recognized set) is a fatal error
 | 11 | nts options | deferred (recognized, unmodeled) |
 | 12 | invalid directive diagnostics | admitted (`CFG_UNKNOWN_DIRECTIVE`) |
 | 13 | distro default configs | planned |
-| 14 | exact/normalized diagnostic parity | normalized (exact text pending oracle) |
+| 14 | exact diagnostic parity | **oracle-witnessed against chrony 4.5** for 5 error classes (see below) |
+
+## Oracle-witnessed diagnostics (chrony 4.5)
+
+`tools/oracle/capture-config.sh` compared `chronyd-rs --check-config` against
+`chronyd -p` over `tools/oracle/config-fixtures/`: **0 disagreements** on
+accept/reject, and `Diagnostic::chrony_message()` reproduces chrony 4.5's exact
+phrasing for these classes (normalized for timestamp/path):
+
+- `Fatal error : Invalid directive at line N in file <FILE>`
+- `Fatal error : Could not parse <kw> directive at line N in file <FILE>`
+- `Fatal error : Missing arguments for <kw> directive at line N in file <FILE>`
+- `Fatal error : Too many arguments for <kw> directive at line N in file <FILE>`
+
+Pinned by `diagnostics_match_witnessed_chrony_4_5_messages` (`config/parser.rs`)
+and receipts under `reports/oracle/config/`. See `docs/oracle.md`.
+
+### Admitted divergence
+
+chrony fails fatally on the **first** bad directive (one message); chrony-rs
+**collects all** diagnostics. Each line matches chrony's wording and the
+accept/reject class matches — the multi-error behavior is a deliberate, more
+helpful divergence.
 
 ## Diagnostic codes
 

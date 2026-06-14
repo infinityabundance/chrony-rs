@@ -10,13 +10,13 @@ and not a production replacement. The C chrony implementation remains the primar
 behavioral oracle; independent NTP/protocol witnesses are used only to classify
 where chrony policy differs from generic protocol truth.
 
-## What exists today (v0.1.0, Stage 0→2 complete; Stage 3–4 partial)
+## What exists today (v0.1.0, Stage 0→2 complete; Stage 3–4 partial; first oracle court landed)
 
 | Surface | Status |
 |---------|--------|
 | NTP packet decode/encode (48-byte header) | byte-roundtrip courts `CHRONY.PACKET.1–.13` (subset admitted) |
 | NTP timestamp / short fixed-point types | bit-exact roundtrip |
-| chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; recognizes all known directives, models a subset |
+| chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; **oracle-witnessed against chrony 4.5** — 7/7 accept/reject agreement + exact diagnostic phrasing for 5 error classes |
 | `chronyc tracking` output layout | byte-stable layout court `CHRONYC.1` (offline render) |
 | Deterministic trace schema (`chrony-rs-trace-v1`) | parse + structural validation |
 | `chronyd-rs --replay` | **deterministic replay** through a simulated clock; reproducible decision-log hash + pinned-hash regression check (chrony selection/discipline policy not yet applied) |
@@ -30,7 +30,7 @@ Run:
 
 ```sh
 cargo build
-cargo test                                    # 71 tests, deterministic
+cargo test                                    # 72 tests, deterministic
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>

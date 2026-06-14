@@ -1,0 +1,6 @@
+fixture: err_rtcsync_extra_args.conf
+oracle: chronyd (chrony) version 4.5 (+CMDMON +NTP +REFCLOCK +RTC +PRIVDROP +SCFILTER +SIGND +ASYNCDNS +NTS +SECHASH +IPV6 -DEBUG)
+chrony_exit: 1
+chrony_stderr_normalized: Fatal error : Too many arguments for rtcsync directive at line 1 in file <FILE>
+chrony_rs_exit: 1
+accept_agree: yes

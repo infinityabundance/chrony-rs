@@ -89,11 +89,14 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
             if !args.is_empty() {
-                out.diagnostics.push(Diagnostic::error(
-                    line_no,
-                    "CFG_UNEXPECTED_ARGS",
-                    format!("rtcsync takes no arguments, found {}", args.len()),
-                ));
+                out.diagnostics.push(
+                    Diagnostic::error(
+                        line_no,
+                        "CFG_UNEXPECTED_ARGS",
+                        format!("rtcsync takes no arguments, found {}", args.len()),
+                    )
+                    .for_directive("rtcsync"),
+                );
             }
             out.config.directives.push((line_no, Directive::RtcSync));
         }
@@ -126,11 +129,14 @@ fn parse_source(kind: ServerKind, line_no: usize, args: Vec<String>, out: &mut P
     };
     let mut iter = args.into_iter();
     let Some(address) = iter.next() else {
-        out.diagnostics.push(Diagnostic::error(
-            line_no,
-            "CFG_MISSING_ADDRESS",
-            format!("{kw} directive requires a hostname or address"),
-        ));
+        out.diagnostics.push(
+            Diagnostic::error(
+                line_no,
+                "CFG_MISSING_ADDRESS",
+                format!("{kw} directive requires a hostname or address"),
+            )
+            .for_directive(kw),
+        );
         return;
     };
 
@@ -185,22 +191,24 @@ fn parse_poll_opt(
 
 fn parse_driftfile(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
     match args.len() {
-        0 => out.diagnostics.push(Diagnostic::error(
-            line_no,
-            "CFG_MISSING_PATH",
-            "driftfile requires a path",
-        )),
+        0 => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_MISSING_PATH", "driftfile requires a path")
+                .for_directive("driftfile"),
+        ),
         1 => out.config.directives.push((
             line_no,
             Directive::DriftFile {
                 path: args.into_iter().next().unwrap(),
             },
         )),
-        _ => out.diagnostics.push(Diagnostic::error(
-            line_no,
-            "CFG_UNEXPECTED_ARGS",
-            "driftfile takes a single path argument",
-        )),
+        _ => out.diagnostics.push(
+            Diagnostic::error(
+                line_no,
+                "CFG_UNEXPECTED_ARGS",
+                "driftfile takes a single path argument",
+            )
+            .for_directive("driftfile"),
+        ),
     }
 }
 
@@ -210,32 +218,41 @@ fn parse_makestep(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
     // the admitted court honest we currently require the two-argument form and
     // defer the zero-arg form to CHRONY.CONFIG.7 with an explicit oracle case.
     if args.len() != 2 {
-        out.diagnostics.push(Diagnostic::error(
-            line_no,
-            "CFG_BAD_ARITY",
-            format!("makestep expects 2 arguments (threshold limit), found {}", args.len()),
-        ));
+        out.diagnostics.push(
+            Diagnostic::error(
+                line_no,
+                "CFG_BAD_ARITY",
+                format!("makestep expects 2 arguments (threshold limit), found {}", args.len()),
+            )
+            .for_directive("makestep"),
+        );
         return;
     }
     let threshold = match args[0].parse::<f64>() {
         Ok(v) => v,
         Err(_) => {
-            out.diagnostics.push(Diagnostic::error(
-                line_no,
-                "CFG_BAD_NUMBER",
-                format!("makestep threshold must be a number, found '{}'", args[0]),
-            ));
+            out.diagnostics.push(
+                Diagnostic::error(
+                    line_no,
+                    "CFG_BAD_NUMBER",
+                    format!("makestep threshold must be a number, found '{}'", args[0]),
+                )
+                .for_directive("makestep"),
+            );
             return;
         }
     };
     let limit = match args[1].parse::<i32>() {
         Ok(v) => v,
         Err(_) => {
-            out.diagnostics.push(Diagnostic::error(
-                line_no,
-                "CFG_BAD_NUMBER",
-                format!("makestep limit must be an integer, found '{}'", args[1]),
-            ));
+            out.diagnostics.push(
+                Diagnostic::error(
+                    line_no,
+                    "CFG_BAD_NUMBER",
+                    format!("makestep limit must be an integer, found '{}'", args[1]),
+                )
+                .for_directive("makestep"),
+            );
             return;
         }
     };
@@ -309,5 +326,32 @@ rtcsync
         let out = parse("server host key 5 xleave\n");
         let s = out.config.sources().next().unwrap();
         assert_eq!(s.raw_options, vec!["key", "5", "xleave"]);
+    }
+
+    /// Witnessed against real chrony 4.5 via `tools/oracle/capture-config.sh`.
+    /// Each `chrony_message()` must equal the normalized `chronyd -p` diagnostic
+    /// recorded under `reports/oracle/config/`. This is the config court's
+    /// promotion from "normalized" to "oracle-witnessed message text".
+    #[test]
+    fn diagnostics_match_witnessed_chrony_4_5_messages() {
+        let cases = [
+            ("frobnicate 5\n", "Fatal error : Invalid directive at line 1 in file <FILE>"),
+            ("server\n", "Fatal error : Could not parse server directive at line 1 in file <FILE>"),
+            ("makestep fast 3\n", "Fatal error : Could not parse makestep directive at line 1 in file <FILE>"),
+            ("driftfile\n", "Fatal error : Missing arguments for driftfile directive at line 1 in file <FILE>"),
+            ("rtcsync foo\n", "Fatal error : Too many arguments for rtcsync directive at line 1 in file <FILE>"),
+        ];
+        for (input, expected) in cases {
+            let out = parse(input);
+            let diag = out
+                .diagnostics
+                .first()
+                .unwrap_or_else(|| panic!("expected a diagnostic for {input:?}"));
+            assert_eq!(
+                diag.chrony_message().as_deref(),
+                Some(expected),
+                "chrony-message mismatch for input {input:?}"
+            );
+        }
     }
 }

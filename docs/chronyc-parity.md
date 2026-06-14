@@ -11,6 +11,12 @@ Output-parity court for the `chronyc` control tool. Implemented in
   aligns to column 16. A receipt is stored at
   `reports/chronyc/tracking.sample.out`.
 
+  **Oracle status: reconstructed, not yet live-witnessed.** Capturing real
+  `chronyc tracking` output needs a resident `chronyd`, which would not run in
+  this sandbox — classified **environmental** (see `oracle.md`). The layout court
+  is therefore validated against a reconstructed fixture, pending a live 4.5
+  capture.
+
 ## What is normalized (not yet oracle-exact)
 
 The *numeric formatting and phrasing* of `tracking` values is reconstructed from

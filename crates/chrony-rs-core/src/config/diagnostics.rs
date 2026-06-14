@@ -31,6 +31,11 @@ pub struct Diagnostic {
     pub code: &'static str,
     /// Human-readable message. Marked normalized until witnessed (see module doc).
     pub message: String,
+    /// The directive keyword this diagnostic concerns, when known. Needed to
+    /// render chrony's exact reason text, which embeds the keyword (e.g. "Could
+    /// not parse `server` directive").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub directive: Option<String>,
 }
 
 impl Diagnostic {
@@ -40,6 +45,7 @@ impl Diagnostic {
             line_no,
             code,
             message: message.into(),
+            directive: None,
         }
     }
 
@@ -49,11 +55,52 @@ impl Diagnostic {
             line_no,
             code,
             message: message.into(),
+            directive: None,
         }
+    }
+
+    /// Attach the directive keyword this diagnostic concerns (builder style).
+    pub fn for_directive(mut self, directive: impl Into<String>) -> Self {
+        self.directive = Some(directive.into());
+        self
     }
 
     pub fn is_error(&self) -> bool {
         matches!(self.severity, Severity::Error)
+    }
+
+    /// Render this diagnostic in chrony's exact `chronyd -p` phrasing, with the
+    /// host-specific parts (timestamp prefix, absolute path) replaced by the
+    /// `<FILE>` placeholder — i.e. the *normalized* form captured by the oracle
+    /// harness (`tools/oracle/capture-config.sh`).
+    ///
+    /// Returns `None` for diagnostics whose chrony equivalent has not been
+    /// witnessed against the 4.5 oracle. The reason→code mapping below is anchored
+    /// to receipts under `reports/oracle/config/`; do not extend it without a
+    /// matching captured fixture.
+    ///
+    /// Note a deliberate, documented divergence: chrony fails *fatally on the first*
+    /// bad directive, so it emits exactly one such line; chrony-rs collects all
+    /// diagnostics. Each individual line still matches chrony's wording. See
+    /// `docs/config-atlas.md`.
+    pub fn chrony_message(&self) -> Option<String> {
+        let reason = match self.code {
+            "CFG_UNKNOWN_DIRECTIVE" => "Invalid directive".to_string(),
+            "CFG_MISSING_ADDRESS" | "CFG_BAD_NUMBER" | "CFG_BAD_ARITY" => {
+                format!("Could not parse {} directive", self.directive.as_ref()?)
+            }
+            "CFG_MISSING_PATH" | "CFG_MISSING_VALUE" => {
+                format!("Missing arguments for {} directive", self.directive.as_ref()?)
+            }
+            "CFG_UNEXPECTED_ARGS" => {
+                format!("Too many arguments for {} directive", self.directive.as_ref()?)
+            }
+            _ => return None,
+        };
+        Some(format!(
+            "Fatal error : {reason} at line {} in file <FILE>",
+            self.line_no
+        ))
     }
 }
 

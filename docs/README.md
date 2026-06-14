@@ -9,6 +9,8 @@ preserves the reasoning, courts, and ecology maps.
 |-----|---------|
 | [architecture.md](architecture.md) | workspace layout, trait boundaries, design rationale |
 | [compatibility.md](compatibility.md) | the court matrix — what is admitted and its evidence |
+| [oracle.md](oracle.md) | oracle strategy + witnessed chrony 4.5 results; what was environmental |
+| [version-lineage.md](version-lineage.md) | declared target version and the gap to newer chrony |
 | [deployment-boundary.md](deployment-boundary.md) | the Stage 0–9 ladder and current position |
 | [negative-capabilities.md](negative-capabilities.md) | what is deliberately not done yet |
 | [source-archaeology.md](source-archaeology.md) | chrony semantics → C source → chrony-rs module |
@@ -23,8 +25,8 @@ preserves the reasoning, courts, and ecology maps.
 
 `time-discipline-atlas.md`, `slew-step-atlas.md`, `drift-atlas.md`,
 `nts-atlas.md`, `refclock-atlas.md`, `os-clock-ecology.md`,
-`privilege-boundary.md`, `version-lineage.md`, `vendor-ecology.md`,
-`distro-defaults.md`, `operational-knowledge.md`, `porting-lessons.md`.
+`privilege-boundary.md`, `vendor-ecology.md`, `distro-defaults.md`,
+`operational-knowledge.md`, `porting-lessons.md`.
 
 These are written as their campaigns begin; an empty promise here is preferable to
 a stale doc, so they are listed but not stubbed.

@@ -45,7 +45,7 @@ pub mod trace;
 ///
 /// The doc gate (see `docs/`) is intended to fail if this value drifts away from
 /// the version recorded in the evidence receipts under `reports/`.
-pub const TARGET_CHRONY_VERSION: &str = "4.6";
+pub const TARGET_CHRONY_VERSION: &str = "4.5";
 
 /// The trace-schema identifier emitted and accepted by [`trace`]. Bumping the
 /// schema is a breaking change for every stored replay fixture, so the value is
@@ -62,6 +62,6 @@ mod tests {
         // are also intending to re-cut every receipt under reports/ — do that
         // deliberately, not as a drive-by edit.
         assert_eq!(TRACE_SCHEMA, "chrony-rs-trace-v1");
-        assert_eq!(TARGET_CHRONY_VERSION, "4.6");
+        assert_eq!(TARGET_CHRONY_VERSION, "4.5");
     }
 }

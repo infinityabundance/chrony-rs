@@ -225,7 +225,7 @@ mod tests {
         format!(
             r#"{{
               "trace_schema": "chrony-rs-trace-v1",
-              "chrony_version": "4.6",
+              "chrony_version": "4.5",
               "platform": "x86_64-linux",
               "kernel": "6.18.5",
               "config_sha256": "00",
@@ -255,7 +255,7 @@ mod tests {
     fn offline_clears_placeholder_selection() {
         let json = r#"{
           "trace_schema": "chrony-rs-trace-v1",
-          "chrony_version": "4.6", "platform": "x", "kernel": "x", "config_sha256": "00",
+          "chrony_version": "4.5", "platform": "x", "kernel": "x", "config_sha256": "00",
           "events": [
             {"t_mono_ns": 0, "kind": "recv_ntp", "data": {"peer": "a", "packet_hex": "1c0206e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},
             {"t_mono_ns": 1, "kind": "online_state", "data": {"source": "a", "online": false}}

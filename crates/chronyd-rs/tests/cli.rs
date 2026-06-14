@@ -77,7 +77,7 @@ fn replay_executes_trace_and_reports_hash() {
 fn version_mentions_target_chrony() {
     let out = Command::new(bin()).arg("--version").output().expect("run");
     assert!(out.status.success());
-    assert!(String::from_utf8_lossy(&out.stdout).contains("chrony 4.6"));
+    assert!(String::from_utf8_lossy(&out.stdout).contains("chrony 4.5"));
 }
 
 #[test]
