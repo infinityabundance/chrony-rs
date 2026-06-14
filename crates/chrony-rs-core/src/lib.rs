@@ -35,6 +35,7 @@ pub mod clock;
 pub mod cmdparse;
 pub mod config;
 pub mod hash;
+pub mod hash_intmd5;
 pub mod md5;
 pub mod nameserv;
 pub mod ntp;

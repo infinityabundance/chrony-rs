@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 17 / 70 (5 full, 8 partial, 4 scaffold); **53** have none.
-- **Files fully ported:** 5 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 609 / 1373 C functions (44.4%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 18 / 70 (6 full, 8 partial, 4 scaffold); **52** have none.
+- **Files fully ported:** 6 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 612 / 1373 C functions (44.6%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 310 named functions + 55 closures across 31 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 318 named functions + 56 closures across 32 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -38,7 +38,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `cmdparse.c` | 8 | 100.0% | command/config line parsing (CPS_*) | `config/parser.rs`<br>`cmdparse.rs` | ● full |
 | `conf.c` | 135 | 1.5% | config file parser + 93-directive dispatch (CNF_*) | `config/parser.rs`<br>`config/lexer.rs`<br>`config/diagnostics.rs`<br>`config/model.rs`<br>`config/mod.rs` | ◑ partial |
 | `hash_gnutls.c` | 3 | 0.0% | gnutls hash backend | — | · none |
-| `hash_intmd5.c` | 3 | 0.0% | internal MD5 hash backend | — | · none |
+| `hash_intmd5.c` | 3 | 100.0% | internal MD5 hash backend (HSH_*) | `hash_intmd5.rs` | ● full |
 | `hash_nettle.c` | 3 | 0.0% | nettle hash backend | — | · none |
 | `hash_nss.c` | 3 | 0.0% | NSS hash backend | — | · none |
 | `hash_tomcrypt.c` | 3 | 0.0% | tomcrypt hash backend | — | · none |
@@ -116,6 +116,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
 - **`util.c`** — pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not _(≈37 Rust `fn` in mapped modules)_
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_
+- **`hash_intmd5.c`** — complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested _(≈8 Rust `fn` in mapped modules)_
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
 - **`nameserv.c`** — DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported _(≈3 Rust `fn` in mapped modules)_
 

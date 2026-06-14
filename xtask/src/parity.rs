@@ -152,7 +152,9 @@ const MAP: &[Row] = &[
     Row { c: "md5.c", role: "MD5 digest (RFC 1321 reference, NTP symmetric-key auth)",
         rust: &["md5.rs"], port: Port::Full,
         note: "complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU)" },
-    Row { c: "hash_intmd5.c", role: "internal MD5 hash backend", rust: &[], port: Port::None, note: "" },
+    Row { c: "hash_intmd5.c", role: "internal MD5 hash backend (HSH_*)",
+        rust: &["hash_intmd5.rs"], port: Port::Full,
+        note: "complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested" },
     Row { c: "hash_gnutls.c", role: "gnutls hash backend", rust: &[], port: Port::None, note: "" },
     Row { c: "hash_nettle.c", role: "nettle hash backend", rust: &[], port: Port::None, note: "" },
     Row { c: "hash_nss.c", role: "NSS hash backend", rust: &[], port: Port::None, note: "" },
@@ -271,6 +273,7 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("main.c", &["main"]),
     ("nameserv.c", &["DNS_Name2IPAddress"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
+    ("hash_intmd5.c", &["HSH_GetHashId", "HSH_Hash", "HSH_Finalise"]),
     (
         "regress.c",
         &[
