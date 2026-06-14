@@ -18,7 +18,9 @@
 
 use std::process::ExitCode;
 
-use chrony_rs_core::report::{SourcesReport, SourcestatsReport, TrackingReport};
+use chrony_rs_core::report::{
+    ActivityReport, ServerstatsReport, SourcesReport, SourcestatsReport, TrackingReport,
+};
 
 const USAGE: &str = "\
 chronyc-rs — chrony-rs control/output-parity tool
@@ -29,6 +31,9 @@ USAGE:
                                                 Render a sources report from JSON
     chronyc-rs render-sourcestats [-v] <FIXTURE.json>
                                                 Render a sourcestats report from JSON
+    chronyc-rs render-activity <FIXTURE.json>   Render an activity report from JSON
+    chronyc-rs render-serverstats <FIXTURE.json>
+                                                Render a serverstats report from JSON
     chronyc-rs --version                        Print version information
     chronyc-rs --help                           Print this message
 
@@ -63,6 +68,22 @@ fn main() -> ExitCode {
             "render-sourcestats" => {
                 with_verbose_fixture(rest, "render-sourcestats", render_sourcestats)
             }
+            "render-activity" => match rest.first() {
+                Some(path) => render_json::<ActivityReport>(path, "activity", |r| r.render()),
+                None => {
+                    eprintln!("error: render-activity requires a FIXTURE.json argument\n\n{USAGE}");
+                    ExitCode::from(2)
+                }
+            },
+            "render-serverstats" => match rest.first() {
+                Some(path) => render_json::<ServerstatsReport>(path, "serverstats", |r| r.render()),
+                None => {
+                    eprintln!(
+                        "error: render-serverstats requires a FIXTURE.json argument\n\n{USAGE}"
+                    );
+                    ExitCode::from(2)
+                }
+            },
             // A bare `tracking`/`sources`/... is what a user would reach for. We
             // fail *closed* with an explanation instead of silently doing nothing,
             // so the deferred capability is visible at the point of use.
@@ -139,6 +160,32 @@ fn render_sources(path: &str, verbose: bool) -> ExitCode {
         }
         Err(e) => {
             eprintln!("error: invalid sources fixture '{path}': {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+/// Render a no-flag JSON report (`activity`, `serverstats`): read, deserialize,
+/// print. Same exit-code contract as the other renderers (2 = IO, 1 = bad JSON).
+fn render_json<T: serde::de::DeserializeOwned>(
+    path: &str,
+    kind: &str,
+    render: impl Fn(&T) -> String,
+) -> ExitCode {
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("error: cannot read fixture '{path}': {e}");
+            return ExitCode::from(2);
+        }
+    };
+    match serde_json::from_str::<T>(&text) {
+        Ok(report) => {
+            print!("{}", render(&report));
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("error: invalid {kind} fixture '{path}': {e}");
             ExitCode::from(1)
         }
     }

@@ -49,9 +49,11 @@ observed chrony output but only claimed exact once witnessed against real
 | 1 | tracking | admitted (layout); **layout live-witnessed vs 4.5**; numeric wording normalized |
 | 2 | sources | **admitted**: header + `-v` legend **live-witnessed vs 4.5** (byte-exact); rows byte-derived from `client.c` print_report format; `chronyc-rs render-sources [-v]` |
 | 3 | sourcestats | **admitted**: header + `-v` legend **live-witnessed vs 4.5** (byte-exact); rows byte-derived from `client.c` print_report format; `chronyc-rs render-sourcestats [-v]` |
-| 4–9 | activity/ntpdata/clients/serverstats/makestep/offline-online | not started |
+| 4 | activity | **admitted**: full output **live-witnessed vs 4.5** (incl. `200 OK`); `chronyc-rs render-activity` |
+| 5 | serverstats | **admitted**: 17 labels/alignment **live-witnessed vs 4.5**; `chronyc-rs render-serverstats` |
+| 6–9 | ntpdata/clients/makestep/offline-online | not started |
 | 10 | command errors | partial (deferred-capability error path tested) |
-| 11 | output formatting | partial (tracking + sources + sourcestats) |
+| 11 | output formatting | partial (tracking + sources + sourcestats + activity + serverstats) |
 | 12 | exit codes | partial (render OK = 0, bad fixture = 1, IO = 2, deferred = 3) |
 | 13 | Unix socket protocol | deferred |
 | 14 | UDP/control protocol | deferred |

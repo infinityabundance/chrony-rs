@@ -20,7 +20,7 @@ method, provenance, and how the doxygen runs were produced on both sides.
 - **Files fully ported:** 3 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 605 / 1373 C functions (44.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 263 named functions + 32 closures across 29 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 270 named functions + 35 closures across 29 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -30,7 +30,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 |---|---:|---:|---|---|---|
 | `addrfilt.c` | 16 | 100.0% | NTP/cmd access-control subnet trie (ADF_*) | `addrfilt.rs` | ● full |
 | `array.c` | 10 | 0.0% | generic dynamic array (ARR_*) | — | · none |
-| `client.c` | 90 | 11.1% | chronyc CLI: command dispatch + report formatters | `report.rs`<br>`chronyc-rs/src/main.rs` | ◑ partial |
+| `client.c` | 90 | 14.4% | chronyc CLI: command dispatch + report formatters | `report.rs`<br>`chronyc-rs/src/main.rs` | ◑ partial |
 | `clientlog.c` | 35 | 0.0% | client access log / rate limiting | — | · none |
 | `cmac_gnutls.c` | 7 | 0.0% | gnutls CMAC backend | — | · none |
 | `cmac_nettle.c` | 4 | 0.0% | nettle CMAC backend | — | · none |
@@ -109,10 +109,10 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
 - **`regress.c`** — pure dependency-free subset ported: t/chi2 critical-value tables + order-statistic median (validated vs sort oracle); weighted/robust regressions are a gap _(≈9 Rust `fn` in mapped modules)_
 - **`quantiles.c`** — complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable _(≈14 Rust `fn` in mapped modules)_
-- **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈38 Rust `fn` in mapped modules)_
+- **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈42 Rust `fn` in mapped modules)_
 - **`local.c`** — side-effect-free simulated clock; no real read/adjust _(≈12 Rust `fn` in mapped modules)_
 - **`sched.c`** — deterministic replay loop is a stand-in, not the SCH_ timer wheel _(≈13 Rust `fn` in mapped modules)_
-- **`client.c`** — `tracking` + `sources` + `sourcestats` rendered (print_report engine + all print_* value helpers; sources/sourcestats header+legend live-witnessed vs 4.5); 3 of ~40 process_cmd_* commands; no socket transport _(≈31 Rust `fn` in mapped modules)_
+- **`client.c`** — tracking/sources/sourcestats/activity/serverstats rendered (print_report+print_info_field engines, all print_* value helpers; all live-witnessed vs 4.5); 5 of ~40 process_cmd_* commands; no socket transport _(≈36 Rust `fn` in mapped modules)_
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
 - **`util.c`** — pure primitives ported: NTP short/era algebra, log2->seconds, hex codec; broad UTI_* surface (files, sockets, randomness) not _(≈32 Rust `fn` in mapped modules)_
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_

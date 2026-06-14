@@ -64,6 +64,43 @@ fn render_sources_matches_live_witnessed_layout() {
 }
 
 #[test]
+fn render_activity_includes_status_and_five_lines() {
+    let out = Command::new(bin())
+        .arg("render-activity")
+        .arg(fixture("activity.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let expected = "\
+200 OK
+3 sources online
+1 sources offline
+0 sources doing burst (return to online)
+0 sources doing burst (return to offline)
+2 sources with unknown address
+";
+    assert_eq!(String::from_utf8_lossy(&out.stdout), expected);
+}
+
+#[test]
+fn render_serverstats_label_aligns() {
+    let out = Command::new(bin())
+        .arg("render-serverstats")
+        .arg(fixture("serverstats.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(lines.len(), 17);
+    assert_eq!(lines[0], "NTP packets received       : 100");
+    // ": " aligns at column 27 for every line.
+    for l in &lines {
+        assert_eq!(l.find(':'), Some(27), "colon column in {l:?}");
+    }
+}
+
+#[test]
 fn render_sourcestats_matches_format() {
     let out = Command::new(bin())
         .arg("render-sourcestats")

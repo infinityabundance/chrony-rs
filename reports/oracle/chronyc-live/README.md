@@ -27,6 +27,8 @@ these are the receipts.
 | `sourcestats.raw.out` | `chronyc sourcestats` | header for the (not-yet-ported) `sourcestats` formatter |
 | `sourcestats-v.raw.out` | `chronyc sourcestats -v` | verbose legend block for `sourcestats` |
 | `accheck.raw.out` | `chronyc accheck <ip>` | allow/deny verdicts for a configured rule set — the live oracle for `addrfilt.rs` (`ADF_IsAllowed`) |
+| `activity.raw.out` | `chronyc activity` | full activity output (incl. `200 OK`) — oracle for `ActivityReport` |
+| `serverstats.raw.out` | `chronyc serverstats` | 17 server counters — label/alignment oracle for `ServerstatsReport` (values volatile) |
 
 ## Volatile fields (do not treat as byte-stable)
 

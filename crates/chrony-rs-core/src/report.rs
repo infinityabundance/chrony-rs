@@ -438,6 +438,83 @@ fn fmt_signed_freq_ppm(f: f64) -> String {
     }
 }
 
+// ---------------------------------------------------------------------------
+// `chronyc activity` (CHRONYC.4) and `chronyc serverstats` (CHRONYC.5)
+//
+// Ported from chrony 4.5 `client.c::process_cmd_activity` /
+// `process_cmd_serverstats`. Both are live-witnessed against real chrony 4.5
+// (`reports/oracle/chronyc-live/{activity,serverstats}.raw.out`).
+// ---------------------------------------------------------------------------
+
+/// `chronyc activity`: counts of sources by online/offline/burst state. chrony
+/// prints a leading `200 OK` (via `print_info_field`, non-CSV mode) then five
+/// `%U sources ...` lines.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ActivityReport {
+    pub online: u32,
+    pub offline: u32,
+    pub burst_online: u32,
+    pub burst_offline: u32,
+    pub unknown: u32,
+}
+
+impl ActivityReport {
+    pub fn render(&self) -> String {
+        format!(
+            "200 OK\n\
+             {} sources online\n\
+             {} sources offline\n\
+             {} sources doing burst (return to online)\n\
+             {} sources doing burst (return to offline)\n\
+             {} sources with unknown address\n",
+            self.online, self.offline, self.burst_online, self.burst_offline, self.unknown,
+        )
+    }
+}
+
+/// The 17 `serverstats` labels, in chrony's order. Rendered left-justified to 27
+/// columns then `": "`, matching `client.c`'s baked-in format literals.
+const SERVERSTATS_LABELS: [&str; 17] = [
+    "NTP packets received",
+    "NTP packets dropped",
+    "Command packets received",
+    "Command packets dropped",
+    "Client log records dropped",
+    "NTS-KE connections accepted",
+    "NTS-KE connections dropped",
+    "Authenticated NTP packets",
+    "Interleaved NTP packets",
+    "NTP timestamps held",
+    "NTP timestamp span",
+    "NTP daemon RX timestamps",
+    "NTP daemon TX timestamps",
+    "NTP kernel RX timestamps",
+    "NTP kernel TX timestamps",
+    "NTP hardware RX timestamps",
+    "NTP hardware TX timestamps",
+];
+
+/// `chronyc serverstats`: 17 unsigned 64-bit counters, label-aligned.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ServerstatsReport {
+    /// The 17 counters in [`SERVERSTATS_LABELS`] order.
+    pub values: Vec<u64>,
+}
+
+impl ServerstatsReport {
+    /// Render the label-aligned block. Missing trailing values render as 0 so a
+    /// short fixture still produces all 17 lines.
+    pub fn render(&self) -> String {
+        let mut s = String::new();
+        for (i, label) in SERVERSTATS_LABELS.iter().enumerate() {
+            let v = self.values.get(i).copied().unwrap_or(0);
+            // chrony's labels are left-justified to 27 columns, then ": " then %Q.
+            s.push_str(&format!("{label:<27}: {v}\n"));
+        }
+        s
+    }
+}
+
 /// chrony's directional wording for a signed quantity. Note: zero renders as
 /// "slow" in chrony because the comparison is `> 0.0`; we match that rather than
 /// inventing a "exact" case.
@@ -555,6 +632,34 @@ Leap status     : Normal
         );
         // The data row must align under the header columns: same width.
         assert_eq!(row.len(), SOURCES_HEADER.len());
+    }
+
+    const ORACLE_ACTIVITY: &str =
+        include_str!("../../../reports/oracle/chronyc-live/activity.raw.out");
+    const ORACLE_SERVERSTATS: &str =
+        include_str!("../../../reports/oracle/chronyc-live/serverstats.raw.out");
+
+    #[test]
+    fn activity_matches_live_chrony_4_5() {
+        // CHRONYC.4 — all-zero activity (a local-only daemon) byte-compared to real
+        // `chronyc activity`, including the leading `200 OK`.
+        assert_eq!(ActivityReport::default().render(), ORACLE_ACTIVITY);
+    }
+
+    #[test]
+    fn serverstats_labels_match_live_chrony_4_5() {
+        // CHRONYC.5 — the 17 labels/alignment are witnessed against real
+        // `chronyc serverstats` (values are volatile, so we check the label+":" +
+        // padding prefix of each captured line, not the counts).
+        let captured: Vec<&str> = ORACLE_SERVERSTATS.lines().collect();
+        let rendered = ServerstatsReport::default(); // all-zero -> all 17 lines
+        let mine: Vec<String> = rendered.render().lines().map(|l| l.to_string()).collect();
+        assert_eq!(captured.len(), 17);
+        assert_eq!(mine.len(), 17);
+        for (cap, label) in captured.iter().zip(SERVERSTATS_LABELS.iter()) {
+            let prefix = format!("{label:<27}: ");
+            assert!(cap.starts_with(&prefix), "label mismatch: {cap:?} vs prefix {prefix:?}");
+        }
     }
 
     const ORACLE_SOURCESTATS: &str =
