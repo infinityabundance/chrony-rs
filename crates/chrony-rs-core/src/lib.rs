@@ -36,6 +36,7 @@ pub mod config;
 pub mod hash;
 pub mod md5;
 pub mod ntp;
+pub mod quantiles;
 pub mod regress;
 pub mod replay;
 pub mod report;

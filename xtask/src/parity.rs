@@ -108,7 +108,9 @@ const MAP: &[Row] = &[
         rust: &["regress.rs"], port: Port::Partial,
         note: "pure dependency-free subset ported: t/chi2 critical-value tables + order-statistic median (validated vs sort oracle); weighted/robust regressions are a gap" },
     Row { c: "samplefilt.c", role: "per-source sample filtering", rust: &[], port: Port::None, note: "" },
-    Row { c: "quantiles.c", role: "streaming quantile estimator", rust: &[], port: Port::None, note: "" },
+    Row { c: "quantiles.c", role: "streaming (stochastic) quantile estimator",
+        rust: &["quantiles.rs"], port: Port::Full,
+        note: "complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable" },
 
     // ---- reference / clock / discipline ----
     Row { c: "reference.c", role: "tracking + drift state, leap handling (REF_*)",
@@ -257,6 +259,19 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "RGR_FindMedian",
             "find_median",
             "find_ordered_entry_with_flags",
+        ],
+    ),
+    (
+        "quantiles.c",
+        &[
+            "QNT_CreateInstance",
+            "QNT_DestroyInstance",
+            "QNT_Reset",
+            "QNT_Accumulate",
+            "QNT_GetMinK",
+            "QNT_GetQuantile",
+            "insert_initial_value",
+            "update_estimate",
         ],
     ),
     (

@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 15 / 70 (2 full, 9 partial, 4 scaffold); **55** have none.
-- **Files fully ported:** 2 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 597 / 1373 C functions (43.5%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 16 / 70 (3 full, 9 partial, 4 scaffold); **54** have none.
+- **Files fully ported:** 3 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 605 / 1373 C functions (44.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 249 named functions + 30 closures across 28 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 263 named functions + 32 closures across 29 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -67,7 +67,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `nts_ntp_server.c` | 4 | 0.0% | NTS NTP server | — | · none |
 | `pktlength.c` | 3 | 0.0% | NTP packet length validation | `ntp/packet.rs` | ○ scaffold |
 | `privops.c` | 12 | 0.0% | privilege-separation helper | — | · none |
-| `quantiles.c` | 8 | 0.0% | streaming quantile estimator | — | · none |
+| `quantiles.c` | 8 | 100.0% | streaming (stochastic) quantile estimator | `quantiles.rs` | ● full |
 | `refclock.c` | 28 | 0.0% | reference-clock framework (RCL_*) | — | · none |
 | `refclock_phc.c` | 0 | 0.0% | PHC refclock driver | — | · none |
 | `refclock_pps.c` | 0 | 0.0% | PPS refclock driver | — | · none |
@@ -108,6 +108,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`pktlength.c`** — length checks partial via the codec _(≈14 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
 - **`regress.c`** — pure dependency-free subset ported: t/chi2 critical-value tables + order-statistic median (validated vs sort oracle); weighted/robust regressions are a gap _(≈9 Rust `fn` in mapped modules)_
+- **`quantiles.c`** — complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable _(≈14 Rust `fn` in mapped modules)_
 - **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈38 Rust `fn` in mapped modules)_
 - **`local.c`** — side-effect-free simulated clock; no real read/adjust _(≈12 Rust `fn` in mapped modules)_
 - **`sched.c`** — deterministic replay loop is a stand-in, not the SCH_ timer wheel _(≈13 Rust `fn` in mapped modules)_

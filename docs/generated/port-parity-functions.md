@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 51 / 1373 C functions have a direct counterpart (3.7%).** The other 1322 are gaps.
+**Overall: 59 / 1373 C functions have a direct counterpart (4.3%).** The other 1314 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -23,6 +23,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 |---|---:|---:|---:|---:|
 | `addrfilt.c` | 16 | 16 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
+| `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `regress.c` | 11 | 5 | 6 | 45.5% |
 | `cmdparse.c` | 8 | 2 | 6 | 25.0% |
 | `client.c` | 90 | 10 | 80 | 11.1% |
@@ -63,7 +64,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nts_ntp_server.c` | 4 | 0 | 4 | 0.0% |
 | `pktlength.c` | 3 | 0 | 3 | 0.0% |
 | `privops.c` | 12 | 0 | 12 | 0.0% |
-| `quantiles.c` | 8 | 0 | 8 | 0.0% |
 | `refclock.c` | 28 | 0 | 28 | 0.0% |
 | `refclock_phc.c` | 0 | 0 | 0 | 0.0% |
 | `refclock_pps.c` | 0 | 0 | 0 | 0.0% |
@@ -121,6 +121,17 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `MD5Init`
 - ✓ `MD5Update`
 - ✓ `Transform`
+
+### `quantiles.c` — 8/8 (100.0%)
+
+- ✓ `QNT_Accumulate`
+- ✓ `QNT_CreateInstance`
+- ✓ `QNT_DestroyInstance`
+- ✓ `QNT_GetMinK`
+- ✓ `QNT_GetQuantile`
+- ✓ `QNT_Reset`
+- ✓ `insert_initial_value`
+- ✓ `update_estimate`
 
 ### `regress.c` — 5/11 (45.5%)
 
