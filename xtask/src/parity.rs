@@ -106,7 +106,7 @@ const MAP: &[Row] = &[
         note: "planned filter/regression surface" },
     Row { c: "regress.c", role: "robust linear regression + statistical primitives",
         rust: &["regress.rs"], port: Port::Partial,
-        note: "6/11: weighted least-squares fit (exact perfect-line recovery + reference case) + t/chi2 tables + order-statistic median; the robust outlier-pruning wrappers (FindBestRobustRegression etc.) remain gaps" },
+        note: "8/11: weighted LS fit + runs-test-driven best regression (vs reference impl) + t/chi2 tables + order-statistic median; FindBestRobustRegression / MultipleRegress / eval_robust_residual remain gaps" },
     Row { c: "samplefilt.c", role: "per-source sample filtering", rust: &[], port: Port::None, note: "" },
     Row { c: "quantiles.c", role: "streaming (stochastic) quantile estimator",
         rust: &["quantiles.rs"], port: Port::Full,
@@ -275,11 +275,13 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
         "regress.c",
         &[
             "RGR_WeightedRegression",
+            "RGR_FindBestRegression",
             "RGR_GetTCoef",
             "RGR_GetChi2Coef",
             "RGR_FindMedian",
             "find_median",
             "find_ordered_entry_with_flags",
+            "n_runs_from_residuals",
         ],
     ),
     (
