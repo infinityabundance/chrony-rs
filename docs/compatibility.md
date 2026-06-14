@@ -23,6 +23,9 @@ reproducible test or receipt.
 | CHRONY.CONFIG (exit codes) | `--check-config` exits 0 clean / 1 on config error / 2 on usage-IO error | `chronyd-rs/tests/cli.rs` |
 | CHRONYC.1 | `chronyc tracking` label-aligned layout, byte-stable | `report.rs` + `chronyc-rs/tests/cli.rs` + receipt |
 | (trace) | `chrony-rs-trace-v1` parse + monotonic-order + schema validation | `trace.rs` tests |
+| (replay) | deterministic event processing: same trace ⇒ same decision-log hash; reject/decode of packets via the packet court; pinned-hash regression check | `replay.rs` tests + `chronyd-rs/tests/cli.rs` + receipt |
+| (hash) | SHA-256 receipts match FIPS `""`/`"abc"`/multi-block vectors | `hash.rs` tests |
+| (clock) | simulated clock: wall = mono + step offset; monotonic non-decreasing; no host mutation | `clock.rs` tests |
 
 ## Oracle status
 

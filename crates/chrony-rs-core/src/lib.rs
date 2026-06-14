@@ -30,8 +30,11 @@
 //! `docs/deployment-boundary.md` and `docs/negative-capabilities.md` for what is
 //! intentionally *not* admitted yet.
 
+pub mod clock;
 pub mod config;
+pub mod hash;
 pub mod ntp;
+pub mod replay;
 pub mod report;
 pub mod trace;
 

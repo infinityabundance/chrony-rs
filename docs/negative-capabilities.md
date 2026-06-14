@@ -46,8 +46,15 @@ corresponding court and evidence to exist first.
 
 ## Replay
 
-- **No replay execution.** `--replay` loads and structurally validates a trace;
-  it does not yet drive the brain or compare against oracle outputs.
+- **Replay executes, but applies no chrony policy.** `--replay` now drives a
+  validated trace through a deterministic simulated clock and emits a reproducible
+  decision-log hash. It does **not** yet implement chrony's source selection,
+  sample filtering, or clock discipline — the `selected_source` it reports is a
+  transparent "latest online source" placeholder, not a chrony decision, and it is
+  not compared against a chrony oracle.
+- **No oracle comparison.** Expectation checking is limited to the runner's own
+  decision-log hash (regression self-consistency), never an assertion of parity
+  with real `chronyd` output.
 
 ## OS / platform
 

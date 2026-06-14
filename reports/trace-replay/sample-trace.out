@@ -1,0 +1,4 @@
+crates/chronyd-rs/tests/fixtures/sample-trace.json: replayed 3 event(s) (chrony 4.6, schema chrony-rs-trace-v1)
+  selected source (placeholder): 192.0.2.1
+  decision-log sha256: c9d20fa3900c9c542139d694c3ee8eb2c300925ffc7d8579a2eaa80e1668eda1
+  expectation: MATCH

@@ -10,7 +10,7 @@ and not a production replacement. The C chrony implementation remains the primar
 behavioral oracle; independent NTP/protocol witnesses are used only to classify
 where chrony policy differs from generic protocol truth.
 
-## What exists today (v0.1.0, Stage 0→2)
+## What exists today (v0.1.0, Stage 0→2 complete, Stage 3 partial)
 
 | Surface | Status |
 |---------|--------|
@@ -19,14 +19,16 @@ where chrony policy differs from generic protocol truth.
 | chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; recognizes all known directives, models a subset |
 | `chronyc tracking` output layout | byte-stable layout court `CHRONYC.1` (offline render) |
 | Deterministic trace schema (`chrony-rs-trace-v1`) | parse + structural validation |
-| `chronyd-rs --replay` | loads & validates traces (execution deferred) |
+| `chronyd-rs --replay` | **deterministic replay** through a simulated clock; reproducible decision-log hash + pinned-hash regression check (chrony selection/discipline policy not yet applied) |
+| SHA-256 receipts | dependency-free, FIPS-vectored (`hash.rs`) |
+| Simulated clock | side-effect-free time base, no host mutation (`clock.rs`) |
 | Source archaeology + ecology docs | scaffolded under `docs/` |
 
 Run:
 
 ```sh
 cargo build
-cargo test                                    # 36 tests, deterministic
+cargo test                                    # 48 tests, deterministic
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>

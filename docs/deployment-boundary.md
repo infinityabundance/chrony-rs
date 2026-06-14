@@ -8,7 +8,7 @@ previous stage's evidence exists. Skipping stages is forbidden.
 | 0 | Archaeology only — source/design maps, no daemon claim | in progress |
 | 1 | Config/control tools — `--check-config`, `chronyc`-compatible output where admitted | **current** |
 | 2 | Packet engine — NTP encode/decode byte parity, hostile-input safe | **current** |
-| 3 | Trace replay — deterministic chronyd trace replay (simulated clock/network) | schema only |
+| 3 | Trace replay — deterministic chronyd trace replay (simulated clock/network) | **partial** — runner executes events deterministically; chrony selection/discipline policy not yet applied |
 | 4 | Source-selection brain — accepted/rejected samples & source decisions match admitted traces | not started |
 | 5 | Discipline model — slew/step/frequency decisions match admitted simulated traces | not started |
 | 6 | Lab daemon — VM/container/netns only, no production claim | not started |
@@ -23,7 +23,10 @@ previous stage's evidence exists. Skipping stages is forbidden.
 - parses and validates chrony configs (`--check-config`),
 - encodes/decodes NTP packets with byte-roundtrip and no-panic guarantees,
 - renders `chronyc tracking` output offline,
-- loads and structurally validates replay traces.
+- loads, validates, and **deterministically replays** traces through a simulated
+  clock, emitting a reproducible decision-log hash (a regression pin). The
+  replay does **not** yet apply chrony's source-selection or discipline policy —
+  it processes events and observes state. See `negative-capabilities.md`.
 
 ## Hard boundaries (not yet crossed)
 

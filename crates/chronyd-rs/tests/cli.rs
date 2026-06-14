@@ -53,14 +53,24 @@ fn check_config_missing_file_exits_two() {
 }
 
 #[test]
-fn replay_loads_valid_trace() {
+fn replay_executes_trace_and_reports_hash() {
     let out = Command::new(bin())
         .arg("--replay")
         .arg(fixture("sample-trace.json"))
         .output()
         .expect("run chronyd-rs");
-    assert!(out.status.success());
-    assert!(String::from_utf8_lossy(&out.stdout).contains("trace OK"));
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("replayed 3 event(s)"), "stdout: {stdout}");
+    // A 64-char hex decision-log hash must be present and stable across runs.
+    assert!(stdout.contains("decision-log sha256:"), "stdout: {stdout}");
+
+    let out2 = Command::new(bin())
+        .arg("--replay")
+        .arg(fixture("sample-trace.json"))
+        .output()
+        .expect("run chronyd-rs");
+    assert_eq!(out.stdout, out2.stdout, "replay output must be deterministic");
 }
 
 #[test]

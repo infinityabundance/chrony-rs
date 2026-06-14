@@ -20,9 +20,9 @@
 
 use std::process::ExitCode;
 
-use chrony_rs_core::config;
+use chrony_rs_core::replay::{self, CheckResult};
 use chrony_rs_core::trace::Trace;
-use chrony_rs_core::{TARGET_CHRONY_VERSION, TRACE_SCHEMA};
+use chrony_rs_core::{config, TARGET_CHRONY_VERSION, TRACE_SCHEMA};
 
 const USAGE: &str = "\
 chronyd-rs — forensic chrony reconstruction (lab/replay only)
@@ -108,9 +108,14 @@ fn check_config(path: &str) -> ExitCode {
     }
 }
 
-/// Load and structurally validate a replay trace. The differential runner that
-/// drives the brain and compares against oracle outputs is a later campaign; this
-/// proves the trace loads, has the right schema, and is well-ordered.
+/// Load a replay trace and run it through the deterministic brain
+/// (`chrony_rs_core::replay`). Prints the decision-log hash and the placeholder
+/// selection, and — if the trace pins `expected.decision_events_sha256` — reports
+/// whether the run matched, exiting non-zero on a mismatch (a regression).
+///
+/// Note on scope: this executes *deterministic event processing*, not chrony's
+/// source-selection or discipline policy (Stages 4–5). The runner's own module
+/// doc and `docs/negative-capabilities.md` state exactly what is and isn't decided.
 fn replay(path: &str) -> ExitCode {
     let text = match std::fs::read_to_string(path) {
         Ok(t) => t,
@@ -120,20 +125,40 @@ fn replay(path: &str) -> ExitCode {
         }
     };
 
-    match Trace::from_json(&text) {
-        Ok(trace) => {
-            println!(
-                "{path}: trace OK — schema {}, chrony {}, {} event(s), platform {}",
-                trace.trace_schema,
-                trace.chrony_version,
-                trace.events.len(),
-                trace.platform
-            );
-            println!("note: replay execution/comparison is not yet implemented (deferred court)");
-            ExitCode::SUCCESS
-        }
+    let trace = match Trace::from_json(&text) {
+        Ok(t) => t,
         Err(e) => {
             eprintln!("error: invalid trace '{path}': {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    let report = match replay::run(&trace) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: replay failed for '{path}': {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    println!(
+        "{path}: replayed {} event(s) (chrony {}, schema {})",
+        report.events_processed, trace.chrony_version, trace.trace_schema
+    );
+    println!("  selected source (placeholder): {}", report.selected_source.as_deref().unwrap_or("none"));
+    println!("  decision-log sha256: {}", report.decision_log_sha256);
+
+    match report.check_against(&trace) {
+        CheckResult::Match => {
+            println!("  expectation: MATCH");
+            ExitCode::SUCCESS
+        }
+        CheckResult::NothingToCheck => {
+            println!("  expectation: none pinned");
+            ExitCode::SUCCESS
+        }
+        CheckResult::Mismatch { field, expected, actual } => {
+            eprintln!("  expectation: MISMATCH on {field}\n    expected: {expected}\n    actual:   {actual}");
             ExitCode::from(1)
         }
     }
