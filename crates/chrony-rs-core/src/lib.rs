@@ -36,6 +36,7 @@ pub mod hash;
 pub mod ntp;
 pub mod replay;
 pub mod report;
+pub mod sources;
 pub mod trace;
 
 /// The chrony upstream version whose behavior this reconstruction currently

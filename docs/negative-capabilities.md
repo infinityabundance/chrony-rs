@@ -39,7 +39,16 @@ corresponding court and evidence to exist first.
 
 ## Discipline / sources / state
 
-- **No source selection, filtering, or combining.** Not implemented.
+- **No measurement stage.** Offsets/delays are not yet computed from NTP packet
+  timestamps. This gates almost everything downstream (filtering, selection input,
+  discipline). Offsets are never fabricated to advance a court.
+- **Source selection is partial and algorithmic, not oracle-witnessed.** The
+  reachability register and selectability gate are reconstructed precisely; the
+  falseticker intersection reproduces the *core idea* only — no clustering/
+  combining, no `f`-loop refinement, no `prefer`/`trust` bias, no reselection
+  hysteresis. The selected source is a documented min-root-distance stand-in, and
+  selection is **not yet wired into replay** (no real offsets to feed it).
+- **No sample filtering/regression/jitter estimation.** Not implemented.
 - **No discipline model** (offset/frequency/skew/step/slew). Not implemented.
 - **No drift/dump/state file read or write.** Not implemented.
 - **No refclock or RTC support.** Not implemented.

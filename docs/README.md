@@ -15,15 +15,16 @@ preserves the reasoning, courts, and ecology maps.
 | [packet-atlas.md](packet-atlas.md) | NTP wire-format byte court |
 | [config-atlas.md](config-atlas.md) | config-parsing behavior court |
 | [chronyc-parity.md](chronyc-parity.md) | `chronyc` output-parity court |
+| [source-selection-atlas.md](source-selection-atlas.md) | reachability, selectability, falseticker intersection |
+| [filtering-atlas.md](filtering-atlas.md) | sample filtering plan + implemented falseticker court |
 | [security-boundary.md](security-boundary.md) | trust boundaries and unsafe ledger |
 
 ## Planned (scaffolding targets named in the doctrine)
 
 `time-discipline-atlas.md`, `slew-step-atlas.md`, `drift-atlas.md`,
-`source-selection-atlas.md`, `filtering-atlas.md`, `nts-atlas.md`,
-`refclock-atlas.md`, `os-clock-ecology.md`, `privilege-boundary.md`,
-`version-lineage.md`, `vendor-ecology.md`, `distro-defaults.md`,
-`operational-knowledge.md`, `porting-lessons.md`.
+`nts-atlas.md`, `refclock-atlas.md`, `os-clock-ecology.md`,
+`privilege-boundary.md`, `version-lineage.md`, `vendor-ecology.md`,
+`distro-defaults.md`, `operational-knowledge.md`, `porting-lessons.md`.
 
 These are written as their campaigns begin; an empty promise here is preferable to
 a stale doc, so they are listed but not stubbed.

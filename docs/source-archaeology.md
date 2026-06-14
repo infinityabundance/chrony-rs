@@ -35,9 +35,10 @@ the excavation campaign, not yet completed findings.
 | NTP packet decode/encode | `ntp_io.c` / `ntp_core.c` packet structs | `ntp/packet.rs` |
 | NTP timestamps | `ntp.h` `NTP_int64`, `ntp_core.c` | `ntp/timestamp.rs` |
 | `tracking` report | `client.c` (`process_cmd_tracking`) / `reports.h` | `report.rs` |
-| source reachability | `sources.c` / `sourcestats.c` | (planned) `sources/` |
+| source reachability | `sources.c` (`SRC_UpdateReachability`) | `sources/reachability.rs` (implemented) |
+| source selectability | `sources.c` (selectability checks) | `sources/source.rs` (implemented) |
 | sample filtering | `sourcestats.c` regression | (planned) `filter/` |
-| source selection | `sources.c` (`SRC_SelectSource`) | (planned) `sources/selection.rs` |
+| source selection | `sources.c` (`SRC_SelectSource`) | `sources/selection.rs` (partial: falseticker intersection) |
 | clock discipline | `local.c` / `reference.c` | (planned) `discipline/` |
 | drift state | `reference.c` (drift file load/save) | (planned) `state/drift_file.rs` |
 | control protocol | `cmdmon.c` / `candm.h` | (planned) `control/` |

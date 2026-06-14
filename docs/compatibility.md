@@ -26,6 +26,9 @@ reproducible test or receipt.
 | (replay) | deterministic event processing: same trace ⇒ same decision-log hash; reject/decode of packets via the packet court; pinned-hash regression check | `replay.rs` tests + `chronyd-rs/tests/cli.rs` + receipt |
 | (hash) | SHA-256 receipts match FIPS `""`/`"abc"`/multi-block vectors | `hash.rs` tests |
 | (clock) | simulated clock: wall = mono + step offset; monotonic non-decreasing; no host mutation | `clock.rs` tests |
+| CHRONY.SOURCE.2 | 8-bit reachability register: shift/mask, reachable⇔≠0, decay after 8 misses, octal display | `sources/reachability.rs` tests |
+| CHRONY.SOURCE.6/.7 | selectability gate: offline/unreachable/no-sample/stratum-0/stratum-16 excluded before interval math | `sources/source.rs` + `selection.rs` tests |
+| CHRONY.FILTER.8 (subset, **algorithmic**) | falseticker rejection by majority-clique interval intersection; min-root-distance stand-in pick | `sources/selection.rs` tests |
 
 ## Oracle status
 

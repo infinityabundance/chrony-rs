@@ -9,7 +9,7 @@ previous stage's evidence exists. Skipping stages is forbidden.
 | 1 | Config/control tools — `--check-config`, `chronyc`-compatible output where admitted | **current** |
 | 2 | Packet engine — NTP encode/decode byte parity, hostile-input safe | **current** |
 | 3 | Trace replay — deterministic chronyd trace replay (simulated clock/network) | **partial** — runner executes events deterministically; chrony selection/discipline policy not yet applied |
-| 4 | Source-selection brain — accepted/rejected samples & source decisions match admitted traces | not started |
+| 4 | Source-selection brain — accepted/rejected samples & source decisions match admitted traces | **partial** — reachability + selectability + falseticker intersection built & unit-tested (algorithmic, not yet oracle-witnessed or fed by real measurements) |
 | 5 | Discipline model — slew/step/frequency decisions match admitted simulated traces | not started |
 | 6 | Lab daemon — VM/container/netns only, no production claim | not started |
 | 7 | Controlled real-clock discipline — isolated non-critical host, explicit consent, long-run receipts | not started |
