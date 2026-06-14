@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/chrony-rs-core",
+    "crates/chronyd-rs",
+    "crates/chronyc-rs",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+license = "GPL-2.0-only"
+repository = "https://github.com/infinityabundance/chrony-rs"
+description = "A forensic Rust reconstruction of chrony time-discipline behavior."
+
+# chrony itself is GPL-2.0-only. chrony-rs is an independent reconstruction, but
+# we keep the licensing posture compatible so that source-archaeology findings,
+# fixtures derived from observed behavior, and any future code-adjacent material
+# can be reasoned about under a single, well-understood license.
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+# Time-discipline code benefits from predictable arithmetic. We keep overflow
+# checks on even in release builds: a silent wrap in offset/frequency math would
+# be a correctness defect of exactly the kind this project exists to prevent.
+overflow-checks = true

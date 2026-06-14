@@ -1,0 +1,13 @@
+Reference ID    : 0A000001 (ntp.example.com)
+Stratum         : 2
+Ref time (UTC)  : Wed May 25 10:20:30 2022
+System time     : 0.000020390 seconds fast of NTP time
+Last offset     : +0.000001234 seconds
+RMS offset      : 0.000005678 seconds
+Frequency       : 12.345 ppm fast
+Residual freq   : +0.001 ppm
+Skew            : 0.234 ppm
+Root delay      : 0.001234567 seconds
+Root dispersion : 0.000456789 seconds
+Update interval : 64.5 seconds
+Leap status     : Normal

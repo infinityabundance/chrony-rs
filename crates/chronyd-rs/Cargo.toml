@@ -1,0 +1,15 @@
+[package]
+name = "chronyd-rs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "chrony-rs daemon/replay binary (lab and forensic modes only — not a production time daemon)."
+
+[[bin]]
+name = "chronyd-rs"
+path = "src/main.rs"
+
+[dependencies]
+chrony-rs-core = { path = "../chrony-rs-core" }

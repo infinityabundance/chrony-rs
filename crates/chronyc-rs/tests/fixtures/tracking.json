@@ -1,0 +1,16 @@
+{
+  "reference_id": 167772161,
+  "reference_name": "ntp.example.com",
+  "stratum": 2,
+  "ref_time_utc": "Wed May 25 10:20:30 2022",
+  "system_time_offset": 0.000020390,
+  "last_offset": 0.000001234,
+  "rms_offset": 0.000005678,
+  "frequency_ppm": 12.345,
+  "residual_freq_ppm": 0.001,
+  "skew_ppm": 0.234,
+  "root_delay": 0.001234567,
+  "root_dispersion": 0.000456789,
+  "update_interval": 64.5,
+  "leap_status": "normal"
+}

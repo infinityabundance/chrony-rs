@@ -1,0 +1,12 @@
+/target
+**/*.rs.bk
+Cargo.lock.orig
+
+# Heavy evidence does not belong in the lean crate sources, but the GitHub repo
+# preserves the archaeology archive. The exclusions below keep machine-local and
+# regenerable artifacts out; curated receipts under reports/ ARE committed.
+*.pcap
+*.pcapng
+/fuzz/corpus
+/fuzz/artifacts
+*.vmlog
