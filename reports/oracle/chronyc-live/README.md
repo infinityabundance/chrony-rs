@@ -25,6 +25,8 @@ these are the receipts.
 | `sources.raw.out` | `chronyc sources` | header + `=`-rule for the (not-yet-ported) `sources` formatter (`client.c::print_report`) |
 | `sources-v.raw.out` | `chronyc sources -v` | the verbose legend block (mode/state glyph key) |
 | `sourcestats.raw.out` | `chronyc sourcestats` | header for the (not-yet-ported) `sourcestats` formatter |
+| `sourcestats-v.raw.out` | `chronyc sourcestats -v` | verbose legend block for `sourcestats` |
+| `accheck.raw.out` | `chronyc accheck <ip>` | allow/deny verdicts for a configured rule set — the live oracle for `addrfilt.rs` (`ADF_IsAllowed`) |
 
 ## Volatile fields (do not treat as byte-stable)
 

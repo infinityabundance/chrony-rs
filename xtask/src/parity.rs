@@ -194,7 +194,9 @@ const MAP: &[Row] = &[
 
     // ---- networking / naming / misc (none) ----
     Row { c: "socket.c", role: "socket abstraction layer", rust: &[], port: Port::None, note: "" },
-    Row { c: "addrfilt.c", role: "address allow/deny subnet trie (ADF_*)", rust: &[], port: Port::None, note: "" },
+    Row { c: "addrfilt.c", role: "NTP/cmd access-control subnet trie (ADF_*)",
+        rust: &["addrfilt.rs"], port: Port::Full,
+        note: "complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5" },
     Row { c: "nameserv.c", role: "synchronous DNS resolution", rust: &[], port: Port::None, note: "" },
     Row { c: "nameserv_async.c", role: "async DNS resolution", rust: &[], port: Port::None, note: "not in Linux preprocessing (0 fns)" },
     Row { c: "clientlog.c", role: "client access log / rate limiting", rust: &[], port: Port::None, note: "" },
@@ -242,6 +244,27 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "RGR_FindMedian",
             "find_median",
             "find_ordered_entry_with_flags",
+        ],
+    ),
+    (
+        "addrfilt.c",
+        &[
+            "ADF_CreateTable",
+            "ADF_DestroyTable",
+            "ADF_Allow",
+            "ADF_AllowAll",
+            "ADF_Deny",
+            "ADF_DenyAll",
+            "ADF_IsAllowed",
+            "ADF_IsAnyAllowed",
+            "set_subnet_",
+            "set_subnet",
+            "check_ip_in_node",
+            "is_any_allowed",
+            "open_node",
+            "close_node",
+            "get_subnet",
+            "split_ip6",
         ],
     ),
 ];

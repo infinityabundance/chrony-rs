@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 14 / 70 (1 full, 9 partial, 4 scaffold); **56** have none.
-- **Files fully ported:** 1 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 581 / 1373 C functions (42.3%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 15 / 70 (2 full, 9 partial, 4 scaffold); **55** have none.
+- **Files fully ported:** 2 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 597 / 1373 C functions (43.5%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 205 named functions + 28 closures across 26 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 232 named functions + 30 closures across 27 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -28,7 +28,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 
 | chrony `.c` | C fns | parity % | role | chrony-rs counterpart | status |
 |---|---:|---:|---|---|---|
-| `addrfilt.c` | 16 | 0.0% | address allow/deny subnet trie (ADF_*) | — | · none |
+| `addrfilt.c` | 16 | 100.0% | NTP/cmd access-control subnet trie (ADF_*) | `addrfilt.rs` | ● full |
 | `array.c` | 10 | 0.0% | generic dynamic array (ARR_*) | — | · none |
 | `client.c` | 90 | 7.8% | chronyc CLI: command dispatch + report formatters | `report.rs`<br>`chronyc-rs/src/main.rs` | ◑ partial |
 | `clientlog.c` | 35 | 0.0% | client access log / rate limiting | — | · none |
@@ -115,6 +115,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
 - **`util.c`** — NTP timestamp/era algebra ported; broad UTI_* surface not _(≈22 Rust `fn` in mapped modules)_
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_
+- **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
 
 ## What "partial"/"scaffold" deliberately does not mean
 

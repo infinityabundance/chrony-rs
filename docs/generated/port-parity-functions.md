@@ -15,12 +15,13 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 28 / 1373 C functions have a direct counterpart (2.0%).** The other 1345 are gaps.
+**Overall: 44 / 1373 C functions have a direct counterpart (3.2%).** The other 1329 are gaps.
 
 ## Per-file coverage (all 70 files)
 
 | chrony `.c` | C fns | ported | gap | parity % |
 |---|---:|---:|---:|---:|
+| `addrfilt.c` | 16 | 16 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
 | `regress.c` | 11 | 5 | 6 | 45.5% |
 | `cmdparse.c` | 8 | 2 | 6 | 25.0% |
@@ -30,7 +31,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `ntp_core.c` | 69 | 2 | 67 | 2.9% |
 | `util.c` | 76 | 2 | 74 | 2.6% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
-| `addrfilt.c` | 16 | 0 | 16 | 0.0% |
 | `array.c` | 10 | 0 | 10 | 0.0% |
 | `clientlog.c` | 35 | 0 | 35 | 0.0% |
 | `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
@@ -95,6 +95,25 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 ## Ported files — function-by-function (✓ ported · gap)
 
 Gaps are listed explicitly here so the missing surface in a partially-ported file is visible, not summarized away. Files with 0 ported functions are omitted from this section (their entire function list is a gap; see the inventory TSV).
+
+### `addrfilt.c` — 16/16 (100.0%)
+
+- ✓ `ADF_Allow`
+- ✓ `ADF_AllowAll`
+- ✓ `ADF_CreateTable`
+- ✓ `ADF_Deny`
+- ✓ `ADF_DenyAll`
+- ✓ `ADF_DestroyTable`
+- ✓ `ADF_IsAllowed`
+- ✓ `ADF_IsAnyAllowed`
+- ✓ `check_ip_in_node`
+- ✓ `close_node`
+- ✓ `get_subnet`
+- ✓ `is_any_allowed`
+- ✓ `open_node`
+- ✓ `set_subnet`
+- ✓ `set_subnet_`
+- ✓ `split_ip6`
 
 ### `md5.c` — 4/4 (100.0%)
 
