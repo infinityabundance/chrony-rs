@@ -16,13 +16,13 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 12 / 70 (8 partial, 4 scaffold); **58** have none.
-- **Files fully ported:** 0 / 70. chrony-rs is an early-stage forensic reconstruction, not a complete port — this number is expected to be small and is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 566 / 1373 C functions (41.2%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 13 / 70 (1 full, 8 partial, 4 scaffold); **57** have none.
+- **Files fully ported:** 1 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 570 / 1373 C functions (41.5%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 186 named functions + 23 closures across 24 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 196 named functions + 25 closures across 25 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
-Legend: ◑ partial = behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
+Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
 ## Full catalog (all C files, sorted)
 
@@ -48,7 +48,7 @@ Legend: ◑ partial = behavior ported with an executable court · ○ scaffold =
 | `logging.c` | 17 | 0.0% | logging subsystem (LOG_*) | — | · none |
 | `main.c` | 16 | 6.2% | daemon entry, arg parsing, lifecycle | `chronyd-rs/src/main.rs` | ◑ partial |
 | `manual.c` | 11 | 0.0% | manual time input (settime) | — | · none |
-| `md5.c` | 4 | 0.0% | MD5 digest | — | · none |
+| `md5.c` | 4 | 100.0% | MD5 digest (RFC 1321 reference, NTP symmetric-key auth) | `md5.rs` | ● full |
 | `memory.c` | 6 | 0.0% | xmalloc/xrealloc wrappers | — | · none |
 | `nameserv.c` | 4 | 0.0% | synchronous DNS resolution | — | · none |
 | `nameserv_async.c` | 0 | 0.0% | async DNS resolution | — | · none |
@@ -113,6 +113,7 @@ Legend: ◑ partial = behavior ported with an executable court · ○ scaffold =
 - **`client.c`** — `tracking` + `sources` rendered (print_report engine + print_seconds/nanoseconds helpers; sources header/legend live-witnessed vs 4.5); 2 of ~40 process_cmd_* commands; no socket transport _(≈22 Rust `fn` in mapped modules)_
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
 - **`util.c`** — NTP timestamp/era algebra ported; broad UTI_* surface not _(≈22 Rust `fn` in mapped modules)_
+- **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_
 
 ## What "partial"/"scaffold" deliberately does not mean
 

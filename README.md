@@ -14,6 +14,7 @@ where chrony policy differs from generic protocol truth.
 
 | Surface | Status |
 |---------|--------|
+| MD5 (RFC 1321) for NTP symmetric-key auth | **complete port of `md5.c`** (all 4 functions); byte-exact vs RFC 1321 §A.5 vectors — first fully-ported chrony `.c` file |
 | NTP packet decode/encode (48-byte header) | byte-roundtrip courts `CHRONY.PACKET.1–.13` (subset admitted) |
 | NTP timestamp / short fixed-point types | bit-exact roundtrip |
 | chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; **oracle-witnessed against chrony 4.5** — 8/8 accept/reject agreement (incl. Ubuntu default) + exact phrasing for 5 error classes; 82-directive set oracle-anchored |
@@ -30,7 +31,7 @@ Run:
 
 ```sh
 cargo build
-cargo test                                    # 83 tests, deterministic
+cargo test                                    # 86 tests, deterministic
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>

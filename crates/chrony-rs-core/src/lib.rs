@@ -33,6 +33,7 @@
 pub mod clock;
 pub mod config;
 pub mod hash;
+pub mod md5;
 pub mod ntp;
 pub mod replay;
 pub mod report;

@@ -38,6 +38,8 @@ use std::path::Path;
 /// most to least complete for summary tallying.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Port {
+    /// Every function in the translation unit has a court-backed counterpart.
+    Full,
     /// Behavior ported, backed by at least one executable court.
     Partial,
     /// A type, data shape, or simulated stand-in exists; chrony's behavior is not
@@ -50,6 +52,7 @@ enum Port {
 impl Port {
     fn glyph(self) -> &'static str {
         match self {
+            Port::Full => "● full",
             Port::Partial => "◑ partial",
             Port::Scaffold => "○ scaffold",
             Port::None => "· none",
@@ -142,7 +145,9 @@ const MAP: &[Row] = &[
 
     // ---- crypto / auth / keys (none) ----
     Row { c: "keys.c", role: "symmetric key store", rust: &[], port: Port::None, note: "" },
-    Row { c: "md5.c", role: "MD5 digest", rust: &[], port: Port::None, note: "hash.rs is SHA-256 receipts, not chrony auth hashing" },
+    Row { c: "md5.c", role: "MD5 digest (RFC 1321 reference, NTP symmetric-key auth)",
+        rust: &["md5.rs"], port: Port::Full,
+        note: "complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU)" },
     Row { c: "hash_intmd5.c", role: "internal MD5 hash backend", rust: &[], port: Port::None, note: "" },
     Row { c: "hash_gnutls.c", role: "gnutls hash backend", rust: &[], port: Port::None, note: "" },
     Row { c: "hash_nettle.c", role: "nettle hash backend", rust: &[], port: Port::None, note: "" },
@@ -226,6 +231,7 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("ntp_core.c", &["parse_packet", "process_response"]),
     ("util.c", &["UTI_Ntp32ToDouble", "UTI_DiffNtp64ToDouble"]),
     ("main.c", &["main"]),
+    ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
 ];
 
 /// Look up the curated ported-function list for a file (empty if none).
@@ -390,6 +396,7 @@ pub fn port_parity_md(root: &Path) -> String {
     // Index the curated map by file for joining against the authoritative TSV set.
     let by_file: BTreeMap<&str, &Row> = MAP.iter().map(|r| (r.c, r)).collect();
 
+    let mut full = 0usize;
     let mut partial = 0usize;
     let mut scaffold = 0usize;
     let mut none = 0usize;
@@ -409,6 +416,10 @@ pub fn port_parity_md(root: &Path) -> String {
             ),
         };
         match port {
+            Port::Full => {
+                full += 1;
+                funcs_with_counterpart += n;
+            }
             Port::Partial => {
                 partial += 1;
                 funcs_with_counterpart += n;
@@ -460,16 +471,16 @@ pub fn port_parity_md(root: &Path) -> String {
     s.push_str(&format!("> C inventory provenance: {provenance}\n\n"));
 
     s.push_str("## Headline completeness\n\n");
-    let any = partial + scaffold;
+    let any = full + partial + scaffold;
     s.push_str(&format!("- **C translation units:** {total_c_files} `.c` files, {total_c_funcs} functions (doxygen).\n"));
     s.push_str(&format!(
         "- **Files with any chrony-rs counterpart:** {any} / {total_c_files} \
-         ({partial} partial, {scaffold} scaffold); **{none}** have none.\n"
+         ({full} full, {partial} partial, {scaffold} scaffold); **{none}** have none.\n"
     ));
     s.push_str(&format!(
-        "- **Files fully ported:** 0 / {total_c_files}. chrony-rs is an early-stage forensic \
-         reconstruction, not a complete port — this number is expected to be small and is stated, \
-         not hidden.\n"
+        "- **Files fully ported:** {full} / {total_c_files} — every function in the unit has a \
+         court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage \
+         forensic reconstruction; this number is stated, not hidden.\n"
     ));
     let pct = (funcs_with_counterpart as f64 / total_c_funcs as f64) * 100.0;
     s.push_str(&format!(
@@ -487,7 +498,8 @@ pub fn port_parity_md(root: &Path) -> String {
         rs_total.named_fns, rs_total.closures, rs_files
     ));
 
-    s.push_str("Legend: ◑ partial = behavior ported with an executable court · ");
+    s.push_str("Legend: ● full = every function ported under court · ");
+    s.push_str("◑ partial = some behavior ported with an executable court · ");
     s.push_str("○ scaffold = type/simulated stand-in only · · none = no counterpart.\n\n");
 
     s.push_str("## Full catalog (all C files, sorted)\n\n");

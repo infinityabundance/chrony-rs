@@ -15,12 +15,13 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 19 / 1373 C functions have a direct counterpart (1.4%).** The other 1354 are gaps.
+**Overall: 23 / 1373 C functions have a direct counterpart (1.7%).** The other 1350 are gaps.
 
 ## Per-file coverage (all 70 files)
 
 | chrony `.c` | C fns | ported | gap | parity % |
 |---|---:|---:|---:|---:|
+| `md5.c` | 4 | 4 | 0 | 100.0% |
 | `cmdparse.c` | 8 | 2 | 6 | 25.0% |
 | `client.c` | 90 | 7 | 83 | 7.8% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
@@ -44,7 +45,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `local.c` | 35 | 0 | 35 | 0.0% |
 | `logging.c` | 17 | 0 | 17 | 0.0% |
 | `manual.c` | 11 | 0 | 11 | 0.0% |
-| `md5.c` | 4 | 0 | 4 | 0.0% |
 | `memory.c` | 6 | 0 | 6 | 0.0% |
 | `nameserv.c` | 4 | 0 | 4 | 0.0% |
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
@@ -95,6 +95,13 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 ## Ported files — function-by-function (✓ ported · gap)
 
 Gaps are listed explicitly here so the missing surface in a partially-ported file is visible, not summarized away. Files with 0 ported functions are omitted from this section (their entire function list is a gap; see the inventory TSV).
+
+### `md5.c` — 4/4 (100.0%)
+
+- ✓ `MD5Final`
+- ✓ `MD5Init`
+- ✓ `MD5Update`
+- ✓ `Transform`
 
 ### `cmdparse.c` — 2/8 (25.0%)
 
