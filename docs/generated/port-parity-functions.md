@@ -15,13 +15,14 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 23 / 1373 C functions have a direct counterpart (1.7%).** The other 1350 are gaps.
+**Overall: 28 / 1373 C functions have a direct counterpart (2.0%).** The other 1345 are gaps.
 
 ## Per-file coverage (all 70 files)
 
 | chrony `.c` | C fns | ported | gap | parity % |
 |---|---:|---:|---:|---:|
 | `md5.c` | 4 | 4 | 0 | 100.0% |
+| `regress.c` | 11 | 5 | 6 | 45.5% |
 | `cmdparse.c` | 8 | 2 | 6 | 25.0% |
 | `client.c` | 90 | 7 | 83 | 7.8% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
@@ -69,7 +70,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `refclock_shm.c` | 3 | 0 | 3 | 0.0% |
 | `refclock_sock.c` | 3 | 0 | 3 | 0.0% |
 | `reference.c` | 45 | 0 | 45 | 0.0% |
-| `regress.c` | 11 | 0 | 11 | 0.0% |
 | `rtc.c` | 9 | 0 | 9 | 0.0% |
 | `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
 | `samplefilt.c` | 18 | 0 | 18 | 0.0% |
@@ -102,6 +102,20 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `MD5Init`
 - ✓ `MD5Update`
 - ✓ `Transform`
+
+### `regress.c` — 5/11 (45.5%)
+
+- · `RGR_FindBestRegression`
+- · `RGR_FindBestRobustRegression`
+- ✓ `RGR_FindMedian`
+- ✓ `RGR_GetChi2Coef`
+- ✓ `RGR_GetTCoef`
+- · `RGR_MultipleRegress`
+- · `RGR_WeightedRegression`
+- · `eval_robust_residual`
+- ✓ `find_median`
+- ✓ `find_ordered_entry_with_flags`
+- · `n_runs_from_residuals`
 
 ### `cmdparse.c` — 2/8 (25.0%)
 

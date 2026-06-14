@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 13 / 70 (1 full, 8 partial, 4 scaffold); **57** have none.
+- **Files with any chrony-rs counterpart:** 14 / 70 (1 full, 9 partial, 4 scaffold); **56** have none.
 - **Files fully ported:** 1 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 570 / 1373 C functions (41.5%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Loose upper bound on function coverage:** files with a counterpart contain 581 / 1373 C functions (42.3%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 196 named functions + 25 closures across 25 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 205 named functions + 28 closures across 26 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -74,7 +74,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `refclock_shm.c` | 3 | 0.0% | SHM refclock driver | — | · none |
 | `refclock_sock.c` | 3 | 0.0% | socket refclock driver | — | · none |
 | `reference.c` | 45 | 0.0% | tracking + drift state, leap handling (REF_*) | `report.rs`<br>`clock.rs` | ◑ partial |
-| `regress.c` | 11 | 0.0% | robust linear regression | — | · none |
+| `regress.c` | 11 | 45.5% | robust linear regression + statistical primitives | `regress.rs` | ◑ partial |
 | `rtc.c` | 9 | 0.0% | RTC abstraction | — | · none |
 | `rtc_linux.c` | 26 | 0.0% | Linux RTC driver | — | · none |
 | `samplefilt.c` | 18 | 0.0% | per-source sample filtering | — | · none |
@@ -107,6 +107,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
 - **`pktlength.c`** — length checks partial via the codec _(≈14 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
+- **`regress.c`** — pure dependency-free subset ported: t/chi2 critical-value tables + order-statistic median (validated vs sort oracle); weighted/robust regressions are a gap _(≈9 Rust `fn` in mapped modules)_
 - **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈31 Rust `fn` in mapped modules)_
 - **`local.c`** — side-effect-free simulated clock; no real read/adjust _(≈12 Rust `fn` in mapped modules)_
 - **`sched.c`** — deterministic replay loop is a stand-in, not the SCH_ timer wheel _(≈13 Rust `fn` in mapped modules)_

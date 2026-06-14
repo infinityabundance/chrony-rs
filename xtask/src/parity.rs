@@ -104,7 +104,9 @@ const MAP: &[Row] = &[
         note: "8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported" },
     Row { c: "sourcestats.c", role: "per-source regression statistics (SST_*)", rust: &[], port: Port::None,
         note: "planned filter/regression surface" },
-    Row { c: "regress.c", role: "robust linear regression", rust: &[], port: Port::None, note: "" },
+    Row { c: "regress.c", role: "robust linear regression + statistical primitives",
+        rust: &["regress.rs"], port: Port::Partial,
+        note: "pure dependency-free subset ported: t/chi2 critical-value tables + order-statistic median (validated vs sort oracle); weighted/robust regressions are a gap" },
     Row { c: "samplefilt.c", role: "per-source sample filtering", rust: &[], port: Port::None, note: "" },
     Row { c: "quantiles.c", role: "streaming quantile estimator", rust: &[], port: Port::None, note: "" },
 
@@ -232,6 +234,16 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("util.c", &["UTI_Ntp32ToDouble", "UTI_DiffNtp64ToDouble"]),
     ("main.c", &["main"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
+    (
+        "regress.c",
+        &[
+            "RGR_GetTCoef",
+            "RGR_GetChi2Coef",
+            "RGR_FindMedian",
+            "find_median",
+            "find_ordered_entry_with_flags",
+        ],
+    ),
 ];
 
 /// Look up the curated ported-function list for a file (empty if none).
