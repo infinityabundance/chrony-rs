@@ -20,7 +20,7 @@ method, provenance, and how the doxygen runs were produced on both sides.
 - **Files fully ported:** 3 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 605 / 1373 C functions (44.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 285 named functions + 36 closures across 30 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 289 named functions + 39 closures across 30 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -35,7 +35,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `cmac_gnutls.c` | 7 | 0.0% | gnutls CMAC backend | — | · none |
 | `cmac_nettle.c` | 4 | 0.0% | nettle CMAC backend | — | · none |
 | `cmdmon.c` | 64 | 0.0% | control/monitoring protocol server (candm) | — | · none |
-| `cmdparse.c` | 8 | 75.0% | command/config line parsing (CPS_*) | `config/parser.rs`<br>`cmdparse.rs` | ◑ partial |
+| `cmdparse.c` | 8 | 87.5% | command/config line parsing (CPS_*) | `config/parser.rs`<br>`cmdparse.rs` | ◑ partial |
 | `conf.c` | 135 | 1.5% | config file parser + 93-directive dispatch (CNF_*) | `config/parser.rs`<br>`config/lexer.rs`<br>`config/diagnostics.rs`<br>`config/model.rs`<br>`config/mod.rs` | ◑ partial |
 | `hash_gnutls.c` | 3 | 0.0% | gnutls hash backend | — | · none |
 | `hash_intmd5.c` | 3 | 0.0% | internal MD5 hash backend | — | · none |
@@ -102,7 +102,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 ## Coverage notes (files with a counterpart)
 
 - **`conf.c`** — directive recognition (93/93), comment rules, diagnostics witnessed vs 4.5; per-directive value semantics partial _(≈33 Rust `fn` in mapped modules)_
-- **`cmdparse.c`** — 6/8: source-option set (oracle-anchored) + word split, line normalize, refid pack, key spec; ParseAllowDeny (DNS) and ParseLocal (float sscanf) are gaps _(≈29 Rust `fn` in mapped modules)_
+- **`cmdparse.c`** — 7/8: source options + word split/normalize/refid/key + allow-deny parse (drives addrfilt, end-to-end vs `chronyc accheck`; DNS hostname branch deferred); only ParseLocal (float sscanf) is a gap _(≈33 Rust `fn` in mapped modules)_
 - **`ntp_core.c`** — RFC 5905 §8 offset/delay algebra + 48-byte header codec; poll state machine not ported _(≈23 Rust `fn` in mapped modules)_
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
 - **`pktlength.c`** — length checks partial via the codec _(≈14 Rust `fn` in mapped modules)_

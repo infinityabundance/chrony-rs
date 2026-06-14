@@ -81,7 +81,7 @@ const MAP: &[Row] = &[
         port: Port::Partial, note: "directive recognition (93/93), comment rules, diagnostics witnessed vs 4.5; per-directive value semantics partial" },
     Row { c: "cmdparse.c", role: "command/config line parsing (CPS_*)",
         rust: &["config/parser.rs", "cmdparse.rs"], port: Port::Partial,
-        note: "6/8: source-option set (oracle-anchored) + word split, line normalize, refid pack, key spec; ParseAllowDeny (DNS) and ParseLocal (float sscanf) are gaps" },
+        note: "7/8: source options + word split/normalize/refid/key + allow-deny parse (drives addrfilt, end-to-end vs `chronyc accheck`; DNS hostname branch deferred); only ParseLocal (float sscanf) is a gap" },
 
     // ---- NTP protocol ----
     Row { c: "ntp_core.c", role: "NTP protocol engine: poll, process-response, offset/delay (NCR_*)",
@@ -226,6 +226,7 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "CPS_NormalizeLine",
             "CPS_ParseRefid",
             "CPS_ParseKey",
+            "CPS_ParseAllowDeny",
         ],
     ),
     (

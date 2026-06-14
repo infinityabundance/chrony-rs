@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 69 / 1373 C functions have a direct counterpart (5.0%).** The other 1304 are gaps.
+**Overall: 70 / 1373 C functions have a direct counterpart (5.1%).** The other 1303 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -24,7 +24,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `addrfilt.c` | 16 | 16 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
-| `cmdparse.c` | 8 | 6 | 2 | 75.0% |
+| `cmdparse.c` | 8 | 7 | 1 | 87.5% |
 | `regress.c` | 11 | 5 | 6 | 45.5% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 9 | 67 | 11.8% |
@@ -133,11 +133,11 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `insert_initial_value`
 - ✓ `update_estimate`
 
-### `cmdparse.c` — 6/8 (75.0%)
+### `cmdparse.c` — 7/8 (87.5%)
 
 - ✓ `CPS_GetSelectOption`
 - ✓ `CPS_NormalizeLine`
-- · `CPS_ParseAllowDeny`
+- ✓ `CPS_ParseAllowDeny`
 - ✓ `CPS_ParseKey`
 - · `CPS_ParseLocal`
 - ✓ `CPS_ParseNTPSourceAdd`
