@@ -110,6 +110,227 @@ impl TrackingReport {
     }
 }
 
+// ---------------------------------------------------------------------------
+// `chronyc sources` (CHRONYC.2)
+//
+// Ported from chrony 4.5 `client.c::process_cmd_sources` and its `print_report`
+// custom format engine. The header and verbose legend are *live-witnessed* against
+// real chrony 4.5 output (`reports/oracle/chronyc-live/sources*.raw.out`); the data
+// rows are byte-derived from the C format string
+//   "%c%c %-27s  %2d  %2d   %3o  %I  %+S[%+S] +/- %S\n"
+// and its `%I`/`%S` helpers (`print_seconds`, `print_(signed_)nanoseconds`).
+// ---------------------------------------------------------------------------
+
+/// The `sources` table header. Exactly chrony's literal (79 chars); the `=` rule
+/// chrony prints under it is `'=' * header.len()` (see `print_header`).
+const SOURCES_HEADER: &str =
+    "MS Name/IP address         Stratum Poll Reach LastRx Last sample               ";
+
+/// The `-v` legend block, printed before the header. Byte-identical to chrony's
+/// nine `printf` lines (`process_cmd_sources`); the leading empty line and the
+/// trailing `\` continuation lines are part of the real output.
+const SOURCES_LEGEND_LINES: &[&str] = &[
+    "",
+    "  .-- Source mode  '^' = server, '=' = peer, '#' = local clock.",
+    " / .- Source state '*' = current best, '+' = combined, '-' = not combined,",
+    "| /             'x' = may be in error, '~' = too variable, '?' = unusable.",
+    "||                                                 .- xxxx [ yyyy ] +/- zzzz",
+    "||      Reachability register (octal) -.           |  xxxx = adjusted offset,",
+    "||      Log2(Polling interval) --.      |          |  yyyy = measured offset,",
+    "||                                \\     |          |  zzzz = estimated error.",
+    "||                                 |    |           \\",
+];
+
+/// Source mode glyph (first column char), from `RPY_SD_MD_*` in chrony.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceMode {
+    /// `^` — a server we poll as a client.
+    Server,
+    /// `=` — a symmetric peer.
+    Peer,
+    /// `#` — a local reference clock.
+    RefClock,
+}
+
+impl SourceMode {
+    fn glyph(self) -> char {
+        match self {
+            SourceMode::Server => '^',
+            SourceMode::Peer => '=',
+            SourceMode::RefClock => '#',
+        }
+    }
+}
+
+/// Source selection state glyph (second column char), from `RPY_SD_ST_*`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceState {
+    /// `*` — current synced/best source (`RPY_SD_ST_SELECTED`).
+    Selected,
+    /// `+` — acceptable, combined (`RPY_SD_ST_UNSELECTED`).
+    Combined,
+    /// `-` — acceptable, not combined (`RPY_SD_ST_SELECTABLE`).
+    NotCombined,
+    /// `?` — unreachable/unusable (`RPY_SD_ST_NONSELECTABLE`).
+    Unusable,
+    /// `x` — falseticker (`RPY_SD_ST_FALSETICKER`).
+    Falseticker,
+    /// `~` — too variable (`RPY_SD_ST_JITTERY`).
+    Jittery,
+}
+
+impl SourceState {
+    fn glyph(self) -> char {
+        match self {
+            SourceState::Selected => '*',
+            SourceState::Combined => '+',
+            SourceState::NotCombined => '-',
+            SourceState::Unusable => '?',
+            SourceState::Falseticker => 'x',
+            SourceState::Jittery => '~',
+        }
+    }
+}
+
+/// One `sources` row. Field meanings and units mirror `RPY_SourceData`.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SourceEntry {
+    pub mode: SourceMode,
+    pub state: SourceState,
+    /// Display name/IP, already resolved (chrony formats this to ≤25 chars).
+    pub name: String,
+    pub stratum: u16,
+    /// Log2 of the polling interval; signed (`int16_t` in chrony).
+    pub poll: i16,
+    /// 8-bit reachability register, shown octal.
+    pub reach: u16,
+    /// Seconds since the last sample (`LastRx`); `u32::MAX` renders as `-`.
+    pub since_sample: u32,
+    /// Adjusted offset (`latest_meas`), seconds.
+    pub adjusted_offset: f64,
+    /// Measured offset (`orig_latest_meas`), seconds.
+    pub measured_offset: f64,
+    /// Estimated error (`latest_meas_err`), seconds.
+    pub error: f64,
+}
+
+impl SourceEntry {
+    /// Render one row exactly as `print_report`'s format string would.
+    fn render_row(&self) -> String {
+        format!(
+            "{}{} {:<27}  {:2}  {:2}   {:3o}  {}  {}[{}] +/- {}\n",
+            self.mode.glyph(),
+            self.state.glyph(),
+            self.name,
+            self.stratum,
+            self.poll,
+            self.reach,
+            fmt_seconds(self.since_sample),
+            fmt_signed_nanoseconds(self.adjusted_offset),
+            fmt_signed_nanoseconds(self.measured_offset),
+            fmt_nanoseconds(self.error),
+        )
+    }
+}
+
+/// A full `sources` report (zero or more rows).
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct SourcesReport {
+    #[serde(default)]
+    pub sources: Vec<SourceEntry>,
+}
+
+impl SourcesReport {
+    /// Render as `chronyc sources` (`verbose` = the `-v` legend). Includes the
+    /// trailing newline on the last row.
+    pub fn render(&self, verbose: bool) -> String {
+        let mut s = String::new();
+        if verbose {
+            s.push_str(&SOURCES_LEGEND_LINES.join("\n"));
+            s.push('\n');
+        }
+        s.push_str(SOURCES_HEADER);
+        s.push('\n');
+        s.push_str(&"=".repeat(SOURCES_HEADER.len()));
+        s.push('\n');
+        for src in &self.sources {
+            s.push_str(&src.render_row());
+        }
+        s
+    }
+}
+
+/// `print_seconds`: a `LastRx`-style interval with a unit suffix, 4-char field.
+fn fmt_seconds(s: u32) -> String {
+    if s == u32::MAX {
+        "   -".to_string()
+    } else if s < 1200 {
+        format!("{s:4}")
+    } else if s < 36000 {
+        format!("{:3}m", s / 60)
+    } else if s < 345_600 {
+        format!("{:3}h", s / 3600)
+    } else {
+        let d = s / 86400;
+        if d > 999 {
+            format!("{:3}y", d / 365)
+        } else {
+            format!("{d:3}d")
+        }
+    }
+}
+
+/// `print_nanoseconds`: an unsigned magnitude with an auto-scaled unit.
+fn fmt_nanoseconds(s: f64) -> String {
+    let s = s.abs();
+    if s < 9999.5e-9 {
+        format!("{:4.0}ns", s * 1e9)
+    } else if s < 9999.5e-6 {
+        format!("{:4.0}us", s * 1e6)
+    } else if s < 9999.5e-3 {
+        format!("{:4.0}ms", s * 1e3)
+    } else if s < 999.5 {
+        format!("{s:5.1}s")
+    } else if s < 99999.5 {
+        format!("{s:5.0}s")
+    } else if s < 99999.5 * 60.0 {
+        format!("{:5.0}m", s / 60.0)
+    } else if s < 99999.5 * 3600.0 {
+        format!("{:5.0}h", s / 3600.0)
+    } else if s < 99999.5 * 3600.0 * 24.0 {
+        format!("{:5.0}d", s / (3600.0 * 24.0))
+    } else {
+        format!("{:5.0}y", s / (3600.0 * 24.0 * 365.0))
+    }
+}
+
+/// `print_signed_nanoseconds`: like [`fmt_nanoseconds`] but always signed; the
+/// unit branch is chosen on the magnitude, the printed value keeps its sign.
+fn fmt_signed_nanoseconds(s: f64) -> String {
+    let x = s.abs();
+    if x < 9999.5e-9 {
+        format!("{:+5.0}ns", s * 1e9)
+    } else if x < 9999.5e-6 {
+        format!("{:+5.0}us", s * 1e6)
+    } else if x < 9999.5e-3 {
+        format!("{:+5.0}ms", s * 1e3)
+    } else if x < 999.5 {
+        format!("{s:+6.1}s")
+    } else if x < 99999.5 {
+        format!("{s:+6.0}s")
+    } else if x < 99999.5 * 60.0 {
+        format!("{:+6.0}m", s / 60.0)
+    } else if x < 99999.5 * 3600.0 {
+        format!("{:+6.0}h", s / 3600.0)
+    } else if x < 99999.5 * 3600.0 * 24.0 {
+        format!("{:+6.0}d", s / (3600.0 * 24.0))
+    } else {
+        format!("{:+6.0}y", s / (3600.0 * 24.0 * 365.0))
+    }
+}
+
 /// chrony's directional wording for a signed quantity. Note: zero renders as
 /// "slow" in chrony because the comparison is `> 0.0`; we match that rather than
 /// inventing a "exact" case.
@@ -178,6 +399,70 @@ Leap status     : Normal
         let out = r.render();
         assert!(out.contains("0.000000007 seconds slow of NTP time"));
         assert!(out.contains("1.500 ppm slow"));
+    }
+
+    // The real chrony 4.5 captures, embedded at compile time as golden oracles.
+    // Path: src/report.rs -> ../../../ -> repo root.
+    const ORACLE_SOURCES: &str =
+        include_str!("../../../reports/oracle/chronyc-live/sources.raw.out");
+    const ORACLE_SOURCES_V: &str =
+        include_str!("../../../reports/oracle/chronyc-live/sources-v.raw.out");
+
+    #[test]
+    fn sources_header_and_rule_match_live_chrony_4_5() {
+        // CHRONYC.2 — header + `=` rule, byte-compared to real `chronyc sources`.
+        let empty = SourcesReport::default();
+        assert_eq!(empty.render(false), ORACLE_SOURCES);
+    }
+
+    #[test]
+    fn sources_verbose_legend_matches_live_chrony_4_5() {
+        // CHRONYC.2 — the `-v` legend block, byte-compared to real `chronyc sources -v`.
+        let empty = SourcesReport::default();
+        assert_eq!(empty.render(true), ORACLE_SOURCES_V);
+    }
+
+    #[test]
+    fn sources_row_is_byte_exact_to_client_c_format() {
+        // Golden derived from `client.c` print_report spec (a populated row is not
+        // live-witnessed in this sandbox; the formatters are ported byte-for-byte).
+        let r = SourcesReport {
+            sources: vec![SourceEntry {
+                mode: SourceMode::Server,
+                state: SourceState::Selected,
+                name: "ntp1.example.com".to_string(),
+                stratum: 2,
+                poll: 6,
+                reach: 0o377,
+                since_sample: 21,
+                adjusted_offset: 0.000_123,
+                measured_offset: 0.000_456,
+                error: 0.000_012,
+            }],
+        };
+        let out = r.render(false);
+        let row = out.lines().last().unwrap();
+        assert_eq!(
+            row,
+            "^* ntp1.example.com              2   6   377    21   +123us[ +456us] +/-   12us"
+        );
+        // The data row must align under the header columns: same width.
+        assert_eq!(row.len(), SOURCES_HEADER.len());
+    }
+
+    #[test]
+    fn sources_formatters_match_c_helpers() {
+        // print_seconds branches
+        assert_eq!(fmt_seconds(21), "  21");
+        assert_eq!(fmt_seconds(1000), "1000");
+        assert_eq!(fmt_seconds(1200), " 20m");
+        assert_eq!(fmt_seconds(36000), " 10h");
+        assert_eq!(fmt_seconds(u32::MAX), "   -");
+        // print_signed_nanoseconds / print_nanoseconds unit scaling
+        assert_eq!(fmt_signed_nanoseconds(0.000_123), " +123us");
+        assert_eq!(fmt_signed_nanoseconds(-0.0034), "-3400us");
+        assert_eq!(fmt_nanoseconds(0.000_012), "  12us");
+        assert_eq!(fmt_nanoseconds(0.000_000_030), "  30ns");
     }
 
     #[test]

@@ -17,7 +17,7 @@ where chrony policy differs from generic protocol truth.
 | NTP packet decode/encode (48-byte header) | byte-roundtrip courts `CHRONY.PACKET.1–.13` (subset admitted) |
 | NTP timestamp / short fixed-point types | bit-exact roundtrip |
 | chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; **oracle-witnessed against chrony 4.5** — 8/8 accept/reject agreement (incl. Ubuntu default) + exact phrasing for 5 error classes; 82-directive set oracle-anchored |
-| `chronyc tracking` output layout | byte-stable layout court `CHRONYC.1` (offline render) |
+| `chronyc tracking` / `sources` output layout | byte-stable courts `CHRONYC.1`/`.2`; `sources` header+legend **live-witnessed vs chrony 4.5**, rows byte-derived from `client.c` (offline render) |
 | Deterministic trace schema (`chrony-rs-trace-v1`) | parse + structural validation |
 | `chronyd-rs --replay` | **deterministic replay** through a simulated clock; reproducible decision-log hash + pinned-hash regression check (chrony selection/discipline policy not yet applied) |
 | NTP offset/delay measurement | RFC 5905 §8 algebra, era-safe differences (`ntp::Measurement`) |
@@ -30,7 +30,7 @@ Run:
 
 ```sh
 cargo build
-cargo test                                    # 76 tests, deterministic
+cargo test                                    # 83 tests, deterministic
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>
@@ -73,7 +73,10 @@ source-option tables, `unsafe` count, oracle fixtures) are generated from the co
 into [`docs/generated/`](docs/generated/) by `cargo xtask gen`. This includes the
 **[port-parity matrix](docs/generated/port-parity.md)** — a 1:1 completeness catalog
 of every chrony 4.5 `.c` file (doxygen inventory) against its chrony-rs counterpart
-(`syn` AST inventory); method in [`docs/port-parity.md`](docs/port-parity.md). A
+(`syn` AST inventory), plus a
+**[per-function gap view](docs/generated/port-parity-functions.md)** giving each
+file's ported-vs-gap functions and percentage; method in
+[`docs/port-parity.md`](docs/port-parity.md). A
 pre-commit hook runs `cargo xtask check` and rejects any commit whose generated docs
 are stale — nothing documented can silently drift from the code. Activate the hook
 with:

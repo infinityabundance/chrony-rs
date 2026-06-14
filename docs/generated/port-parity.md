@@ -20,7 +20,7 @@ method, provenance, and how the doxygen runs were produced on both sides.
 - **Files fully ported:** 0 / 70. chrony-rs is an early-stage forensic reconstruction, not a complete port — this number is expected to be small and is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 566 / 1373 C functions (41.2%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 172 named functions + 23 closures across 24 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 186 named functions + 23 closures across 24 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ◑ partial = behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -107,10 +107,10 @@ Legend: ◑ partial = behavior ported with an executable court · ○ scaffold =
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
 - **`pktlength.c`** — length checks partial via the codec _(≈14 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
-- **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈20 Rust `fn` in mapped modules)_
+- **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈31 Rust `fn` in mapped modules)_
 - **`local.c`** — side-effect-free simulated clock; no real read/adjust _(≈12 Rust `fn` in mapped modules)_
 - **`sched.c`** — deterministic replay loop is a stand-in, not the SCH_ timer wheel _(≈13 Rust `fn` in mapped modules)_
-- **`client.c`** — only `tracking` (print_report) rendered; ~1 of ~40 process_cmd_* commands; no socket transport _(≈10 Rust `fn` in mapped modules)_
+- **`client.c`** — `tracking` + `sources` rendered (print_report engine + print_seconds/nanoseconds helpers; sources header/legend live-witnessed vs 4.5); 2 of ~40 process_cmd_* commands; no socket transport _(≈22 Rust `fn` in mapped modules)_
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
 - **`util.c`** — NTP timestamp/era algebra ported; broad UTI_* surface not _(≈22 Rust `fn` in mapped modules)_
 

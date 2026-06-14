@@ -56,6 +56,10 @@ fn artifacts(root: &Path) -> Vec<(PathBuf, String)> {
     vec![
         (root.join("docs/generated/status.md"), generate::status_md(root)),
         (root.join("docs/generated/port-parity.md"), parity::port_parity_md(root)),
+        (
+            root.join("docs/generated/port-parity-functions.md"),
+            parity::port_parity_functions_md(root),
+        ),
     ]
 }
 

@@ -10,6 +10,18 @@ it by hand; run `cargo xtask gen` and let the freshness gate enforce it.
 > *complete* port of **none**. This is an early-stage forensic reconstruction, and
 > the matrix exists to keep that ratio honest rather than implied.
 
+## Two views
+
+- **File level** — [`docs/generated/port-parity.md`](generated/port-parity.md):
+  each `.c` file's role and a partial/scaffold/none status.
+- **Function level** — [`docs/generated/port-parity-functions.md`](generated/port-parity-functions.md):
+  for each file, how many of its individual C functions have a *direct named*
+  Rust counterpart, the percentage, and the explicit ✓-ported / ·-gap list. This
+  view runs far lower than the file level (overall ≈1.4% of functions), because
+  chrony-rs restores behavior and output shapes, not C functions 1:1 — a file can
+  be "partial" yet ~0% here. Every ported-function name is validated against the
+  doxygen inventory at generation time, so the percentage can't drift into fiction.
+
 ## Two sides, two tools — on purpose
 
 Parity is a cross-language claim, so each side is inventoried with the tool that is

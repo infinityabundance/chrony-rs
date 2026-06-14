@@ -35,21 +35,22 @@ observed chrony output but only claimed exact once witnessed against real
 
 - **Live control socket.** `chronyc-rs` cannot connect to a running daemon. A
   bare `chronyc-rs tracking` (and `sources`/`sourcestats`/`activity`/`ntpdata`)
-  fails closed with exit code 3 and an explanation. Only
-  `chronyc-rs render-tracking <fixture.json>` works today.
-- **Other reports.** `sources`, `sourcestats`, `clients`, `serverstats`, etc.
-  are not yet rendered (`CHRONYC.2`–`CHRONYC.14`).
+  fails closed with exit code 3 and an explanation. The offline renderers
+  `chronyc-rs render-tracking <fixture.json>` and
+  `chronyc-rs render-sources [-v] <fixture.json>` work today.
+- **Other reports.** `sourcestats`, `clients`, `serverstats`, etc. are not yet
+  rendered (`CHRONYC.3`–`CHRONYC.14`).
 
 ## Court status
 
 | ID | Description | Status |
 |----|-------------|--------|
 | 1 | tracking | admitted (layout); **layout live-witnessed vs 4.5**; numeric wording normalized |
-| 2 | sources | not started (header oracle captured: `reports/oracle/chronyc-live/sources.raw.out`) |
+| 2 | sources | **admitted**: header + `-v` legend **live-witnessed vs 4.5** (byte-exact); rows byte-derived from `client.c` print_report format; `chronyc-rs render-sources [-v]` |
 | 3 | sourcestats | not started (header oracle captured: `reports/oracle/chronyc-live/sourcestats.raw.out`) |
 | 4–9 | activity/ntpdata/clients/serverstats/makestep/offline-online | not started |
 | 10 | command errors | partial (deferred-capability error path tested) |
-| 11 | output formatting | partial (tracking only) |
+| 11 | output formatting | partial (tracking + sources) |
 | 12 | exit codes | partial (render OK = 0, bad fixture = 1, IO = 2, deferred = 3) |
 | 13 | Unix socket protocol | deferred |
 | 14 | UDP/control protocol | deferred |

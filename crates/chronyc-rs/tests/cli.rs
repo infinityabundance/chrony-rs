@@ -42,6 +42,42 @@ Leap status     : Normal
 }
 
 #[test]
+fn render_sources_matches_live_witnessed_layout() {
+    let out = Command::new(bin())
+        .arg("render-sources")
+        .arg(fixture("sources.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+
+    // Header is the exact 79-char chrony literal (witnessed in the core crate);
+    // assert its length + the `=` rule here to avoid trailing-space fragility.
+    assert_eq!(lines[0].len(), 79);
+    assert!(lines[0].starts_with("MS Name/IP address"));
+    assert_eq!(lines[1], "=".repeat(79));
+    // Data rows follow the client.c print_report format string exactly.
+    assert_eq!(lines[2], "^* ntp1.example.com              2   6   377    21   +123us[ +456us] +/-   12us");
+    assert_eq!(lines[3], "#x PPS                           0   4    17     3  -3400us[-5100us] +/-  250us");
+    assert_eq!(lines.len(), 4);
+}
+
+#[test]
+fn render_sources_verbose_prepends_legend() {
+    let out = Command::new(bin())
+        .arg("render-sources")
+        .arg("-v")
+        .arg(fixture("sources.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.starts_with("\n  .-- Source mode"), "legend missing: {stdout}");
+    assert!(stdout.contains("'x' = may be in error"));
+}
+
+#[test]
 fn live_tracking_fails_closed_with_explanation() {
     // The deferred capability must be visible at the point of use, not silent.
     let out = Command::new(bin()).arg("tracking").output().expect("run");
