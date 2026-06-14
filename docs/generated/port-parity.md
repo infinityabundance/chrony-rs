@@ -26,78 +26,78 @@ Legend: ◑ partial = behavior ported with an executable court · ○ scaffold =
 
 ## Full catalog (all C files, sorted)
 
-| chrony `.c` | C fns | role | chrony-rs counterpart | status |
-|---|---:|---|---|---|
-| `addrfilt.c` | 16 | address allow/deny subnet trie (ADF_*) | — | · none |
-| `array.c` | 10 | generic dynamic array (ARR_*) | — | · none |
-| `client.c` | 90 | chronyc CLI: command dispatch + report formatters | `report.rs`<br>`chronyc-rs/src/main.rs` | ◑ partial |
-| `clientlog.c` | 35 | client access log / rate limiting | — | · none |
-| `cmac_gnutls.c` | 7 | gnutls CMAC backend | — | · none |
-| `cmac_nettle.c` | 4 | nettle CMAC backend | — | · none |
-| `cmdmon.c` | 64 | control/monitoring protocol server (candm) | — | · none |
-| `cmdparse.c` | 8 | source-line option parsing (CPS_ParseNTPSourceAdd) | `config/parser.rs` | ◑ partial |
-| `conf.c` | 135 | config file parser + 93-directive dispatch (CNF_*) | `config/parser.rs`<br>`config/lexer.rs`<br>`config/diagnostics.rs`<br>`config/model.rs`<br>`config/mod.rs` | ◑ partial |
-| `hash_gnutls.c` | 3 | gnutls hash backend | — | · none |
-| `hash_intmd5.c` | 3 | internal MD5 hash backend | — | · none |
-| `hash_nettle.c` | 3 | nettle hash backend | — | · none |
-| `hash_nss.c` | 3 | NSS hash backend | — | · none |
-| `hash_tomcrypt.c` | 3 | tomcrypt hash backend | — | · none |
-| `hwclock.c` | 7 | HW clock frequency tracking | — | · none |
-| `keys.c` | 17 | symmetric key store | — | · none |
-| `local.c` | 35 | local clock read/adjust abstraction (LCL_*) | `clock.rs` | ○ scaffold |
-| `logging.c` | 17 | logging subsystem (LOG_*) | — | · none |
-| `main.c` | 16 | daemon entry, arg parsing, lifecycle | `chronyd-rs/src/main.rs` | ◑ partial |
-| `manual.c` | 11 | manual time input (settime) | — | · none |
-| `md5.c` | 4 | MD5 digest | — | · none |
-| `memory.c` | 6 | xmalloc/xrealloc wrappers | — | · none |
-| `nameserv.c` | 4 | synchronous DNS resolution | — | · none |
-| `nameserv_async.c` | 0 | async DNS resolution | — | · none |
-| `ntp_auth.c` | 17 | NTP authentication (MAC/NTS dispatch) | — | · none |
-| `ntp_core.c` | 69 | NTP protocol engine: poll, process-response, offset/delay (NCR_*) | `ntp/measurements.rs`<br>`ntp/packet.rs` | ◑ partial |
-| `ntp_ext.c` | 6 | NTP extension-field framing | — | · none |
-| `ntp_io.c` | 19 | NTP socket send/recv path | `ntp/packet.rs` | ○ scaffold |
-| `ntp_io_linux.c` | 16 | Linux HW/kernel RX timestamping | — | · none |
-| `ntp_signd.c` | 7 | Samba signing daemon bridge | — | · none |
-| `ntp_sources.c` | 58 | NTP source record add/remove/pool (NSR_*) | — | · none |
-| `nts_ke_client.c` | 10 | NTS-KE client | — | · none |
-| `nts_ke_server.c` | 21 | NTS-KE server | — | · none |
-| `nts_ke_session.c` | 32 | NTS-KE TLS session | — | · none |
-| `nts_ntp_auth.c` | 4 | NTS NTPv4 auth | — | · none |
-| `nts_ntp_client.c` | 17 | NTS NTP client | — | · none |
-| `nts_ntp_server.c` | 4 | NTS NTP server | — | · none |
-| `pktlength.c` | 3 | NTP packet length validation | `ntp/packet.rs` | ○ scaffold |
-| `privops.c` | 12 | privilege-separation helper | — | · none |
-| `quantiles.c` | 8 | streaming quantile estimator | — | · none |
-| `refclock.c` | 28 | reference-clock framework (RCL_*) | — | · none |
-| `refclock_phc.c` | 0 | PHC refclock driver | — | · none |
-| `refclock_pps.c` | 0 | PPS refclock driver | — | · none |
-| `refclock_shm.c` | 3 | SHM refclock driver | — | · none |
-| `refclock_sock.c` | 3 | socket refclock driver | — | · none |
-| `reference.c` | 45 | tracking + drift state, leap handling (REF_*) | `report.rs`<br>`clock.rs` | ◑ partial |
-| `regress.c` | 11 | robust linear regression | — | · none |
-| `rtc.c` | 9 | RTC abstraction | — | · none |
-| `rtc_linux.c` | 26 | Linux RTC driver | — | · none |
-| `samplefilt.c` | 18 | per-source sample filtering | — | · none |
-| `sched.c` | 22 | timer/event scheduler (SCH_*) | `replay.rs` | ○ scaffold |
-| `siv_gnutls.c` | 12 | SIV-AEAD (gnutls) | — | · none |
-| `siv_nettle.c` | 9 | SIV-AEAD (nettle) | — | · none |
-| `siv_nettle_int.c` | 12 | SIV-AEAD internals | — | · none |
-| `smooth.c` | 12 | served-time smoothing | — | · none |
-| `socket.c` | 61 | socket abstraction layer | — | · none |
-| `sources.c` | 48 | source reachability + selection (SRC_*) | `sources/source.rs`<br>`sources/reachability.rs`<br>`sources/selection.rs` | ◑ partial |
-| `sourcestats.c` | 32 | per-source regression statistics (SST_*) | — | · none |
-| `stubs.c` | 78 | test-harness stub implementations | — | · none |
-| `sys.c` | 6 | OS adapter dispatch | — | · none |
-| `sys_generic.c` | 14 | generic clock-driver adapter | — | · none |
-| `sys_linux.c` | 14 | Linux clock adapter (adjtimex) | — | · none |
-| `sys_macosx.c` | 0 | macOS clock adapter | — | · none |
-| `sys_netbsd.c` | 4 | NetBSD clock adapter | — | · none |
-| `sys_null.c` | 8 | no-op clock adapter | — | · none |
-| `sys_posix.c` | 0 | POSIX clock adapter | — | · none |
-| `sys_solaris.c` | 3 | Solaris clock adapter | — | · none |
-| `sys_timex.c` | 10 | timex clock adapter | — | · none |
-| `tempcomp.c` | 5 | temperature compensation | — | · none |
-| `util.c` | 76 | time/UTI/byte utilities (UTI_*) | `ntp/timestamp.rs`<br>`hash.rs` | ◑ partial |
+| chrony `.c` | C fns | parity % | role | chrony-rs counterpart | status |
+|---|---:|---:|---|---|---|
+| `addrfilt.c` | 16 | 0.0% | address allow/deny subnet trie (ADF_*) | — | · none |
+| `array.c` | 10 | 0.0% | generic dynamic array (ARR_*) | — | · none |
+| `client.c` | 90 | 7.8% | chronyc CLI: command dispatch + report formatters | `report.rs`<br>`chronyc-rs/src/main.rs` | ◑ partial |
+| `clientlog.c` | 35 | 0.0% | client access log / rate limiting | — | · none |
+| `cmac_gnutls.c` | 7 | 0.0% | gnutls CMAC backend | — | · none |
+| `cmac_nettle.c` | 4 | 0.0% | nettle CMAC backend | — | · none |
+| `cmdmon.c` | 64 | 0.0% | control/monitoring protocol server (candm) | — | · none |
+| `cmdparse.c` | 8 | 25.0% | source-line option parsing (CPS_ParseNTPSourceAdd) | `config/parser.rs` | ◑ partial |
+| `conf.c` | 135 | 1.5% | config file parser + 93-directive dispatch (CNF_*) | `config/parser.rs`<br>`config/lexer.rs`<br>`config/diagnostics.rs`<br>`config/model.rs`<br>`config/mod.rs` | ◑ partial |
+| `hash_gnutls.c` | 3 | 0.0% | gnutls hash backend | — | · none |
+| `hash_intmd5.c` | 3 | 0.0% | internal MD5 hash backend | — | · none |
+| `hash_nettle.c` | 3 | 0.0% | nettle hash backend | — | · none |
+| `hash_nss.c` | 3 | 0.0% | NSS hash backend | — | · none |
+| `hash_tomcrypt.c` | 3 | 0.0% | tomcrypt hash backend | — | · none |
+| `hwclock.c` | 7 | 0.0% | HW clock frequency tracking | — | · none |
+| `keys.c` | 17 | 0.0% | symmetric key store | — | · none |
+| `local.c` | 35 | 0.0% | local clock read/adjust abstraction (LCL_*) | `clock.rs` | ○ scaffold |
+| `logging.c` | 17 | 0.0% | logging subsystem (LOG_*) | — | · none |
+| `main.c` | 16 | 6.2% | daemon entry, arg parsing, lifecycle | `chronyd-rs/src/main.rs` | ◑ partial |
+| `manual.c` | 11 | 0.0% | manual time input (settime) | — | · none |
+| `md5.c` | 4 | 0.0% | MD5 digest | — | · none |
+| `memory.c` | 6 | 0.0% | xmalloc/xrealloc wrappers | — | · none |
+| `nameserv.c` | 4 | 0.0% | synchronous DNS resolution | — | · none |
+| `nameserv_async.c` | 0 | 0.0% | async DNS resolution | — | · none |
+| `ntp_auth.c` | 17 | 0.0% | NTP authentication (MAC/NTS dispatch) | — | · none |
+| `ntp_core.c` | 69 | 2.9% | NTP protocol engine: poll, process-response, offset/delay (NCR_*) | `ntp/measurements.rs`<br>`ntp/packet.rs` | ◑ partial |
+| `ntp_ext.c` | 6 | 0.0% | NTP extension-field framing | — | · none |
+| `ntp_io.c` | 19 | 0.0% | NTP socket send/recv path | `ntp/packet.rs` | ○ scaffold |
+| `ntp_io_linux.c` | 16 | 0.0% | Linux HW/kernel RX timestamping | — | · none |
+| `ntp_signd.c` | 7 | 0.0% | Samba signing daemon bridge | — | · none |
+| `ntp_sources.c` | 58 | 0.0% | NTP source record add/remove/pool (NSR_*) | — | · none |
+| `nts_ke_client.c` | 10 | 0.0% | NTS-KE client | — | · none |
+| `nts_ke_server.c` | 21 | 0.0% | NTS-KE server | — | · none |
+| `nts_ke_session.c` | 32 | 0.0% | NTS-KE TLS session | — | · none |
+| `nts_ntp_auth.c` | 4 | 0.0% | NTS NTPv4 auth | — | · none |
+| `nts_ntp_client.c` | 17 | 0.0% | NTS NTP client | — | · none |
+| `nts_ntp_server.c` | 4 | 0.0% | NTS NTP server | — | · none |
+| `pktlength.c` | 3 | 0.0% | NTP packet length validation | `ntp/packet.rs` | ○ scaffold |
+| `privops.c` | 12 | 0.0% | privilege-separation helper | — | · none |
+| `quantiles.c` | 8 | 0.0% | streaming quantile estimator | — | · none |
+| `refclock.c` | 28 | 0.0% | reference-clock framework (RCL_*) | — | · none |
+| `refclock_phc.c` | 0 | 0.0% | PHC refclock driver | — | · none |
+| `refclock_pps.c` | 0 | 0.0% | PPS refclock driver | — | · none |
+| `refclock_shm.c` | 3 | 0.0% | SHM refclock driver | — | · none |
+| `refclock_sock.c` | 3 | 0.0% | socket refclock driver | — | · none |
+| `reference.c` | 45 | 0.0% | tracking + drift state, leap handling (REF_*) | `report.rs`<br>`clock.rs` | ◑ partial |
+| `regress.c` | 11 | 0.0% | robust linear regression | — | · none |
+| `rtc.c` | 9 | 0.0% | RTC abstraction | — | · none |
+| `rtc_linux.c` | 26 | 0.0% | Linux RTC driver | — | · none |
+| `samplefilt.c` | 18 | 0.0% | per-source sample filtering | — | · none |
+| `sched.c` | 22 | 0.0% | timer/event scheduler (SCH_*) | `replay.rs` | ○ scaffold |
+| `siv_gnutls.c` | 12 | 0.0% | SIV-AEAD (gnutls) | — | · none |
+| `siv_nettle.c` | 9 | 0.0% | SIV-AEAD (nettle) | — | · none |
+| `siv_nettle_int.c` | 12 | 0.0% | SIV-AEAD internals | — | · none |
+| `smooth.c` | 12 | 0.0% | served-time smoothing | — | · none |
+| `socket.c` | 61 | 0.0% | socket abstraction layer | — | · none |
+| `sources.c` | 48 | 6.2% | source reachability + selection (SRC_*) | `sources/source.rs`<br>`sources/reachability.rs`<br>`sources/selection.rs` | ◑ partial |
+| `sourcestats.c` | 32 | 0.0% | per-source regression statistics (SST_*) | — | · none |
+| `stubs.c` | 78 | 0.0% | test-harness stub implementations | — | · none |
+| `sys.c` | 6 | 0.0% | OS adapter dispatch | — | · none |
+| `sys_generic.c` | 14 | 0.0% | generic clock-driver adapter | — | · none |
+| `sys_linux.c` | 14 | 0.0% | Linux clock adapter (adjtimex) | — | · none |
+| `sys_macosx.c` | 0 | 0.0% | macOS clock adapter | — | · none |
+| `sys_netbsd.c` | 4 | 0.0% | NetBSD clock adapter | — | · none |
+| `sys_null.c` | 8 | 0.0% | no-op clock adapter | — | · none |
+| `sys_posix.c` | 0 | 0.0% | POSIX clock adapter | — | · none |
+| `sys_solaris.c` | 3 | 0.0% | Solaris clock adapter | — | · none |
+| `sys_timex.c` | 10 | 0.0% | timex clock adapter | — | · none |
+| `tempcomp.c` | 5 | 0.0% | temperature compensation | — | · none |
+| `util.c` | 76 | 2.6% | time/UTI/byte utilities (UTI_*) | `ntp/timestamp.rs`<br>`hash.rs` | ◑ partial |
 
 ## Coverage notes (files with a counterpart)
 

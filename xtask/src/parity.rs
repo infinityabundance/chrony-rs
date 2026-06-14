@@ -396,8 +396,8 @@ pub fn port_parity_md(root: &Path) -> String {
     let mut funcs_with_counterpart = 0usize;
 
     let mut table = String::new();
-    table.push_str("| chrony `.c` | C fns | role | chrony-rs counterpart | status |\n");
-    table.push_str("|---|---:|---|---|---|\n");
+    table.push_str("| chrony `.c` | C fns | parity % | role | chrony-rs counterpart | status |\n");
+    table.push_str("|---|---:|---:|---|---|---|\n");
     for (file, &n) in &inv {
         let (role, rust, port, _note) = match by_file.get(file.as_str()) {
             Some(r) => (r.role, r.rust, r.port, r.note),
@@ -419,6 +419,9 @@ pub fn port_parity_md(root: &Path) -> String {
             }
             Port::None => none += 1,
         }
+        // Per-file function-level parity: ported C functions / total (the same
+        // metric as port-parity-functions.md), rendered right beside each file.
+        let pct = (ported_fns(file).len() as f64 / n.max(1) as f64) * 100.0;
         let rs = if rust.is_empty() {
             "—".to_string()
         } else {
@@ -428,7 +431,7 @@ pub fn port_parity_md(root: &Path) -> String {
                 .join("<br>")
         };
         table.push_str(&format!(
-            "| `{file}` | {n} | {role} | {rs} | {} |\n",
+            "| `{file}` | {n} | {pct:.1}% | {role} | {rs} | {} |\n",
             port.glyph()
         ));
     }
