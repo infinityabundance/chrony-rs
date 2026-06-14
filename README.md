@@ -30,7 +30,7 @@ Run:
 
 ```sh
 cargo build
-cargo test                                    # 73 tests, deterministic
+cargo test                                    # 76 tests, deterministic
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>
@@ -70,9 +70,13 @@ so the brain is testable without the real system clock. See
 
 Machine-derivable facts (target chrony version, the 93-directive recognition set,
 source-option tables, `unsafe` count, oracle fixtures) are generated from the code
-into [`docs/generated/`](docs/generated/) by `cargo xtask gen`. A pre-commit hook
-runs `cargo xtask check` and rejects any commit whose generated docs are stale —
-nothing documented can silently drift from the code. Activate the hook with:
+into [`docs/generated/`](docs/generated/) by `cargo xtask gen`. This includes the
+**[port-parity matrix](docs/generated/port-parity.md)** — a 1:1 completeness catalog
+of every chrony 4.5 `.c` file (doxygen inventory) against its chrony-rs counterpart
+(`syn` AST inventory); method in [`docs/port-parity.md`](docs/port-parity.md). A
+pre-commit hook runs `cargo xtask check` and rejects any commit whose generated docs
+are stale — nothing documented can silently drift from the code. Activate the hook
+with:
 
 ```sh
 git config core.hooksPath .githooks

@@ -26,6 +26,41 @@ doxygen /tmp/chrony.doxyfile     # -> /tmp/chrony-doxygen/{html,xml}
 
 This indexes ~310 entities; `conf.c` alone exposes ~135 functions.
 
+## Full-tree inventory for the port-parity matrix
+
+The whole-tree function inventory that backs
+[`docs/generated/port-parity.md`](../../docs/port-parity.md) is committed as
+[`chrony-4.5-c-inventory.tsv`](chrony-4.5-c-inventory.tsv) (70 `.c` files, 1373
+functions), pinned to chrony commit `120dfb8b36b942c31ddfc0220ca1475159ac5031`
+(tag 4.5, mirror `github.com/mlichvar/chrony`). Regenerate it with:
+
+```sh
+git clone --depth 1 --branch 4.5 https://github.com/mlichvar/chrony /tmp/chrony-src
+cat > /tmp/Doxyfile.c <<'EOF'
+INPUT = /tmp/chrony-src
+FILE_PATTERNS = *.c *.h
+RECURSIVE = NO
+EXCLUDE_PATTERNS = */test/*
+OPTIMIZE_OUTPUT_FOR_C = YES
+EXTRACT_ALL = YES
+EXTRACT_STATIC = YES
+GENERATE_HTML = NO
+GENERATE_XML = YES
+XML_OUTPUT = /tmp/cxml
+EOF
+doxygen /tmp/Doxyfile.c
+# then reduce /tmp/cxml/*_8c.xml (memberdef kind="function") -> the TSV.
+```
+
+### Rust side is NOT doxygen — and why
+
+Doxygen has no Rust frontend; run over the Rust crates (`EXTENSION_MAPPING
+rs=C++`) it misparses `fn`/`impl`/generics and emits anonymous, incomplete members
+(e.g. ~15 unnamed "functions" for `report.rs`). It is therefore **not** used for
+any Rust count. The authoritative Rust inventory is taken natively from the `syn`
+AST in `xtask/src/parity.rs` (named functions + closures). See the limitation
+notice in `docs/port-parity.md`.
+
 ## What it was used to extract (see ../source-archaeology/)
 
 | Artifact | chrony source | Used for |

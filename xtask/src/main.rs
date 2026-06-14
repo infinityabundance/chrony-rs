@@ -25,6 +25,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 mod generate;
+mod parity;
 
 fn repo_root() -> PathBuf {
     // xtask lives at <root>/xtask, so the manifest dir's parent is the repo root.
@@ -52,10 +53,10 @@ fn main() -> ExitCode {
 
 /// Every generated artifact: (path relative to repo root, content).
 fn artifacts(root: &Path) -> Vec<(PathBuf, String)> {
-    vec![(
-        root.join("docs/generated/status.md"),
-        generate::status_md(root),
-    )]
+    vec![
+        (root.join("docs/generated/status.md"), generate::status_md(root)),
+        (root.join("docs/generated/port-parity.md"), parity::port_parity_md(root)),
+    ]
 }
 
 fn gen() -> ExitCode {

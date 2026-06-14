@@ -11,11 +11,13 @@ Output-parity court for the `chronyc` control tool. Implemented in
   aligns to column 16. A receipt is stored at
   `reports/chronyc/tracking.sample.out`.
 
-  **Oracle status: reconstructed, not yet live-witnessed.** Capturing real
-  `chronyc tracking` output needs a resident `chronyd`, which would not run in
-  this sandbox — classified **environmental** (see `oracle.md`). The layout court
-  is therefore validated against a reconstructed fixture, pending a live 4.5
-  capture.
+  **Oracle status: layout live-witnessed against chrony 4.5.** A resident
+  `chronyd` 4.5 *does* run in the lab environment, so the earlier "environmental,
+  cannot witness" hedge no longer holds. Real `chronyc tracking` output is captured
+  at `reports/oracle/chronyc-live/tracking.raw.out` and confirms the `report.rs`
+  label block byte-for-byte (16-char label, `": "`, value). The byte-stable court
+  still drives off a fixed fixture (`CHRONYC.1`) because live numbers/timestamps are
+  volatile; the live capture is what that fixture's *layout* is reconciled against.
 
 ## What is normalized (not yet oracle-exact)
 
@@ -42,9 +44,9 @@ observed chrony output but only claimed exact once witnessed against real
 
 | ID | Description | Status |
 |----|-------------|--------|
-| 1 | tracking | admitted (layout); numeric wording normalized |
-| 2 | sources | not started |
-| 3 | sourcestats | not started |
+| 1 | tracking | admitted (layout); **layout live-witnessed vs 4.5**; numeric wording normalized |
+| 2 | sources | not started (header oracle captured: `reports/oracle/chronyc-live/sources.raw.out`) |
+| 3 | sourcestats | not started (header oracle captured: `reports/oracle/chronyc-live/sourcestats.raw.out`) |
 | 4–9 | activity/ntpdata/clients/serverstats/makestep/offline-online | not started |
 | 10 | command errors | partial (deferred-capability error path tested) |
 | 11 | output formatting | partial (tracking only) |
