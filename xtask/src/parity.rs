@@ -124,7 +124,7 @@ const MAP: &[Row] = &[
     // ---- control client / protocol ----
     Row { c: "client.c", role: "chronyc CLI: command dispatch + report formatters",
         rust: &["report.rs", "../chronyc-rs/src/main.rs"], port: Port::Partial,
-        note: "`tracking` + `sources` rendered (print_report engine + print_seconds/nanoseconds helpers; sources header/legend live-witnessed vs 4.5); 2 of ~40 process_cmd_* commands; no socket transport" },
+        note: "`tracking` + `sources` + `sourcestats` rendered (print_report engine + all print_* value helpers; sources/sourcestats header+legend live-witnessed vs 4.5); 3 of ~40 process_cmd_* commands; no socket transport" },
     Row { c: "cmdmon.c", role: "control/monitoring protocol server (candm)", rust: &[], port: Port::None,
         note: "live control socket is a declared negative capability" },
 
@@ -222,9 +222,12 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "print_seconds",
             "print_nanoseconds",
             "print_signed_nanoseconds",
+            "print_freq_ppm",
+            "print_signed_freq_ppm",
             "print_report",
             "print_header",
             "process_cmd_sources",
+            "process_cmd_sourcestats",
             "process_cmd_tracking",
         ],
     ),

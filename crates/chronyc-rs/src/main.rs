@@ -18,7 +18,7 @@
 
 use std::process::ExitCode;
 
-use chrony_rs_core::report::{SourcesReport, TrackingReport};
+use chrony_rs_core::report::{SourcesReport, SourcestatsReport, TrackingReport};
 
 const USAGE: &str = "\
 chronyc-rs — chrony-rs control/output-parity tool
@@ -27,6 +27,8 @@ USAGE:
     chronyc-rs render-tracking <FIXTURE.json>   Render a tracking report from JSON
     chronyc-rs render-sources [-v] <FIXTURE.json>
                                                 Render a sources report from JSON
+    chronyc-rs render-sourcestats [-v] <FIXTURE.json>
+                                                Render a sourcestats report from JSON
     chronyc-rs --version                        Print version information
     chronyc-rs --help                           Print this message
 
@@ -57,23 +59,9 @@ fn main() -> ExitCode {
                     ExitCode::from(2)
                 }
             },
-            "render-sources" => {
-                // Accept an optional `-v` (verbose legend) flag before the path.
-                let (verbose, path) = match rest.split_first() {
-                    Some((flag, tail)) if flag == "-v" || flag == "--verbose" => {
-                        (true, tail.first())
-                    }
-                    _ => (false, rest.first()),
-                };
-                match path {
-                    Some(path) => render_sources(path, verbose),
-                    None => {
-                        eprintln!(
-                            "error: render-sources requires a FIXTURE.json argument\n\n{USAGE}"
-                        );
-                        ExitCode::from(2)
-                    }
-                }
+            "render-sources" => with_verbose_fixture(rest, "render-sources", render_sources),
+            "render-sourcestats" => {
+                with_verbose_fixture(rest, "render-sourcestats", render_sourcestats)
             }
             // A bare `tracking`/`sources`/... is what a user would reach for. We
             // fail *closed* with an explanation instead of silently doing nothing,
@@ -115,6 +103,27 @@ fn render_tracking(path: &str) -> ExitCode {
     }
 }
 
+/// Shared dispatch for the `render-{sources,sourcestats}` subcommands: parse an
+/// optional leading `-v`/`--verbose` flag, then a fixture path, then hand both to
+/// the renderer.
+fn with_verbose_fixture(
+    rest: &[String],
+    cmd: &str,
+    render: fn(&str, bool) -> ExitCode,
+) -> ExitCode {
+    let (verbose, path) = match rest.split_first() {
+        Some((flag, tail)) if flag == "-v" || flag == "--verbose" => (true, tail.first()),
+        _ => (false, rest.first()),
+    };
+    match path {
+        Some(path) => render(path, verbose),
+        None => {
+            eprintln!("error: {cmd} requires a FIXTURE.json argument\n\n{USAGE}");
+            ExitCode::from(2)
+        }
+    }
+}
+
 fn render_sources(path: &str, verbose: bool) -> ExitCode {
     let text = match std::fs::read_to_string(path) {
         Ok(t) => t,
@@ -130,6 +139,26 @@ fn render_sources(path: &str, verbose: bool) -> ExitCode {
         }
         Err(e) => {
             eprintln!("error: invalid sources fixture '{path}': {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn render_sourcestats(path: &str, verbose: bool) -> ExitCode {
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("error: cannot read fixture '{path}': {e}");
+            return ExitCode::from(2);
+        }
+    };
+    match serde_json::from_str::<SourcestatsReport>(&text) {
+        Ok(report) => {
+            print!("{}", report.render(verbose));
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("error: invalid sourcestats fixture '{path}': {e}");
             ExitCode::from(1)
         }
     }

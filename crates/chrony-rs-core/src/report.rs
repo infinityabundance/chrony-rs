@@ -331,6 +331,113 @@ fn fmt_signed_nanoseconds(s: f64) -> String {
     }
 }
 
+// ---------------------------------------------------------------------------
+// `chronyc sourcestats` (CHRONYC.3)
+//
+// Ported from chrony 4.5 `client.c::process_cmd_sourcestats`. Header and `-v`
+// legend are live-witnessed against real chrony 4.5
+// (`reports/oracle/chronyc-live/sourcestats*.raw.out`); data rows are byte-derived
+// from the format string "%-25s %3U %3U  %I %+P %P  %+S  %S\n" and its helpers.
+// ---------------------------------------------------------------------------
+
+/// The `sourcestats` table header (78 chars; the `=` rule is `'=' * len`).
+const SOURCESTATS_HEADER: &str =
+    "Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev";
+
+/// The `-v` legend block (chrony's nine `printf` lines; no leading blank line,
+/// unlike `sources`).
+const SOURCESTATS_LEGEND_LINES: &[&str] = &[
+    "                             .- Number of sample points in measurement set.",
+    "                            /    .- Number of residual runs with same sign.",
+    "                           |    /    .- Length of measurement set (time).",
+    "                           |   |    /      .- Est. clock freq error (ppm).",
+    "                           |   |   |      /           .- Est. error in freq.",
+    "                           |   |   |     |           /         .- Est. offset.",
+    "                           |   |   |     |          |          |   On the -.",
+    "                           |   |   |     |          |          |   samples. \\",
+    "                           |   |   |     |          |          |             |",
+];
+
+/// One `sourcestats` row (fields mirror `RPY_Sourcestats`).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SourcestatsEntry {
+    pub name: String,
+    /// Number of sample points (`NP`).
+    pub n_samples: u32,
+    /// Number of residual runs with the same sign (`NR`).
+    pub n_runs: u32,
+    /// Length of the measurement set in seconds (`Span`; `u32::MAX` → `-`).
+    pub span_seconds: u32,
+    /// Estimated residual frequency error, ppm (`Frequency`).
+    pub resid_freq_ppm: f64,
+    /// Estimated error in the frequency, ppm (`Freq Skew`).
+    pub skew_ppm: f64,
+    /// Estimated offset, seconds (`Offset`).
+    pub est_offset: f64,
+    /// Standard deviation of the offset, seconds (`Std Dev`).
+    pub std_dev: f64,
+}
+
+impl SourcestatsEntry {
+    fn render_row(&self) -> String {
+        format!(
+            "{:<25} {:3} {:3}  {} {} {}  {}  {}\n",
+            self.name,
+            self.n_samples,
+            self.n_runs,
+            fmt_seconds(self.span_seconds),
+            fmt_signed_freq_ppm(self.resid_freq_ppm),
+            fmt_freq_ppm(self.skew_ppm),
+            fmt_signed_nanoseconds(self.est_offset),
+            fmt_nanoseconds(self.std_dev),
+        )
+    }
+}
+
+/// A full `sourcestats` report (zero or more rows).
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct SourcestatsReport {
+    #[serde(default)]
+    pub sources: Vec<SourcestatsEntry>,
+}
+
+impl SourcestatsReport {
+    /// Render as `chronyc sourcestats` (`verbose` = the `-v` legend).
+    pub fn render(&self, verbose: bool) -> String {
+        let mut s = String::new();
+        if verbose {
+            s.push_str(&SOURCESTATS_LEGEND_LINES.join("\n"));
+            s.push('\n');
+        }
+        s.push_str(SOURCESTATS_HEADER);
+        s.push('\n');
+        s.push_str(&"=".repeat(SOURCESTATS_HEADER.len()));
+        s.push('\n');
+        for src in &self.sources {
+            s.push_str(&src.render_row());
+        }
+        s
+    }
+}
+
+/// `print_freq_ppm`: an unsigned ppm frequency, `%10.3f` (or `%10.0f` if huge).
+fn fmt_freq_ppm(f: f64) -> String {
+    if f.abs() < 99999.5 {
+        format!("{f:10.3}")
+    } else {
+        format!("{f:10.0}")
+    }
+}
+
+/// `print_signed_freq_ppm`: signed ppm frequency, `%+10.3f` (or `%+10.0f`).
+fn fmt_signed_freq_ppm(f: f64) -> String {
+    if f.abs() < 99999.5 {
+        format!("{f:+10.3}")
+    } else {
+        format!("{f:+10.0}")
+    }
+}
+
 /// chrony's directional wording for a signed quantity. Note: zero renders as
 /// "slow" in chrony because the comparison is `> 0.0`; we match that rather than
 /// inventing a "exact" case.
@@ -448,6 +555,52 @@ Leap status     : Normal
         );
         // The data row must align under the header columns: same width.
         assert_eq!(row.len(), SOURCES_HEADER.len());
+    }
+
+    const ORACLE_SOURCESTATS: &str =
+        include_str!("../../../reports/oracle/chronyc-live/sourcestats.raw.out");
+    const ORACLE_SOURCESTATS_V: &str =
+        include_str!("../../../reports/oracle/chronyc-live/sourcestats-v.raw.out");
+
+    #[test]
+    fn sourcestats_header_and_legend_match_live_chrony_4_5() {
+        // CHRONYC.3 — header + `=` rule and the `-v` legend, byte-compared to real
+        // `chronyc sourcestats` / `... -v`.
+        let empty = SourcestatsReport::default();
+        assert_eq!(empty.render(false), ORACLE_SOURCESTATS);
+        assert_eq!(empty.render(true), ORACLE_SOURCESTATS_V);
+    }
+
+    #[test]
+    fn sourcestats_row_is_byte_exact_to_client_c_format() {
+        let r = SourcestatsReport {
+            sources: vec![SourcestatsEntry {
+                name: "ntp1.example.com".to_string(),
+                n_samples: 12,
+                n_runs: 7,
+                span_seconds: 600,
+                resid_freq_ppm: -0.123,
+                skew_ppm: 0.456,
+                est_offset: 0.000_089,
+                std_dev: 0.000_034,
+            }],
+        };
+        let row = r.render(false);
+        let last = row.lines().last().unwrap();
+        assert_eq!(
+            last,
+            "ntp1.example.com           12   7   600     -0.123      0.456    +89us    34us"
+        );
+        assert_eq!(last.len(), SOURCESTATS_HEADER.len());
+    }
+
+    #[test]
+    fn freq_ppm_formatters_match_c_helpers() {
+        assert_eq!(fmt_freq_ppm(0.456), "     0.456");
+        assert_eq!(fmt_signed_freq_ppm(-0.123), "    -0.123");
+        assert_eq!(fmt_signed_freq_ppm(1.5), "    +1.500");
+        // huge magnitude drops to %.0f width 10
+        assert_eq!(fmt_freq_ppm(123456.0), "    123456");
     }
 
     #[test]

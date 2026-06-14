@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 44 / 1373 C functions have a direct counterpart (3.2%).** The other 1329 are gaps.
+**Overall: 47 / 1373 C functions have a direct counterpart (3.4%).** The other 1326 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -25,7 +25,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `md5.c` | 4 | 4 | 0 | 100.0% |
 | `regress.c` | 11 | 5 | 6 | 45.5% |
 | `cmdparse.c` | 8 | 2 | 6 | 25.0% |
-| `client.c` | 90 | 7 | 83 | 7.8% |
+| `client.c` | 90 | 10 | 80 | 11.1% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
 | `sources.c` | 48 | 3 | 45 | 6.2% |
 | `ntp_core.c` | 69 | 2 | 67 | 2.9% |
@@ -147,7 +147,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `CPS_ParseRefid`
 - · `CPS_SplitWord`
 
-### `client.c` — 7/90 (7.8%)
+### `client.c` — 10/90 (11.1%)
 
 - · `LOG_Message`
 - · `bits_to_mask`
@@ -165,14 +165,14 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `parse_source_address`
 - · `parse_sources_options`
 - · `print_clientlog_interval`
-- · `print_freq_ppm`
+- ✓ `print_freq_ppm`
 - ✓ `print_header`
 - · `print_help`
 - · `print_info_field`
 - ✓ `print_nanoseconds`
 - ✓ `print_report`
 - ✓ `print_seconds`
-- · `print_signed_freq_ppm`
+- ✓ `print_signed_freq_ppm`
 - ✓ `print_signed_nanoseconds`
 - · `print_version`
 - · `process_args`
@@ -225,7 +225,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `process_cmd_smoothtime`
 - · `process_cmd_sourcename`
 - ✓ `process_cmd_sources`
-- · `process_cmd_sourcestats`
+- ✓ `process_cmd_sourcestats`
 - · `process_cmd_timeout`
 - ✓ `process_cmd_tracking`
 - · `process_cmd_trimrtc`

@@ -64,6 +64,26 @@ fn render_sources_matches_live_witnessed_layout() {
 }
 
 #[test]
+fn render_sourcestats_matches_format() {
+    let out = Command::new(bin())
+        .arg("render-sourcestats")
+        .arg(fixture("sourcestats.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(lines[0].len(), 78);
+    assert!(lines[0].starts_with("Name/IP Address"));
+    assert_eq!(lines[1], "=".repeat(78));
+    assert_eq!(
+        lines[2],
+        "ntp1.example.com           12   7   600     -0.123      0.456    +89us    34us"
+    );
+    assert_eq!(lines.len(), 3);
+}
+
+#[test]
 fn render_sources_verbose_prepends_legend() {
     let out = Command::new(bin())
         .arg("render-sources")

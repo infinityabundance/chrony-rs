@@ -1,0 +1,14 @@
+{
+  "sources": [
+    {
+      "name": "ntp1.example.com",
+      "n_samples": 12,
+      "n_runs": 7,
+      "span_seconds": 600,
+      "resid_freq_ppm": -0.123,
+      "skew_ppm": 0.456,
+      "est_offset": 0.000089,
+      "std_dev": 0.000034
+    }
+  ]
+}
