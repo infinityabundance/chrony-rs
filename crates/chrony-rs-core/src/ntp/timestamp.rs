@@ -131,6 +131,26 @@ impl NtpShort {
     pub fn as_seconds_f64(self) -> f64 {
         self.0 as f64 / 65_536.0
     }
+
+    /// Encode seconds into 16.16 fixed point — a port of chrony `UTI_DoubleToNtp32`
+    /// (`util.c`). Saturates: `>= 2^16` clamps to all-ones, `<= 0` to zero; the
+    /// fractional truncation rounds **up** (chrony's `if (r < x) r++`), so the
+    /// result is never an underestimate of the represented delay/dispersion.
+    pub fn from_seconds_f64(x: f64) -> Self {
+        let bits = if x >= 65_536.0 {
+            0xffff_ffff
+        } else if x <= 0.0 {
+            0
+        } else {
+            let scaled = x * 65_536.0;
+            let mut r = scaled as u32;
+            if (r as f64) < scaled {
+                r = r.wrapping_add(1);
+            }
+            r
+        };
+        NtpShort(bits)
+    }
 }
 
 impl core::fmt::Debug for NtpShort {
@@ -159,6 +179,19 @@ mod tests {
         let s = NtpShort::from_be_bytes([0x00, 0x00, 0x80, 0x00]);
         assert!((s.as_seconds_f64() - 0.5).abs() < 1e-12);
         assert_eq!(s.to_be_bytes(), [0x00, 0x00, 0x80, 0x00]);
+    }
+
+    #[test]
+    fn double_to_ntp32_saturation_and_rounding() {
+        // UTI_DoubleToNtp32 semantics.
+        assert_eq!(NtpShort::from_seconds_f64(0.5).to_bits(), 0x0000_8000);
+        assert_eq!(NtpShort::from_seconds_f64(0.0).to_bits(), 0); // <= 0 -> zero
+        assert_eq!(NtpShort::from_seconds_f64(-1.0).to_bits(), 0);
+        assert_eq!(NtpShort::from_seconds_f64(70000.0).to_bits(), 0xffff_ffff); // >= 2^16
+        assert_eq!(NtpShort::from_seconds_f64(1.0).to_bits(), 0x0001_0000);
+        // Round-up: a value just above an integer tick must not underestimate.
+        let r = NtpShort::from_seconds_f64(1.0 / 65_536.0 + 1e-12).to_bits();
+        assert_eq!(r, 2);
     }
 
     #[test]

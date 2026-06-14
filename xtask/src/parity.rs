@@ -136,8 +136,8 @@ const MAP: &[Row] = &[
 
     // ---- utilities (subsumed by std, or partially ported) ----
     Row { c: "util.c", role: "time/UTI/byte utilities (UTI_*)",
-        rust: &["ntp/timestamp.rs", "hash.rs"], port: Port::Partial,
-        note: "NTP timestamp/era algebra ported; broad UTI_* surface not" },
+        rust: &["util.rs", "ntp/timestamp.rs", "ntp/measurements.rs"], port: Port::Partial,
+        note: "pure primitives ported: NTP short/era algebra, log2->seconds, hex codec; broad UTI_* surface (files, sockets, randomness) not" },
     Row { c: "array.c", role: "generic dynamic array (ARR_*)", rust: &[], port: Port::None, note: "subsumed by std Vec; not a port target" },
     Row { c: "memory.c", role: "xmalloc/xrealloc wrappers", rust: &[], port: Port::None, note: "subsumed by std; not a port target" },
     Row { c: "logging.c", role: "logging subsystem (LOG_*)", rust: &[], port: Port::None,
@@ -236,7 +236,17 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
         &["SRC_UpdateReachability", "SRC_IsReachable", "SRC_ResetReachability"],
     ),
     ("ntp_core.c", &["parse_packet", "process_response"]),
-    ("util.c", &["UTI_Ntp32ToDouble", "UTI_DiffNtp64ToDouble"]),
+    (
+        "util.c",
+        &[
+            "UTI_Ntp32ToDouble",
+            "UTI_DoubleToNtp32",
+            "UTI_DiffNtp64ToDouble",
+            "UTI_Log2ToDouble",
+            "UTI_BytesToHex",
+            "UTI_HexToBytes",
+        ],
+    ),
     ("main.c", &["main"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     (

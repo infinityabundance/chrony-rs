@@ -41,6 +41,7 @@ pub mod replay;
 pub mod report;
 pub mod sources;
 pub mod trace;
+pub mod util;
 
 /// The chrony upstream version whose behavior this reconstruction currently
 /// targets as its primary oracle. This is a *declared target*, not a claim of

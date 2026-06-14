@@ -33,7 +33,7 @@ Run:
 
 ```sh
 cargo build
-cargo test                                    # 101 tests, deterministic
+cargo test                                    # 104 tests, deterministic
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>
