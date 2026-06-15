@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 34 / 70 (24 full, 8 partial, 2 scaffold); **36** have none.
-- **Files fully ported:** 24 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 822 / 1373 C functions (59.9%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 35 / 70 (25 full, 8 partial, 2 scaffold); **35** have none.
+- **Files fully ported:** 25 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 826 / 1373 C functions (60.2%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 757 named functions + 125 closures across 57 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 778 named functions + 130 closures across 59 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -33,7 +33,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `client.c` | 90 | 14.4% | chronyc CLI: command dispatch + report formatters | `report.rs`<br>`chronyc-rs/src/main.rs` | ◑ partial |
 | `clientlog.c` | 35 | 100.0% | client access log / rate limiting | `clientlog.rs` | ● full |
 | `cmac_gnutls.c` | 7 | 0.0% | gnutls CMAC backend | — | · none |
-| `cmac_nettle.c` | 4 | 0.0% | nettle CMAC backend | — | · none |
+| `cmac_nettle.c` | 4 | 100.0% | AES-CMAC keyed-MAC instance API (CMC_*) | `cmac_nettle.rs` | ● full |
 | `cmdmon.c` | 64 | 0.0% | control/monitoring protocol server (candm) | — | · none |
 | `cmdparse.c` | 8 | 100.0% | command/config line parsing (CPS_*) | `config/parser.rs`<br>`cmdparse.rs` | ● full |
 | `conf.c` | 135 | 1.5% | config file parser + 93-directive dispatch (CNF_*) | `config/parser.rs`<br>`config/lexer.rs`<br>`config/diagnostics.rs`<br>`config/model.rs`<br>`config/mod.rs` | ◑ partial |
@@ -124,9 +124,10 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`keys.c`** — complete port of all 17 functions for chrony's internal-MD5 build: key-file parse (ASCII/HEX), sorted store + binary-search + cache, MAC generate/verify (truncated), secure-length gate; differential-tested vs the REAL compiled keys.c (key file + per-id vectors) + an independent MD5(key||msg) check; CMAC cipher keys rejected at load (no crypto backend), as that build does _(≈27 Rust `fn` in mapped modules)_
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_
 - **`hash_intmd5.c`** — complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested _(≈8 Rust `fn` in mapped modules)_
+- **`cmac_nettle.c`** — complete port of all 4 functions: keyed AES-128/AES-256 CMAC instance, key-length table, truncating CMC_Hash; reuses the shared CMAC-128 from siv_nettle_int over a new FIPS-197 AES-256. Anchored by THREE oracles: RFC 4493 (AES-128-CMAC), NIST SP 800-38B (AES-256-CMAC), and the REAL compiled cmac_nettle.c over a vector-verified shim _(≈12 Rust `fn` in mapped modules)_
 - **`nts_ntp_auth.c`** — complete port of all 4 functions: build/parse the NTS auth-and-EEF field (header, nonce+ciphertext layout, 4-byte padding, min-length/min-nonce padding) over the ported ntp_ext layer, with SIV injected; differential-tested vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip, deterministic toy SIV) + independent padding/round-trip checks _(≈8 Rust `fn` in mapped modules)_
 - **`siv_nettle.c`** — complete port of all 9 functions (no-GCM build): keyed AEAD instance, key/nonce/tag length table, input validation, encrypt/decrypt dispatch over the ported siv_nettle_int (AES-SIV-CMAC-256); GCM-SIV unsupported as that build is; also bridges nts_ntp_auth's SIV so the NTS auth EF round-trips over real AES-SIV. Differential-tested vs the REAL compiled siv_nettle.c (API + validation) — the crypto itself is triple-anchored in siv_nettle_int _(≈13 Rust `fn` in mapped modules)_
-- **`siv_nettle_int.c`** — complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors) _(≈22 Rust `fn` in mapped modules)_
+- **`siv_nettle_int.c`** — complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors) _(≈24 Rust `fn` in mapped modules)_
 - **`hwclock.c`** — complete port of all 7 functions; composes the ported quantile delay filter + robust regression over Vec<f64> sample buffers; clean-offset model verified vs reference; cook/precision/abs-freq injected _(≈11 Rust `fn` in mapped modules)_
 - **`sys_generic.c`** — complete port of all 14 functions: the offset->frequency slew model (bounded rate/duration, excess-duration tracking, offset_convert, dispersion on frequency change), with base driver/raw clock/scheduler/step injected; differential-tested vs the REAL compiled sys_generic.c (set_frequency/accrue_offset/end-of-slew sequence) + an independent slew-drain check _(≈29 Rust `fn` in mapped modules)_
 - **`sys_timex.c`** — complete port of all 10 functions (Linux build): ppm<->kernel-freq scaling, sync-status/leap/TAI status bookkeeping over the struct timex ABI, composing the generic slew driver; the adjtimex syscall is injected; differential-tested vs the REAL compiled sys_timex.c (every submitted timex captured) + an independent scaling check _(≈13 Rust `fn` in mapped modules)_

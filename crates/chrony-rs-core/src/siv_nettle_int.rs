@@ -150,6 +150,20 @@ impl Aes128 {
     }
 }
 
+/// A 128-bit block cipher (the primitive CMAC-128 is built over). Implemented by
+/// [`Aes128`] here and by AES-256 in [`crate::cmac_nettle`], so the CMAC code is
+/// shared rather than duplicated.
+pub(crate) trait BlockCipher128 {
+    /// Encrypt one 16-byte block.
+    fn encrypt_block(&self, block: &[u8; 16]) -> [u8; 16];
+}
+
+impl BlockCipher128 for Aes128 {
+    fn encrypt_block(&self, block: &[u8; 16]) -> [u8; 16] {
+        Aes128::encrypt_block(self, block)
+    }
+}
+
 /// AES-CTR (nettle `ctr_crypt`): `dst = src ^ keystream`, where the keystream is
 /// `AES(ctr), AES(ctr+1), …` with the 16-byte counter incremented big-endian.
 fn ctr_crypt(cipher: &Aes128, ctr: &mut [u8; 16], src: &[u8], dst: &mut [u8]) {
@@ -211,7 +225,7 @@ fn memxor3(dst: &mut [u8], a: &[u8], b: &[u8]) {
 }
 
 /// chrony `struct cmac128_ctx`.
-struct Cmac128 {
+pub(crate) struct Cmac128 {
     k1: [u8; 16],
     k2: [u8; 16],
     x: [u8; 16],
@@ -221,7 +235,7 @@ struct Cmac128 {
 
 impl Cmac128 {
     /// chrony `cmac128_set_key`: derive subkeys K1, K2 from the cipher.
-    fn set_key(cipher: &Aes128) -> Self {
+    pub(crate) fn set_key<C: BlockCipher128>(cipher: &C) -> Self {
         let l = cipher.encrypt_block(&[0u8; 16]);
         let k1 = cmac128_block_mulx(&l);
         let k2 = cmac128_block_mulx(&k1);
@@ -229,7 +243,7 @@ impl Cmac128 {
     }
 
     /// chrony `cmac128_update`.
-    fn update(&mut self, cipher: &Aes128, msg: &[u8]) {
+    pub(crate) fn update<C: BlockCipher128>(&mut self, cipher: &C, msg: &[u8]) {
         let mut msg = msg;
         if self.index < 16 {
             let len = (16 - self.index).min(msg.len());
@@ -257,7 +271,7 @@ impl Cmac128 {
 
     /// chrony `cmac128_digest`: finalize into `dst` (length ≤ 16), then reset for
     /// re-use.
-    fn digest(&mut self, cipher: &Aes128, length: usize, dst: &mut [u8]) {
+    pub(crate) fn digest<C: BlockCipher128>(&mut self, cipher: &C, length: usize, dst: &mut [u8]) {
         for b in self.block[self.index..].iter_mut() {
             *b = 0;
         }

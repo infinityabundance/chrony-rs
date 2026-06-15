@@ -34,6 +34,7 @@ pub mod addrfilt;
 pub mod array;
 pub mod clientlog;
 pub mod clock;
+pub mod cmac_nettle;
 pub mod cmdparse;
 pub mod config;
 pub mod hash;

@@ -175,7 +175,9 @@ const MAP: &[Row] = &[
     Row { c: "hash_nss.c", role: "NSS hash backend", rust: &[], port: Port::None, note: "" },
     Row { c: "hash_tomcrypt.c", role: "tomcrypt hash backend", rust: &[], port: Port::None, note: "" },
     Row { c: "cmac_gnutls.c", role: "gnutls CMAC backend", rust: &[], port: Port::None, note: "" },
-    Row { c: "cmac_nettle.c", role: "nettle CMAC backend", rust: &[], port: Port::None, note: "" },
+    Row { c: "cmac_nettle.c", role: "AES-CMAC keyed-MAC instance API (CMC_*)",
+        rust: &["cmac_nettle.rs"], port: Port::Full,
+        note: "complete port of all 4 functions: keyed AES-128/AES-256 CMAC instance, key-length table, truncating CMC_Hash; reuses the shared CMAC-128 from siv_nettle_int over a new FIPS-197 AES-256. Anchored by THREE oracles: RFC 4493 (AES-128-CMAC), NIST SP 800-38B (AES-256-CMAC), and the REAL compiled cmac_nettle.c over a vector-verified shim" },
 
     // ---- NTS (none) ----
     Row { c: "nts_ke_client.c", role: "NTS-KE client", rust: &[], port: Port::None, note: "" },
@@ -500,6 +502,10 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     (
         "nts_ntp_auth.c",
         &["NNA_GenerateAuthEF", "NNA_DecryptAuthEF", "get_padding_length", "get_padded_length"],
+    ),
+    (
+        "cmac_nettle.c",
+        &["CMC_GetKeyLength", "CMC_CreateInstance", "CMC_Hash", "CMC_DestroyInstance"],
     ),
     (
         "siv_nettle.c",

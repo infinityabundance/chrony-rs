@@ -24,6 +24,7 @@ where chrony policy differs from generic protocol truth.
 | NTS auth + encrypted-EEF extension field | **complete port of `nts_ntp_auth.c`** (all 4 functions): NTS auth-and-EEF field build/parse + padding, SIV injected; vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip) + independent checks |
 | AES-SIV-CMAC-256 AEAD (RFC 5297) | **complete port of `siv_nettle_int.c`** (all 12 functions): CMAC-128, S2V, SIV encrypt/decrypt + a dependency-free AES-128; anchored by **three** oracles — FIPS-197, RFC 5297 §A.1, and the REAL compiled siv_nettle_int.c |
 | SIV AEAD instance API (`SIV_*`) | **complete port of `siv_nettle.c`** (all 9 functions): keyed instance, length table, input validation, encrypt/decrypt; bridges the NTS auth layer to real AES-SIV; vs the REAL compiled siv_nettle.c |
+| AES-CMAC keyed-MAC API (`CMC_*`) | **complete port of `cmac_nettle.c`** (all 4 functions): AES-128/256 CMAC over a dependency-free AES-256 + the shared CMAC-128; anchored by **three** oracles — RFC 4493, NIST SP 800-38B, and the REAL compiled cmac_nettle.c |
 | NTP timestamp / short fixed-point types | bit-exact roundtrip |
 | chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; **oracle-witnessed against chrony 4.5** — 8/8 accept/reject agreement (incl. Ubuntu default) + exact phrasing for 5 error classes; 82-directive set oracle-anchored |
 | `chronyc tracking` / `sources` output layout | byte-stable courts `CHRONYC.1`/`.2`; `sources` header+legend **live-witnessed vs chrony 4.5**, rows byte-derived from `client.c` (offline render) |
