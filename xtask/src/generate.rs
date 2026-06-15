@@ -224,6 +224,121 @@ daemon does not, and is not claimed:
 
 ";
 
+/// Render `crates/chrony-rs-core/README.md`.
+///
+/// Generated so the crate's headline (which chrony translation units it ports, the
+/// `unsafe` count, the target version) cannot drift from the code: the lists come
+/// from the parity [`MAP`](crate::parity) and the live scans.
+pub fn core_readme(root: &Path) -> String {
+    let modules = crate::parity::ported_modules();
+    let full: Vec<_> = modules.iter().filter(|m| m.full).collect();
+    let partial: Vec<_> = modules.iter().filter(|m| !m.full).collect();
+    let unsafe_count = count_unsafe(root);
+
+    let mut s = String::new();
+    s.push_str(HEADER);
+    s.push_str(&format!(
+        "\n# chrony-rs-core\n\n\
+        The deterministic time-discipline **brain** of [chrony-rs](../../README.md): a\n\
+        forensic reconstruction of chrony {TARGET_CHRONY_VERSION}'s internals that runs \
+        *without* a host\n\
+        clock, sockets, or privileges (the one documented exception is synchronous DNS in\n\
+        `nameserv`). Everything that touches the host is injected behind a trait or closure\n\
+        so the logic is testable against the real C and against protocol/spec oracles.\n\n\
+        This file is **generated** (`cargo xtask gen`) and freshness-gated — the lists\n\
+        below come from the port-parity matrix, so they cannot disagree with what is\n\
+        actually ported. See the [full matrix](../../docs/generated/port-parity.md) and the\n\
+        [per-function gap view](../../docs/generated/port-parity-functions.md).\n\n"
+    ));
+
+    s.push_str(&format!(
+        "## Fully ported chrony translation units ({})\n\n\
+        Every function in these units has a court-backed counterpart (differential tests\n\
+        against the real compiled C and/or protocol-spec vectors):\n\n",
+        full.len()
+    ));
+    for m in &full {
+        s.push_str(&format!("- `{}` → {} — {}\n", m.c, fmt_rust(m.rust), m.role));
+    }
+
+    s.push_str(&format!(
+        "\n## Partially ported ({})\n\n\
+        Behavior ported with at least one executable court, but not every function (see the\n\
+        matrix for the exact gap):\n\n",
+        partial.len()
+    ));
+    for m in &partial {
+        s.push_str(&format!("- `{}` → {} — {}\n", m.c, fmt_rust(m.rust), m.role));
+    }
+
+    s.push_str(&format!(
+        "\n## Invariants\n\n\
+        - **`unsafe` blocks:** {unsafe_count} (scanned across `crates/*/src`).\n\
+        - **Target chrony oracle:** {TARGET_CHRONY_VERSION}.\n\
+        - **Trace schema:** `{TRACE_SCHEMA}`.\n\n\
+        Host mutation (clock, sockets, privileges) lives in the binary crates behind narrow\n\
+        boundaries; see [`chronyd-rs`](../chronyd-rs/README.md) and\n\
+        [`chronyc-rs`](../chronyc-rs/README.md).\n"
+    ));
+    s
+}
+
+/// Render `crates/chronyd-rs/README.md`.
+pub fn chronyd_readme(_root: &Path) -> String {
+    let mut s = String::new();
+    s.push_str(HEADER);
+    s.push_str(&format!(
+        "\n# chronyd-rs\n\n\
+        The daemon / replay binary of [chrony-rs](../../README.md). It hosts the\n\
+        [`chrony-rs-core`](../chrony-rs-core/README.md) brain in **lab and offline modes\n\
+        only** — it does not discipline a real system clock or open production sockets.\n\n\
+        This file is **generated** (`cargo xtask gen`) and freshness-gated.\n\n\
+        ## What it does\n\n\
+        - `chronyd-rs --check-config <file>` — parse and validate a chrony config the way\n\
+        chrony {TARGET_CHRONY_VERSION} does (acceptance + diagnostics oracle-witnessed; see\n\
+        [`docs/config-atlas.md`](../../docs/config-atlas.md)).\n\
+        - `chronyd-rs --replay <trace.json>` — drive a validated deterministic trace\n\
+        through a simulated clock and emit a reproducible decision-log hash.\n\n\
+        ## What it deliberately does NOT do\n\n\
+        No real clock step/slew, no NTP serving, no live control socket — the boundaries\n\
+        are enumerated in [`docs/negative-capabilities.md`](../../docs/negative-capabilities.md)\n\
+        (itself generated). Targets chrony {TARGET_CHRONY_VERSION}.\n"
+    ));
+    s
+}
+
+/// Render `crates/chronyc-rs/README.md`.
+pub fn chronyc_readme(_root: &Path) -> String {
+    let mut s = String::new();
+    s.push_str(HEADER);
+    s.push_str(&format!(
+        "\n# chronyc-rs\n\n\
+        The control-client / output-parity tool of [chrony-rs](../../README.md). It renders\n\
+        the exact textual reports `chronyc` prints, so chrony-rs output can be checked\n\
+        byte-for-byte against chrony {TARGET_CHRONY_VERSION}.\n\n\
+        This file is **generated** (`cargo xtask gen`) and freshness-gated.\n\n\
+        ## What it does\n\n\
+        - Offline rendering of `tracking` / `sources` / `sourcestats` / `activity` /\n\
+        `serverstats` reports from a JSON fixture, with layouts live-witnessed against\n\
+        chrony {TARGET_CHRONY_VERSION} (see [`docs/chronyc-parity.md`](../../docs/chronyc-parity.md)).\n\n\
+        ## What it deliberately does NOT do\n\n\
+        No live control-socket transport to a running daemon (the wire protocol is not yet\n\
+        modeled); it renders from fixtures only. See\n\
+        [`docs/negative-capabilities.md`](../../docs/negative-capabilities.md). Targets\n\
+        chrony {TARGET_CHRONY_VERSION}.\n"
+    ));
+    s
+}
+
+/// Format a module's Rust paths as `` `a`, `b` `` (or `—` if none).
+fn fmt_rust(rust: &[&str]) -> String {
+    if rust.is_empty() {
+        "—".to_string()
+    } else {
+        rust.iter().map(|r| format!("`{r}`")).collect::<Vec<_>>().join(", ")
+    }
+}
+
 /// Count `unsafe` occurrences across crate sources. A scan, not a parse: any
 /// occurrence (even in a comment) counts, which is the conservative direction —
 /// it can only over-report, never hide an `unsafe` block.

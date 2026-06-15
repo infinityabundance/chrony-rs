@@ -651,6 +651,8 @@ pub(crate) struct PortedModule {
     pub role: &'static str,
     /// True for [`Port::Full`], false for [`Port::Partial`].
     pub full: bool,
+    /// chrony-rs module paths that port it.
+    pub rust: &'static [&'static str],
 }
 
 /// The Full and Partial rows of [`MAP`], in catalog order. Drives the generated
@@ -660,7 +662,7 @@ pub(crate) struct PortedModule {
 pub(crate) fn ported_modules() -> Vec<PortedModule> {
     MAP.iter()
         .filter(|r| matches!(r.port, Port::Full | Port::Partial))
-        .map(|r| PortedModule { c: r.c, role: r.role, full: r.port == Port::Full })
+        .map(|r| PortedModule { c: r.c, role: r.role, full: r.port == Port::Full, rust: r.rust })
         .collect()
 }
 
