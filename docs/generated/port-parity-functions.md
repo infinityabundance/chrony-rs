@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 493 / 1373 C functions have a direct counterpart (35.9%).** The other 880 are gaps.
+**Overall: 510 / 1373 C functions have a direct counterpart (37.1%).** The other 863 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -57,11 +57,11 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
+| `sources.c` | 48 | 20 | 28 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
-| `sources.c` | 48 | 3 | 45 | 6.2% |
 | `ntp_core.c` | 69 | 2 | 67 | 2.9% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
 | `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
@@ -674,6 +674,57 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `stop_helper`
 - · `submit_request`
 
+### `sources.c` — 20/48 (41.7%)
+
+- ✓ `SRC_AccumulateSample`
+- ✓ `SRC_ActiveSources`
+- ✓ `SRC_CreateNewInstance`
+- · `SRC_DestroyInstance`
+- · `SRC_DumpSources`
+- · `SRC_Finalise`
+- · `SRC_GetSelectReport`
+- ✓ `SRC_GetSourcestats`
+- ✓ `SRC_GetType`
+- ✓ `SRC_Initialise`
+- ✓ `SRC_IsReachable`
+- ✓ `SRC_IsSyncPeer`
+- · `SRC_ModifySelectOptions`
+- ✓ `SRC_ReadNumberOfSources`
+- · `SRC_ReloadSources`
+- · `SRC_RemoveDumpFiles`
+- · `SRC_ReportSource`
+- · `SRC_ReportSourcestats`
+- · `SRC_ReselectSource`
+- ✓ `SRC_ResetInstance`
+- ✓ `SRC_ResetReachability`
+- · `SRC_ResetSources`
+- · `SRC_SelectSource`
+- ✓ `SRC_SetActive`
+- ✓ `SRC_SetRefid`
+- · `SRC_SetReselectDistance`
+- ✓ `SRC_UnsetActive`
+- ✓ `SRC_UpdateReachability`
+- ✓ `SRC_UpdateStatus`
+- · `add_dispersion`
+- · `combine_sources`
+- · `compare_sort_elements`
+- ✓ `find_source`
+- · `get_dumpfile`
+- ✓ `get_leap_status`
+- · `get_status_char`
+- ✓ `handle_bad_source`
+- · `load_source`
+- · `log_selection_message`
+- · `log_selection_source`
+- · `mark_ok_sources`
+- · `mark_source`
+- · `save_source`
+- · `slew_sources`
+- · `source_to_string`
+- ✓ `special_mode_end`
+- · `unselect_selected_source`
+- · `update_sel_options`
+
 ### `refclock_sock.c` — 1/3 (33.3%)
 
 - ✓ `read_sample`
@@ -870,57 +921,6 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `reference_mode_end`
 - · `signal_cleanup`
 - · `write_pidfile`
-
-### `sources.c` — 3/48 (6.2%)
-
-- · `SRC_AccumulateSample`
-- · `SRC_ActiveSources`
-- · `SRC_CreateNewInstance`
-- · `SRC_DestroyInstance`
-- · `SRC_DumpSources`
-- · `SRC_Finalise`
-- · `SRC_GetSelectReport`
-- · `SRC_GetSourcestats`
-- · `SRC_GetType`
-- · `SRC_Initialise`
-- ✓ `SRC_IsReachable`
-- · `SRC_IsSyncPeer`
-- · `SRC_ModifySelectOptions`
-- · `SRC_ReadNumberOfSources`
-- · `SRC_ReloadSources`
-- · `SRC_RemoveDumpFiles`
-- · `SRC_ReportSource`
-- · `SRC_ReportSourcestats`
-- · `SRC_ReselectSource`
-- · `SRC_ResetInstance`
-- ✓ `SRC_ResetReachability`
-- · `SRC_ResetSources`
-- · `SRC_SelectSource`
-- · `SRC_SetActive`
-- · `SRC_SetRefid`
-- · `SRC_SetReselectDistance`
-- · `SRC_UnsetActive`
-- ✓ `SRC_UpdateReachability`
-- · `SRC_UpdateStatus`
-- · `add_dispersion`
-- · `combine_sources`
-- · `compare_sort_elements`
-- · `find_source`
-- · `get_dumpfile`
-- · `get_leap_status`
-- · `get_status_char`
-- · `handle_bad_source`
-- · `load_source`
-- · `log_selection_message`
-- · `log_selection_source`
-- · `mark_ok_sources`
-- · `mark_source`
-- · `save_source`
-- · `slew_sources`
-- · `source_to_string`
-- · `special_mode_end`
-- · `unselect_selected_source`
-- · `update_sel_options`
 
 ### `ntp_core.c` — 2/69 (2.9%)
 

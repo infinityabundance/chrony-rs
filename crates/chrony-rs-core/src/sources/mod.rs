@@ -15,6 +15,7 @@
 //! See `docs/source-selection-atlas.md` and `docs/filtering-atlas.md`.
 
 pub mod reachability;
+pub mod registry;
 pub mod selection;
 pub mod source;
 

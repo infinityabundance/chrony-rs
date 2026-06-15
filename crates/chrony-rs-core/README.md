@@ -65,7 +65,7 @@ matrix for the exact gap):
 
 - `conf.c` → `config/parser.rs`, `config/lexer.rs`, `config/diagnostics.rs`, `config/model.rs`, `config/mod.rs` — config file parser + 93-directive dispatch (CNF_*)
 - `ntp_core.c` → `ntp/measurements.rs`, `ntp/packet.rs` — NTP protocol engine: poll, process-response, offset/delay (NCR_*)
-- `sources.c` → `sources/source.rs`, `sources/reachability.rs`, `sources/selection.rs` — source reachability + selection (SRC_*)
+- `sources.c` → `sources/registry.rs`, `sources/source.rs`, `sources/reachability.rs`, `sources/selection.rs` — source reachability + selection (SRC_*)
 - `client.c` → `report.rs`, `../chronyc-rs/src/main.rs` — chronyc CLI: command dispatch + report formatters
 - `main.c` → `../chronyd-rs/src/main.rs` — daemon entry, arg parsing, lifecycle
 - `util.c` → `util.rs`, `ntp/timestamp.rs`, `ntp/measurements.rs` — time/UTI/byte utilities (UTI_*)

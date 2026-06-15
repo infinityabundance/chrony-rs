@@ -107,8 +107,8 @@ const MAP: &[Row] = &[
 
     // ---- source selection / statistics ----
     Row { c: "sources.c", role: "source reachability + selection (SRC_*)",
-        rust: &["sources/source.rs", "sources/reachability.rs", "sources/selection.rs"], port: Port::Partial,
-        note: "8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported" },
+        rust: &["sources/registry.rs", "sources/source.rs", "sources/reachability.rs", "sources/selection.rs"], port: Port::Partial,
+        note: "STAGED port of the 48-function selection brain (the largest chrony TU; SRC_SelectSource alone is 517 lines). Stage 1 DONE (sources/registry.rs): the faithful source registry + 8-bit reachability register + status/stratum/leap bookkeeping + leap-second vote + sample accumulation (composing the ported sourcestats) + special-mode-end check + accessors, with REF_/NSR_ and the selection pass injected. Differential-tested vs the REAL compiled sources.c (reachability register evolution read back via SRC_ReportSource + bad-source / special-mode-unsync triggers) + independent leap-vote/NTP-bad-source/accumulate units. REMAINING stages: update_sel_options + classification (mark_source) + combine_sources, then SRC_SelectSource, then dump/reload + reports. NOT Full until those land" },
     Row { c: "sourcestats.c", role: "per-source regression statistics (SST_*)",
         rust: &["sourcestats.rs"], port: Port::Full,
         note: "complete port of all 32 functions (the keystone): dual circular buffers + weighted robust regression + jitter-asymmetry multiple regression + dump/reload; composes ALL of the verified regress engine; regression/prune/asymmetry/save-load tested" },
@@ -306,8 +306,31 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
         ],
     ),
     (
+        // Stage 1 of the staged sources.c port (the registry / reachability / status
+        // machinery). Selection / combine / dump / reports land in later stages.
         "sources.c",
-        &["SRC_UpdateReachability", "SRC_IsReachable", "SRC_ResetReachability"],
+        &[
+            "SRC_Initialise",
+            "SRC_CreateNewInstance",
+            "SRC_ResetInstance",
+            "SRC_SetRefid",
+            "SRC_GetSourcestats",
+            "get_leap_status",
+            "SRC_UpdateStatus",
+            "SRC_AccumulateSample",
+            "SRC_SetActive",
+            "SRC_UnsetActive",
+            "special_mode_end",
+            "handle_bad_source",
+            "SRC_UpdateReachability",
+            "SRC_ResetReachability",
+            "SRC_IsReachable",
+            "SRC_IsSyncPeer",
+            "SRC_ReadNumberOfSources",
+            "SRC_ActiveSources",
+            "find_source",
+            "SRC_GetType",
+        ],
     ),
     ("ntp_core.c", &["parse_packet", "process_response"]),
     (
