@@ -224,3 +224,194 @@ fn accumulate_sample_drops_around_leap_and_status_updates_leap() {
     assert_eq!(reg.source(s).stratum, 2);
     assert_eq!(host.leap_updates, vec![NtpLeap::InsertSecond]);
 }
+
+// ---- Stage 3: the SRC_SelectSource pipeline ----
+
+use crate::sourcestats::TrackingData;
+
+/// A host for the selection pass with controlled per-source SST data + ref capture.
+#[derive(Default)]
+struct SelHost {
+    /// (lo, hi, root_distance, std_dev, first_ago, last_ago, select_ok) per index.
+    sel: Vec<(f64, f64, f64, f64, f64, f64, bool)>,
+    trk: Vec<TrackingData>,
+    setref_calls: i32,
+    last_combined: i32,
+    last_off: f64,
+    unsync_calls: i32,
+}
+
+impl SourcesHost for SelHost {
+    fn ref_is_leap_second_close(&mut self, _ts: Option<f64>, _o: f64) -> bool {
+        false
+    }
+    fn ref_update_leap_status(&mut self, _l: NtpLeap) {}
+    fn ref_mode_is_normal(&mut self) -> bool {
+        true
+    }
+    fn ref_set_unsynchronised(&mut self) {
+        self.unsync_calls += 1;
+    }
+    fn nsr_handle_bad_source(&mut self, _i: usize) {}
+    fn select_source(&mut self) {}
+    fn precision(&mut self) -> f64 {
+        1.0e-9
+    }
+    fn now(&mut self) -> f64 {
+        2_000_000_000.0
+    }
+    fn sst_selection_data(&mut self, i: usize, _now: f64) -> (f64, f64, f64, f64, f64, f64, bool) {
+        self.sel[i]
+    }
+    fn sst_tracking_data(&mut self, i: usize) -> TrackingData {
+        self.trk[i]
+    }
+    fn lcl_max_clock_error(&mut self) -> f64 {
+        1.0e-6
+    }
+    fn ref_get_orphan_stratum(&mut self) -> i32 {
+        16
+    }
+    fn nsr_get_local_refid(&mut self, _i: usize) -> u32 {
+        0
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn ref_set_reference(
+        &mut self,
+        _stratum: i32,
+        _leap: NtpLeap,
+        combined: i32,
+        _ref_id: u32,
+        _ref_time: f64,
+        offset: f64,
+        _offset_sd: f64,
+        _frequency: f64,
+        _frequency_sd: f64,
+        _skew: f64,
+        _root_delay: f64,
+        _root_dispersion: f64,
+    ) {
+        self.setref_calls += 1;
+        self.last_combined = combined;
+        self.last_off = offset;
+    }
+}
+
+/// chrony `SRC_ReportSource`'s state mapping (the differential's observable).
+fn rpt_state(status: SrcStatus) -> i32 {
+    match status {
+        SrcStatus::Falseticker => 1,
+        SrcStatus::Jittery => 2,
+        SrcStatus::WaitsSources
+        | SrcStatus::Nonpreferred
+        | SrcStatus::WaitsUpdate
+        | SrcStatus::Distant
+        | SrcStatus::Outlier => 3,
+        SrcStatus::Unselected => 4,
+        SrcStatus::Selected => 5,
+        _ => 0,
+    }
+}
+
+fn trk(ref_time: f64, off: f64, osd: f64, fr: f64, frsd: f64, sk: f64) -> TrackingData {
+    TrackingData {
+        ref_time,
+        average_offset: off,
+        offset_sd: osd,
+        frequency: fr,
+        frequency_sd: frsd,
+        skew: sk,
+        root_delay: 0.02,
+        root_dispersion: 0.01,
+    }
+}
+
+/// Build a ready (active, synced, reachable) refclock registry with `n` sources.
+fn ready_registry(host: &mut SelHost, n: usize) -> SourceRegistry {
+    let mut reg = SourceRegistry::new();
+    for k in 0..n {
+        let s = refclock(&mut reg, 0x41414141 + k as u32 * 0x01010101);
+        reg.set_active(s);
+        reg.update_status(host, s, 1, NtpLeap::Normal);
+        for _ in 0..4 {
+            reg.update_reachability(host, s, true);
+        }
+    }
+    reg
+}
+
+#[test]
+fn matches_real_c_select_vectors() {
+    let vectors = include_str!("../../../../../research/oracle/sources-select-c-vectors.txt");
+    let find = |p: &str| vectors.lines().map(str::trim).find(|l| l.starts_with(p)).unwrap();
+    let close = |a: f64, b: f64| (a - b).abs() <= 1e-12 * (1.0 + a.abs().max(b.abs()));
+
+    // ---- SELECT2: two agreeing sources -> select source 0, combine both ----
+    {
+        let mut host = SelHost {
+            sel: vec![
+                (-0.002, 0.002, 0.01, 0.0005, 10.0, 4.0, true),
+                (-0.003, 0.001, 0.015, 0.0006, 12.0, 5.0, true),
+            ],
+            trk: vec![
+                trk(2e9, 0.001, 0.0005, 1e-6, 0.1e-6, 1e-6),
+                trk(2e9, -0.0005, 0.0006, 1.2e-6, 0.15e-6, 1.1e-6),
+            ],
+            ..Default::default()
+        };
+        let mut reg = ready_registry(&mut host, 2);
+        reg.select_source(&mut host, Some(0));
+        let l = find("SELECT2");
+        assert_eq!(host.setref_calls, field(l, "setref").parse::<i32>().unwrap(), "SELECT2 setref");
+        assert_eq!(host.last_combined, field(l, "combined").parse::<i32>().unwrap(), "SELECT2 combined");
+        assert!(close(host.last_off, field(l, "off").parse().unwrap()), "SELECT2 off");
+        assert_eq!(rpt_state(reg.source(0).status), field(l, "stateA").parse::<i32>().unwrap(), "A");
+        assert_eq!(rpt_state(reg.source(1).status), field(l, "stateB").parse::<i32>().unwrap(), "B");
+    }
+
+    // ---- FALSE: a falseticker among three ----
+    {
+        let mut host = SelHost {
+            sel: vec![
+                (-0.002, 0.002, 0.01, 0.0005, 10.0, 4.0, true),
+                (-0.0015, 0.0025, 0.012, 0.0005, 10.0, 4.0, true),
+                (0.098, 0.102, 0.013, 0.0005, 10.0, 4.0, true),
+            ],
+            trk: vec![
+                trk(2e9, 0.0, 0.0005, 1e-6, 0.1e-6, 1e-6),
+                trk(2e9, 0.0005, 0.0005, 1e-6, 0.1e-6, 1e-6),
+                trk(2e9, 0.1, 0.0005, 1e-6, 0.1e-6, 1e-6),
+            ],
+            ..Default::default()
+        };
+        let mut reg = ready_registry(&mut host, 3);
+        reg.select_source(&mut host, Some(0));
+        let l = find("FALSE");
+        assert_eq!(host.setref_calls, field(l, "setref").parse::<i32>().unwrap(), "FALSE setref");
+        assert_eq!(host.last_combined, field(l, "combined").parse::<i32>().unwrap(), "FALSE combined");
+        assert_eq!(rpt_state(reg.source(0).status), field(l, "stateA").parse::<i32>().unwrap(), "A");
+        assert_eq!(rpt_state(reg.source(1).status), field(l, "stateB").parse::<i32>().unwrap(), "B");
+        assert_eq!(rpt_state(reg.source(2).status), field(l, "stateC").parse::<i32>().unwrap(), "C");
+    }
+
+    // ---- NOMAJORITY: two disjoint sources -> no reference, both falsetickers ----
+    {
+        let mut host = SelHost {
+            sel: vec![
+                (-0.002, 0.002, 0.01, 0.0005, 10.0, 4.0, true),
+                (0.098, 0.102, 0.01, 0.0005, 10.0, 4.0, true),
+            ],
+            trk: vec![
+                trk(2e9, 0.0, 0.0005, 1e-6, 0.1e-6, 1e-6),
+                trk(2e9, 0.1, 0.0005, 1e-6, 0.1e-6, 1e-6),
+            ],
+            ..Default::default()
+        };
+        let mut reg = ready_registry(&mut host, 2);
+        reg.select_source(&mut host, Some(0));
+        let l = find("NOMAJORITY");
+        assert_eq!(host.setref_calls, field(l, "setref").parse::<i32>().unwrap(), "NOMAJORITY setref");
+        assert_eq!(rpt_state(reg.source(0).status), field(l, "stateA").parse::<i32>().unwrap(), "A");
+        assert_eq!(rpt_state(reg.source(1).status), field(l, "stateB").parse::<i32>().unwrap(), "B");
+    }
+}

@@ -109,10 +109,9 @@ pub enum SrcStatus {
 /// chrony `struct SelectInfo` — the per-source data the selection pass fills.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct SelectInfo {
-    pub stratum: i32,
-    pub leap: i32,
-    pub root_distance: f64,
+    pub select_ok: bool,
     pub std_dev: f64,
+    pub root_distance: f64,
     pub lo_limit: f64,
     pub hi_limit: f64,
     pub last_sample_ago: f64,
@@ -183,6 +182,90 @@ pub trait SourcesHost {
     fn select_source(&mut self);
     /// `LCL_GetSysPrecisionAsQuantum`-derived precision for `SST_DoNewRegression`.
     fn precision(&mut self) -> f64;
+
+    // ---- selection-pass boundaries (Stage 3) ----
+    /// `SCH_GetLastEventTime` cooked seconds.
+    fn now(&mut self) -> f64 {
+        0.0
+    }
+    /// `SST_GetSelectionData(stats, now)` for source `index`: returns
+    /// `(lo, hi, root_distance, std_dev, first_sample_ago, last_sample_ago, select_ok)`.
+    #[allow(clippy::type_complexity)]
+    fn sst_selection_data(
+        &mut self,
+        _index: usize,
+        _now: f64,
+    ) -> (f64, f64, f64, f64, f64, f64, bool) {
+        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false)
+    }
+    /// `SST_GetTrackingData(stats)` for source `index`.
+    fn sst_tracking_data(&mut self, _index: usize) -> crate::sourcestats::TrackingData {
+        crate::sourcestats::TrackingData {
+            ref_time: 0.0,
+            average_offset: 0.0,
+            offset_sd: 0.0,
+            frequency: 0.0,
+            frequency_sd: 0.0,
+            skew: 0.0,
+            root_delay: 0.0,
+            root_dispersion: 0.0,
+        }
+    }
+    /// `LCL_GetMaxClockError`.
+    fn lcl_max_clock_error(&mut self) -> f64 {
+        0.0
+    }
+    /// `REF_GetOrphanStratum`.
+    fn ref_get_orphan_stratum(&mut self) -> i32 {
+        16
+    }
+    /// `NSR_GetLocalRefid(inst->ip_addr)` for source `index`.
+    fn nsr_get_local_refid(&mut self, _index: usize) -> u32 {
+        0
+    }
+    /// `REF_SetReference(...)`: the selected reference + combined sources.
+    #[allow(clippy::too_many_arguments)]
+    fn ref_set_reference(
+        &mut self,
+        _stratum: i32,
+        _leap: NtpLeap,
+        _combined: i32,
+        _ref_id: u32,
+        _ref_time: f64,
+        _offset: f64,
+        _offset_sd: f64,
+        _frequency: f64,
+        _frequency_sd: f64,
+        _skew: f64,
+        _root_delay: f64,
+        _root_dispersion: f64,
+    ) {
+    }
+}
+
+/// chrony's selection-tuning configuration (the `CNF_Get*` knobs read at init).
+#[derive(Clone, Copy, Debug)]
+pub struct SourcesConfig {
+    pub max_distance: f64,
+    pub max_jitter: f64,
+    pub reselect_distance: f64,
+    pub stratum_weight: f64,
+    pub combine_limit: f64,
+    pub min_sources: i32,
+}
+
+impl Default for SourcesConfig {
+    fn default() -> SourcesConfig {
+        // chrony's documented defaults.
+        SourcesConfig {
+            max_distance: 3.0,
+            max_jitter: 1.0,
+            reselect_distance: 1.0e-4,
+            stratum_weight: 1.0e-3,
+            combine_limit: 3.0,
+            min_sources: 1,
+        }
+    }
 }
 
 /// chrony's `sources.c` module state: the table of sources + the selected index.
@@ -190,19 +273,30 @@ pub trait SourcesHost {
 pub struct SourceRegistry {
     sources: Vec<SrcInstance>,
     selected_source_index: i32,
-    /// chrony `report_selection_loss`: set when selection is lost; consumed by the
-    /// selection stage's `unselect_selected_source` (a later stage).
-    #[allow(dead_code)]
+    /// chrony `report_selection_loss`.
     report_selection_loss: bool,
+    /// chrony `reported_no_majority`.
+    reported_no_majority: bool,
+    /// chrony `last_updated_inst` index (`INVALID_SOURCE` if none).
+    last_updated_inst: i32,
+    cfg: SourcesConfig,
 }
 
 impl SourceRegistry {
-    /// chrony `SRC_Initialise`.
+    /// chrony `SRC_Initialise` (default selection config).
     pub fn new() -> SourceRegistry {
+        SourceRegistry::with_config(SourcesConfig::default())
+    }
+
+    /// chrony `SRC_Initialise` with explicit selection config.
+    pub fn with_config(cfg: SourcesConfig) -> SourceRegistry {
         SourceRegistry {
             sources: Vec::new(),
             selected_source_index: INVALID_SOURCE,
             report_selection_loss: false,
+            reported_no_majority: false,
+            last_updated_inst: INVALID_SOURCE,
+            cfg,
         }
     }
 
@@ -521,6 +615,479 @@ impl SourceRegistry {
         }
 
         self.sources.iter().map(|s| s.sel_options).collect()
+    }
+
+    /// chrony `mark_source`: set the status and maintain the bad-source counter.
+    fn mark_source(&mut self, host: &mut dyn SourcesHost, i: usize, status: SrcStatus) {
+        self.sources[i].status = status;
+        if self.last_updated_inst == i as i32 {
+            let bad = {
+                let s = &mut self.sources[i];
+                if s.bad < i32::MAX
+                    && matches!(
+                        status,
+                        SrcStatus::Falseticker | SrcStatus::BadDistance | SrcStatus::Jittery
+                    )
+                {
+                    s.bad += 1;
+                } else {
+                    s.bad = 0;
+                }
+                s.bad
+            };
+            if bad >= BAD_HANDLE_THRESHOLD {
+                self.handle_bad_source(host, i);
+            }
+        }
+    }
+
+    /// chrony `mark_ok_sources`.
+    fn mark_ok_sources(&mut self, host: &mut dyn SourcesHost, status: SrcStatus) {
+        for i in 0..self.sources.len() {
+            if self.sources[i].status == SrcStatus::Ok {
+                self.mark_source(host, i, status);
+            }
+        }
+    }
+
+    /// chrony `unselect_selected_source`. `message` present means a non-transient loss.
+    fn unselect_selected_source(&mut self, message: bool) {
+        if self.selected_source_index != INVALID_SOURCE {
+            self.selected_source_index = INVALID_SOURCE;
+            self.report_selection_loss = true;
+        }
+        if self.report_selection_loss && message {
+            self.report_selection_loss = false;
+        }
+    }
+
+    /// chrony `SRC_SelectSource`: select the reference source from the pool and update
+    /// the local reference (via [`SourcesHost::ref_set_reference`]). `updated_inst` is
+    /// the source that just got a sample (`None` = chrony's `NULL`).
+    pub fn select_source(&mut self, host: &mut dyn SourcesHost, updated_inst: Option<usize>) {
+        use super::combine::{
+            combine_sources, compare_sort_elements, CombineEntry, CombineMark, EndpointTag,
+            SortElement,
+        };
+
+        if let Some(u) = updated_inst {
+            self.sources[u].updates += 1;
+            self.last_updated_inst = u as i32;
+        }
+
+        let n = self.sources.len();
+        if n == 0 {
+            self.unselect_selected_source(true);
+            return;
+        }
+
+        let now = host.now();
+
+        // ---- Step 1: classify each source, build sel_info for candidates ----
+        let mut max_sel_reach = 0u32;
+        let mut max_badstat_reach = 0u32;
+        let mut max_sel_reach_size = 0i32;
+        let mut max_reach_sample_ago = 0.0f64;
+        let mut n_badstats_sources = 0;
+        let mut sel_req_source = false;
+
+        for i in 0..n {
+            self.sources[i].leap_vote = false;
+            if self.sources[i].sel_options & SRC_SELECT_REQUIRE != 0 {
+                sel_req_source = true;
+            }
+            if self.sources[i].sel_options & SRC_SELECT_NOSELECT != 0 {
+                self.mark_source(host, i, SrcStatus::Unselectable);
+                continue;
+            }
+            if self.sources[i].leap == NtpLeap::Unsynchronised {
+                self.mark_source(host, i, SrcStatus::Unsynchronised);
+                continue;
+            }
+
+            let (lo, hi, root_distance, std_dev, first_ago, last_ago, ok) =
+                host.sst_selection_data(i, now);
+            {
+                let si = &mut self.sources[i].sel_info;
+                si.lo_limit = lo;
+                si.hi_limit = hi;
+                si.root_distance = root_distance;
+                si.std_dev = std_dev;
+                si.last_sample_ago = last_ago;
+                si.select_ok = ok;
+            }
+            if !ok {
+                n_badstats_sources += 1;
+                self.mark_source(host, i, SrcStatus::BadStats);
+                if max_badstat_reach < self.sources[i].reachability {
+                    max_badstat_reach = self.sources[i].reachability;
+                }
+                continue;
+            }
+
+            // Extra dispersion when the last sample is older than the sample span.
+            if first_ago < 2.0 * last_ago {
+                let extra = host.lcl_max_clock_error() * (2.0 * last_ago - first_ago);
+                let si = &mut self.sources[i].sel_info;
+                si.root_distance += extra;
+                si.lo_limit -= extra;
+                si.hi_limit += extra;
+            }
+
+            let si = self.sources[i].sel_info;
+            if !(si.root_distance <= self.cfg.max_distance && si.lo_limit <= si.hi_limit) {
+                self.mark_source(host, i, SrcStatus::BadDistance);
+                continue;
+            }
+            if si.std_dev > self.cfg.max_jitter {
+                self.mark_source(host, i, SrcStatus::Jittery);
+                continue;
+            }
+
+            self.sources[i].status = SrcStatus::Ok;
+
+            if self.sources[i].reachability != 0 && max_reach_sample_ago < first_ago {
+                max_reach_sample_ago = first_ago;
+            }
+            if max_sel_reach < self.sources[i].reachability {
+                max_sel_reach = self.sources[i].reachability;
+            }
+            if max_sel_reach_size < self.sources[i].reachability_size {
+                max_sel_reach_size = self.sources[i].reachability_size;
+            }
+        }
+
+        // ---- orphan handling + stale check ----
+        let orphan_stratum = host.ref_get_orphan_stratum();
+        let mut orphan_source = INVALID_SOURCE;
+        let mut n_sel_sources = 0;
+
+        for i in 0..n {
+            if self.sources[i].status != SrcStatus::Ok {
+                continue;
+            }
+            let last_ago = self.sources[i].sel_info.last_sample_ago;
+            if self.sources[i].reachability == 0 && max_reach_sample_ago < last_ago {
+                self.mark_source(host, i, SrcStatus::Stale);
+                continue;
+            }
+            if self.sources[i].stratum >= orphan_stratum && self.sources[i].type_ == SrcType::Ntp {
+                self.mark_source(host, i, SrcStatus::Orphan);
+                if self.sources[i].stratum == orphan_stratum
+                    && self.sources[i].reachability != 0
+                    && (orphan_source == INVALID_SOURCE
+                        || self.sources[i].ref_id < self.sources[orphan_source as usize].ref_id)
+                {
+                    orphan_source = i as i32;
+                }
+                continue;
+            }
+            n_sel_sources += 1;
+        }
+
+        if n_sel_sources == 0 && orphan_source != INVALID_SOURCE {
+            let os = orphan_source as usize;
+            let local_ref_id = host.nsr_get_local_refid(os);
+            if local_ref_id != 0 && self.sources[os].ref_id < local_ref_id {
+                self.sources[os].status = SrcStatus::Ok;
+                n_sel_sources = 1;
+            }
+        }
+
+        // ---- build endpoint list + count trust sources ----
+        let mut sort_list: Vec<SortElement> = Vec::new();
+        let mut n_sel_trust_sources = 0;
+        for i in 0..n {
+            if self.sources[i].status != SrcStatus::Ok {
+                continue;
+            }
+            if self.sources[i].sel_options & SRC_SELECT_TRUST != 0 {
+                n_sel_trust_sources += 1;
+            }
+            let si = self.sources[i].sel_info;
+            sort_list.push(SortElement { index: i, offset: si.lo_limit, tag: EndpointTag::Low });
+            sort_list.push(SortElement { index: i, offset: si.hi_limit, tag: EndpointTag::High });
+        }
+        let n_endpoints = sort_list.len();
+
+        // Wait for stats on start when a bad-stats source shares the polling interval.
+        if n_badstats_sources > 0
+            && n_sel_sources > 0
+            && self.selected_source_index == INVALID_SOURCE
+            && max_sel_reach_size < SOURCE_REACH_BITS as i32
+            && max_sel_reach >> 1 == max_badstat_reach
+        {
+            self.mark_ok_sources(host, SrcStatus::WaitsStats);
+            self.unselect_selected_source(false);
+            return;
+        }
+
+        if n_endpoints == 0 {
+            self.unselect_selected_source(true);
+            return;
+        }
+
+        sort_list.sort_by(compare_sort_elements);
+
+        // ---- falseticker intersection (depth / trust-depth search) ----
+        let mut trust_depth = 0;
+        let mut best_trust_depth = 0;
+        let mut depth = 0;
+        let mut best_depth = 0;
+        let (mut best_lo, mut best_hi, mut best_trust_lo, mut best_trust_hi) = (0.0, 0.0, 0.0, 0.0);
+
+        for e in &sort_list {
+            let trusted = self.sources[e.index].sel_options & SRC_SELECT_TRUST != 0;
+            match e.tag {
+                EndpointTag::Low => {
+                    depth += 1;
+                    if trusted {
+                        trust_depth += 1;
+                    }
+                    if trust_depth > best_trust_depth
+                        || (trust_depth == best_trust_depth && depth > best_depth)
+                    {
+                        if trust_depth > best_trust_depth {
+                            best_trust_depth = trust_depth;
+                            best_trust_lo = e.offset;
+                        }
+                        best_depth = depth;
+                        best_lo = e.offset;
+                    }
+                }
+                EndpointTag::High => {
+                    if trust_depth == best_trust_depth {
+                        if depth == best_depth {
+                            best_hi = e.offset;
+                        }
+                        best_trust_hi = e.offset;
+                    }
+                    if trusted {
+                        trust_depth -= 1;
+                    }
+                    depth -= 1;
+                }
+            }
+        }
+
+        if (best_trust_depth == 0 && best_depth <= n_sel_sources / 2)
+            || (best_trust_depth > 0 && best_trust_depth <= n_sel_trust_sources / 2)
+        {
+            if !self.reported_no_majority {
+                self.reported_no_majority = true;
+                self.report_selection_loss = false;
+            }
+            if self.selected_source_index != INVALID_SOURCE {
+                host.ref_set_unsynchronised();
+                self.selected_source_index = INVALID_SOURCE;
+            }
+            self.mark_ok_sources(host, SrcStatus::Falseticker);
+            return;
+        }
+
+        // ---- build admissible source list (in the best interval) ----
+        let mut sel_sources: Vec<usize> = Vec::new();
+        for i in 0..n {
+            if self.sources[i].status != SrcStatus::Ok {
+                continue;
+            }
+            let si = self.sources[i].sel_info;
+            let contains_or_within = (si.lo_limit <= best_lo && si.hi_limit >= best_hi)
+                || (si.lo_limit >= best_lo && si.hi_limit <= best_hi);
+            if contains_or_within {
+                let trusted = self.sources[i].sel_options & SRC_SELECT_TRUST != 0;
+                if !(best_trust_depth == 0
+                    || trusted
+                    || (si.lo_limit >= best_trust_lo && si.hi_limit <= best_trust_hi))
+                {
+                    self.mark_source(host, i, SrcStatus::Untrusted);
+                    continue;
+                }
+                sel_sources.push(i);
+                if self.sources[i].sel_options & SRC_SELECT_REQUIRE != 0 {
+                    sel_req_source = false;
+                }
+            } else {
+                self.mark_source(host, i, SrcStatus::Falseticker);
+                self.sources[i].reported_falseticker = true;
+            }
+        }
+
+        if sel_sources.is_empty()
+            || sel_req_source
+            || (sel_sources.len() as i32) < self.cfg.min_sources
+        {
+            self.unselect_selected_source(true);
+            self.mark_ok_sources(host, SrcStatus::WaitsSources);
+            return;
+        }
+
+        // ---- enable leap voting ----
+        for &index in &sel_sources {
+            if best_trust_depth != 0 && self.sources[index].sel_options & SRC_SELECT_TRUST == 0 {
+                continue;
+            }
+            self.sources[index].leap_vote = true;
+        }
+
+        // ---- prefer reduction ----
+        let any_prefer =
+            sel_sources.iter().any(|&i| self.sources[i].sel_options & SRC_SELECT_PREFER != 0);
+        let sel_prefer = any_prefer;
+        if any_prefer {
+            let mut kept = Vec::new();
+            for &i in &sel_sources {
+                if self.sources[i].sel_options & SRC_SELECT_PREFER == 0 {
+                    self.mark_source(host, i, SrcStatus::Nonpreferred);
+                } else {
+                    kept.push(i);
+                }
+            }
+            sel_sources = kept;
+        }
+
+        // ---- minimum stratum ----
+        let min_stratum =
+            sel_sources.iter().map(|&i| self.sources[i].stratum).min().unwrap();
+
+        // ---- score update + max-score selection ----
+        let mut max_score_index = INVALID_SOURCE;
+        let mut max_score = 0.0;
+        let sel_src_distance = if self.selected_source_index != INVALID_SOURCE {
+            let s = &self.sources[self.selected_source_index as usize];
+            s.sel_info.root_distance + (s.stratum - min_stratum) as f64 * self.cfg.stratum_weight
+        } else {
+            0.0
+        };
+
+        for i in 0..n {
+            if self.sources[i].status != SrcStatus::Ok
+                || (sel_prefer && self.sources[i].sel_options & SRC_SELECT_PREFER == 0)
+            {
+                self.sources[i].sel_score = 1.0;
+                self.sources[i].distant = DISTANT_PENALTY;
+                continue;
+            }
+            let mut distance = self.sources[i].sel_info.root_distance
+                + (self.sources[i].stratum - min_stratum) as f64 * self.cfg.stratum_weight;
+            if self.sources[i].type_ == SrcType::Ntp {
+                distance += self.cfg.reselect_distance;
+            }
+
+            if self.selected_source_index != INVALID_SOURCE {
+                if Some(i) == updated_inst
+                    || self.selected_source_index == updated_inst.map_or(INVALID_SOURCE, |u| u as i32)
+                {
+                    self.sources[i].sel_score *= sel_src_distance / distance;
+                    if self.sources[i].sel_score < 1.0 {
+                        self.sources[i].sel_score = 1.0;
+                    }
+                }
+            } else {
+                self.sources[i].sel_score = 1.0 / distance;
+            }
+
+            if max_score < self.sources[i].sel_score {
+                max_score = self.sources[i].sel_score;
+                max_score_index = i as i32;
+            }
+        }
+
+        // ---- selection change (hysteresis) ----
+        if self.selected_source_index == INVALID_SOURCE
+            || self.sources[self.selected_source_index as usize].status != SrcStatus::Ok
+            || (max_score_index != self.selected_source_index && max_score > SCORE_LIMIT)
+        {
+            if self.sources[max_score_index as usize].updates == 0 {
+                self.unselect_selected_source(false);
+                self.mark_ok_sources(host, SrcStatus::WaitsUpdate);
+                return;
+            }
+            self.selected_source_index = max_score_index;
+            for s in &mut self.sources {
+                s.sel_score = 1.0;
+                s.distant = 0;
+                s.reported_falseticker = false;
+            }
+            self.reported_no_majority = false;
+            self.report_selection_loss = false;
+        }
+
+        let selected = self.selected_source_index as usize;
+        self.mark_source(host, selected, SrcStatus::Selected);
+
+        // ---- don't update the reference with no new samples ----
+        if self.sources[selected].updates == 0 {
+            for &index in &sel_sources {
+                if self.sources[index].status == SrcStatus::Ok {
+                    let st = if self.sources[index].distant != 0 {
+                        SrcStatus::Distant
+                    } else {
+                        SrcStatus::Unselected
+                    };
+                    self.mark_source(host, index, st);
+                }
+            }
+            return;
+        }
+
+        for s in &mut self.sources {
+            s.updates = 0;
+        }
+        let leap_status = self.leap_status();
+
+        // ---- combine + REF_SetReference ----
+        let init = host.sst_tracking_data(selected);
+        let mut entries: Vec<CombineEntry> = sel_sources
+            .iter()
+            .map(|&index| CombineEntry {
+                root_distance: self.sources[index].sel_info.root_distance,
+                distant: self.sources[index].distant,
+                reachability_size: self.sources[index].reachability_size,
+                is_selected: index == selected,
+                is_ntp: self.sources[index].type_ == SrcType::Ntp,
+                status_ok: self.sources[index].status == SrcStatus::Ok,
+                tracking: host.sst_tracking_data(index),
+            })
+            .collect();
+
+        let (result, marks) = combine_sources(
+            &mut entries,
+            init.ref_time,
+            init.average_offset,
+            init.offset_sd,
+            init.frequency,
+            init.frequency_sd,
+            init.skew,
+            self.cfg.combine_limit,
+            self.cfg.reselect_distance,
+            host.lcl_max_clock_error(),
+        );
+
+        // Apply combine's per-source effects (distant counter + status marks).
+        for (k, &index) in sel_sources.iter().enumerate() {
+            self.sources[index].distant = entries[k].distant;
+            match marks[k] {
+                CombineMark::Distant => self.mark_source(host, index, SrcStatus::Distant),
+                CombineMark::Unselected => self.mark_source(host, index, SrcStatus::Unselected),
+                CombineMark::Combined => {}
+            }
+        }
+
+        host.ref_set_reference(
+            self.sources[selected].stratum,
+            leap_status,
+            result.combined,
+            self.sources[selected].ref_id,
+            init.ref_time,
+            result.offset,
+            result.offset_sd,
+            result.frequency,
+            result.frequency_sd,
+            result.skew,
+            init.root_delay,
+            init.root_dispersion,
+        );
     }
 
     /// chrony `find_source`: by IP (NTP) or refid (refclock).

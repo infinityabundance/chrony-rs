@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 514 / 1373 C functions have a direct counterpart (37.4%).** The other 859 are gaps.
+**Overall: 518 / 1373 C functions have a direct counterpart (37.7%).** The other 855 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -56,7 +56,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
-| `sources.c` | 48 | 24 | 24 | 50.0% |
+| `sources.c` | 48 | 28 | 20 | 58.3% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
@@ -659,7 +659,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `slew_samples`
 - ✓ `valid_sample_time`
 
-### `sources.c` — 24/48 (50.0%)
+### `sources.c` — 28/48 (58.3%)
 
 - ✓ `SRC_AccumulateSample`
 - ✓ `SRC_ActiveSources`
@@ -683,7 +683,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `SRC_ResetInstance`
 - ✓ `SRC_ResetReachability`
 - · `SRC_ResetSources`
-- · `SRC_SelectSource`
+- ✓ `SRC_SelectSource`
 - ✓ `SRC_SetActive`
 - ✓ `SRC_SetRefid`
 - · `SRC_SetReselectDistance`
@@ -701,13 +701,13 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `load_source`
 - · `log_selection_message`
 - · `log_selection_source`
-- · `mark_ok_sources`
-- · `mark_source`
+- ✓ `mark_ok_sources`
+- ✓ `mark_source`
 - · `save_source`
 - · `slew_sources`
 - · `source_to_string`
 - ✓ `special_mode_end`
-- · `unselect_selected_source`
+- ✓ `unselect_selected_source`
 - ✓ `update_sel_options`
 
 ### `privops.c` — 5/12 (41.7%)
