@@ -209,7 +209,9 @@ const MAP: &[Row] = &[
     Row { c: "refclock_sock.c", role: "socket refclock driver", rust: &[], port: Port::None, note: "" },
 
     // ---- RTC / hwclock (none) ----
-    Row { c: "rtc.c", role: "RTC abstraction", rust: &[], port: Port::None, note: "" },
+    Row { c: "rtc.c", role: "RTC abstraction layer (RTC_*)",
+        rust: &["rtc.rs"], port: Port::Full,
+        note: "complete port of all 9 functions: the driver-load decision tree, lifecycle/measurement forwarding, and the drift-file time restore (step the clock to the drift file's mtime if behind); the platform RTC driver is the injected RtcDriver trait and the clock/step/driftfile-mtime are injected. Differential-tested vs the REAL compiled rtc.c (-DLINUX -DFEAT_RTC): pre-init ok / pre-init fail->drift step / rtcfile+rtcsync fatal, with the forwarded call log + return codes matched" },
     Row { c: "rtc_linux.c", role: "Linux RTC driver", rust: &[], port: Port::None, note: "" },
     Row { c: "hwclock.c", role: "hardware-clock tracking (HCL_*)",
         rust: &["hwclock.rs"], port: Port::Full,
@@ -542,6 +544,20 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     (
         "nts_ntp_server.c",
         &["NNS_Initialise", "NNS_Finalise", "NNS_CheckRequestAuth", "NNS_GenerateResponseAuth"],
+    ),
+    (
+        "rtc.c",
+        &[
+            "RTC_Initialise",
+            "RTC_Finalise",
+            "RTC_TimeInit",
+            "RTC_StartMeasurements",
+            "RTC_WriteParameters",
+            "RTC_GetReport",
+            "RTC_Trim",
+            "get_driftfile_time",
+            "apply_driftfile_time",
+        ],
     ),
     (
         "nts_ntp_client.c",

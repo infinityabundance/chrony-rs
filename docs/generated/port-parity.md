@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 37 / 70 (28 full, 8 partial, 1 scaffold); **33** have none.
-- **Files fully ported:** 28 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 847 / 1373 C functions (61.7%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 38 / 70 (29 full, 8 partial, 1 scaffold); **32** have none.
+- **Files fully ported:** 29 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 856 / 1373 C functions (62.3%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 878 named functions + 175 closures across 66 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 909 named functions + 185 closures across 68 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -75,7 +75,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `refclock_sock.c` | 3 | 0.0% | socket refclock driver | — | · none |
 | `reference.c` | 45 | 0.0% | tracking + drift state, leap handling (REF_*) | `report.rs`<br>`clock.rs` | ◑ partial |
 | `regress.c` | 11 | 100.0% | robust linear regression + statistical primitives | `regress.rs` | ● full |
-| `rtc.c` | 9 | 0.0% | RTC abstraction | — | · none |
+| `rtc.c` | 9 | 100.0% | RTC abstraction layer (RTC_*) | `rtc.rs` | ● full |
 | `rtc_linux.c` | 26 | 0.0% | Linux RTC driver | — | · none |
 | `samplefilt.c` | 18 | 100.0% | per-source NTP sample filtering (SPF_*) | `samplefilt.rs` | ● full |
 | `sched.c` | 22 | 100.0% | timer/event scheduler (SCH_*) | `sched.rs` | ● full |
@@ -130,6 +130,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`nts_ntp_server.c`** — complete port of all 4 functions: parse NTS request EFs (unique-id/cookie/placeholder/auth), decode cookie -> session keys, key SIV with C2S + verify/decrypt the authenticator, prepare fresh cookies, and build the S2C-authenticated response; composes the ported ntp_ext + nts_ntp_auth + siv (real AES-SIV-CMAC), with the cookie codec injected. Differential-tested vs the REAL compiled nts_ntp_server.c (byte-identical response + tamper/missing-cookie rejection) + a full round-trip _(≈7 Rust `fn` in mapped modules)_
 - **`siv_nettle.c`** — complete port of all 9 functions (no-GCM build): keyed AEAD instance, key/nonce/tag length table, input validation, encrypt/decrypt dispatch over the ported siv_nettle_int (AES-SIV-CMAC-256); GCM-SIV unsupported as that build is; also bridges nts_ntp_auth's SIV so the NTS auth EF round-trips over real AES-SIV. Differential-tested vs the REAL compiled siv_nettle.c (API + validation) — the crypto itself is triple-anchored in siv_nettle_int _(≈13 Rust `fn` in mapped modules)_
 - **`siv_nettle_int.c`** — complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors) _(≈24 Rust `fn` in mapped modules)_
+- **`rtc.c`** — complete port of all 9 functions: the driver-load decision tree, lifecycle/measurement forwarding, and the drift-file time restore (step the clock to the drift file's mtime if behind); the platform RTC driver is the injected RtcDriver trait and the clock/step/driftfile-mtime are injected. Differential-tested vs the REAL compiled rtc.c (-DLINUX -DFEAT_RTC): pre-init ok / pre-init fail->drift step / rtcfile+rtcsync fatal, with the forwarded call log + return codes matched _(≈17 Rust `fn` in mapped modules)_
 - **`hwclock.c`** — complete port of all 7 functions; composes the ported quantile delay filter + robust regression over Vec<f64> sample buffers; clean-offset model verified vs reference; cook/precision/abs-freq injected _(≈11 Rust `fn` in mapped modules)_
 - **`sys_generic.c`** — complete port of all 14 functions: the offset->frequency slew model (bounded rate/duration, excess-duration tracking, offset_convert, dispersion on frequency change), with base driver/raw clock/scheduler/step injected; differential-tested vs the REAL compiled sys_generic.c (set_frequency/accrue_offset/end-of-slew sequence) + an independent slew-drain check _(≈29 Rust `fn` in mapped modules)_
 - **`sys_timex.c`** — complete port of all 10 functions (Linux build): ppm<->kernel-freq scaling, sync-status/leap/TAI status bookkeeping over the struct timex ABI, composing the generic slew driver; the adjtimex syscall is injected; differential-tested vs the REAL compiled sys_timex.c (every submitted timex captured) + an independent scaling check _(≈13 Rust `fn` in mapped modules)_

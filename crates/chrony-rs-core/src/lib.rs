@@ -54,6 +54,7 @@ pub mod quantiles;
 pub mod regress;
 pub mod replay;
 pub mod report;
+pub mod rtc;
 pub mod samplefilt;
 pub mod sched;
 pub mod siv_nettle;

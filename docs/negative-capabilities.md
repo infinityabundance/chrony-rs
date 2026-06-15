@@ -40,6 +40,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `nts_ntp_server.c` — server-side NTS-NTP authentication (NNS_*) _(port: full)_
 - `siv_nettle.c` — SIV AEAD instance API (SIV_*) _(port: full)_
 - `siv_nettle_int.c` — AES-SIV-CMAC-256 AEAD (RFC 5297) _(port: full)_
+- `rtc.c` — RTC abstraction layer (RTC_*) _(port: full)_
 - `hwclock.c` — hardware-clock tracking (HCL_*) _(port: full)_
 - `sys_generic.c` — generic software-slew clock-discipline driver _(port: full)_
 - `sys_timex.c` — adjtimex()/ntp_adjtime() clock driver _(port: full)_

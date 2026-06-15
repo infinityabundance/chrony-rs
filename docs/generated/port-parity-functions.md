@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 377 / 1373 C functions have a direct counterpart (27.5%).** The other 996 are gaps.
+**Overall: 386 / 1373 C functions have a direct counterpart (28.1%).** The other 987 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -39,6 +39,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `pktlength.c` | 3 | 3 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
+| `rtc.c` | 9 | 9 | 0 | 100.0% |
 | `samplefilt.c` | 18 | 18 | 0 | 100.0% |
 | `sched.c` | 22 | 22 | 0 | 100.0% |
 | `siv_nettle.c` | 9 | 9 | 0 | 100.0% |
@@ -80,7 +81,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `refclock_shm.c` | 3 | 0 | 3 | 0.0% |
 | `refclock_sock.c` | 3 | 0 | 3 | 0.0% |
 | `reference.c` | 45 | 0 | 45 | 0.0% |
-| `rtc.c` | 9 | 0 | 9 | 0.0% |
 | `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
 | `siv_gnutls.c` | 12 | 0 | 12 | 0.0% |
 | `socket.c` | 61 | 0 | 61 | 0.0% |
@@ -352,6 +352,18 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `find_median`
 - ✓ `find_ordered_entry_with_flags`
 - ✓ `n_runs_from_residuals`
+
+### `rtc.c` — 9/9 (100.0%)
+
+- ✓ `RTC_Finalise`
+- ✓ `RTC_GetReport`
+- ✓ `RTC_Initialise`
+- ✓ `RTC_StartMeasurements`
+- ✓ `RTC_TimeInit`
+- ✓ `RTC_Trim`
+- ✓ `RTC_WriteParameters`
+- ✓ `apply_driftfile_time`
+- ✓ `get_driftfile_time`
 
 ### `samplefilt.c` — 18/18 (100.0%)
 
