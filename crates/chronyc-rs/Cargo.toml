@@ -1,0 +1,17 @@
+[package]
+name = "chronyc-rs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "chrony-rs control client and output-parity tool."
+
+[[bin]]
+name = "chronyc-rs"
+path = "src/main.rs"
+
+[dependencies]
+chrony-rs-core = { path = "../chrony-rs-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }

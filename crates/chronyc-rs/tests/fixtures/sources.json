@@ -1,0 +1,28 @@
+{
+  "sources": [
+    {
+      "mode": "server",
+      "state": "selected",
+      "name": "ntp1.example.com",
+      "stratum": 2,
+      "poll": 6,
+      "reach": 255,
+      "since_sample": 21,
+      "adjusted_offset": 0.000123,
+      "measured_offset": 0.000456,
+      "error": 0.000012
+    },
+    {
+      "mode": "ref_clock",
+      "state": "falseticker",
+      "name": "PPS",
+      "stratum": 0,
+      "poll": 4,
+      "reach": 15,
+      "since_sample": 3,
+      "adjusted_offset": -0.0034,
+      "measured_offset": -0.0051,
+      "error": 0.00025
+    }
+  ]
+}

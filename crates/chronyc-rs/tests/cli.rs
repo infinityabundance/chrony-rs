@@ -1,0 +1,154 @@
+//! End-to-end CLI behavior for `chronyc-rs`.
+
+use std::path::PathBuf;
+use std::process::Command;
+
+fn bin() -> &'static str {
+    env!("CARGO_BIN_EXE_chronyc-rs")
+}
+
+fn fixture(name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures")
+        .join(name)
+}
+
+#[test]
+fn render_tracking_matches_known_layout() {
+    let out = Command::new(bin())
+        .arg("render-tracking")
+        .arg(fixture("tracking.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+
+    // Byte-exact comparison of the whole block, including alignment and newline.
+    let expected = "\
+Reference ID    : 0A000001 (ntp.example.com)
+Stratum         : 2
+Ref time (UTC)  : Wed May 25 10:20:30 2022
+System time     : 0.000020390 seconds fast of NTP time
+Last offset     : +0.000001234 seconds
+RMS offset      : 0.000005678 seconds
+Frequency       : 12.345 ppm fast
+Residual freq   : +0.001 ppm
+Skew            : 0.234 ppm
+Root delay      : 0.001234567 seconds
+Root dispersion : 0.000456789 seconds
+Update interval : 64.5 seconds
+Leap status     : Normal
+";
+    assert_eq!(String::from_utf8_lossy(&out.stdout), expected);
+}
+
+#[test]
+fn render_sources_matches_live_witnessed_layout() {
+    let out = Command::new(bin())
+        .arg("render-sources")
+        .arg(fixture("sources.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+
+    // Header is the exact 79-char chrony literal (witnessed in the core crate);
+    // assert its length + the `=` rule here to avoid trailing-space fragility.
+    assert_eq!(lines[0].len(), 79);
+    assert!(lines[0].starts_with("MS Name/IP address"));
+    assert_eq!(lines[1], "=".repeat(79));
+    // Data rows follow the client.c print_report format string exactly.
+    assert_eq!(lines[2], "^* ntp1.example.com              2   6   377    21   +123us[ +456us] +/-   12us");
+    assert_eq!(lines[3], "#x PPS                           0   4    17     3  -3400us[-5100us] +/-  250us");
+    assert_eq!(lines.len(), 4);
+}
+
+#[test]
+fn render_activity_includes_status_and_five_lines() {
+    let out = Command::new(bin())
+        .arg("render-activity")
+        .arg(fixture("activity.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let expected = "\
+200 OK
+3 sources online
+1 sources offline
+0 sources doing burst (return to online)
+0 sources doing burst (return to offline)
+2 sources with unknown address
+";
+    assert_eq!(String::from_utf8_lossy(&out.stdout), expected);
+}
+
+#[test]
+fn render_serverstats_label_aligns() {
+    let out = Command::new(bin())
+        .arg("render-serverstats")
+        .arg(fixture("serverstats.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(lines.len(), 17);
+    assert_eq!(lines[0], "NTP packets received       : 100");
+    // ": " aligns at column 27 for every line.
+    for l in &lines {
+        assert_eq!(l.find(':'), Some(27), "colon column in {l:?}");
+    }
+}
+
+#[test]
+fn render_sourcestats_matches_format() {
+    let out = Command::new(bin())
+        .arg("render-sourcestats")
+        .arg(fixture("sourcestats.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(lines[0].len(), 78);
+    assert!(lines[0].starts_with("Name/IP Address"));
+    assert_eq!(lines[1], "=".repeat(78));
+    assert_eq!(
+        lines[2],
+        "ntp1.example.com           12   7   600     -0.123      0.456    +89us    34us"
+    );
+    assert_eq!(lines.len(), 3);
+}
+
+#[test]
+fn render_sources_verbose_prepends_legend() {
+    let out = Command::new(bin())
+        .arg("render-sources")
+        .arg("-v")
+        .arg(fixture("sources.json"))
+        .output()
+        .expect("run chronyc-rs");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.starts_with("\n  .-- Source mode"), "legend missing: {stdout}");
+    assert!(stdout.contains("'x' = may be in error"));
+}
+
+#[test]
+fn live_tracking_fails_closed_with_explanation() {
+    // The deferred capability must be visible at the point of use, not silent.
+    let out = Command::new(bin()).arg("tracking").output().expect("run");
+    assert_eq!(out.status.code(), Some(3));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("not yet implemented"), "stderr was: {stderr}");
+}
+
+#[test]
+fn invalid_fixture_exits_one() {
+    let out = Command::new(bin())
+        .arg("render-tracking")
+        .arg("/no/such/fixture.json")
+        .output()
+        .expect("run");
+    assert_eq!(out.status.code(), Some(2)); // IO error → usage class
+}

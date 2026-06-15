@@ -1,0 +1,20 @@
+# Live `chronyc accheck` oracle for addrfilt.rs (chrony 4.5).
+#
+# Daemon config (NTP access rules, applied in order):
+#   allow 10.0.0.0/8
+#   deny  10.1.0.0/16
+#   allow 192.168.0.0/17
+#   deny  10.1.2.0/24
+#   allow 10.1.2.128/25
+#
+# Captured with: chronyc -h <sock> accheck <ip>
+# Format: <ip> => <chrony reply>
+10.0.0.1 => 208 Access allowed
+10.1.2.3 => 209 Access denied
+10.1.2.200 => 208 Access allowed
+10.2.3.4 => 208 Access allowed
+11.0.0.1 => 209 Access denied
+192.168.0.1 => 208 Access allowed
+192.168.127.255 => 208 Access allowed
+192.168.128.1 => 209 Access denied
+8.8.8.8 => 209 Access denied

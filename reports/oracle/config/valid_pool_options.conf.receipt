@@ -1,0 +1,6 @@
+fixture: valid_pool_options.conf
+oracle: chronyd (chrony) version 4.5 (+CMDMON +NTP +REFCLOCK +RTC +PRIVDROP +SCFILTER +SIGND +ASYNCDNS +NTS +SECHASH +IPV6 -DEBUG)
+chrony_exit: 0
+chrony_stderr_normalized: (none)
+chrony_rs_exit: 0
+accept_agree: yes

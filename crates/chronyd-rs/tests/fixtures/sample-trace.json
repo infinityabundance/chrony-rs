@@ -1,0 +1,13 @@
+{
+  "trace_schema": "chrony-rs-trace-v1",
+  "chrony_version": "4.5",
+  "platform": "x86_64-linux",
+  "kernel": "6.18.5",
+  "config_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "events": [
+    {"t_mono_ns": 0, "kind": "recv_ntp", "data": {"peer": "192.0.2.1", "packet_hex": "240200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},
+    {"t_mono_ns": 1000000000, "kind": "poll_due", "data": {"source": "192.0.2.1"}},
+    {"t_mono_ns": 2000000000, "kind": "control_query", "data": {"command": "tracking"}}
+  ],
+  "expected": {"decision_events_sha256": "c9d20fa3900c9c542139d694c3ee8eb2c300925ffc7d8579a2eaa80e1668eda1"}
+}

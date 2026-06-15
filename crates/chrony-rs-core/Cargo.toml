@@ -1,0 +1,12 @@
+[package]
+name = "chrony-rs-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Deterministic time-discipline brain and parity primitives for chrony-rs."
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

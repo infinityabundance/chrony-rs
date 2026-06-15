@@ -1,0 +1,17 @@
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Build/automation tasks for chrony-rs: documentation generation and freshness gating."
+
+[dependencies]
+chrony-rs-core = { path = "../crates/chrony-rs-core" }
+# `syn` gives an authoritative Rust AST inventory for the port-parity matrix.
+# Doxygen's C++ frontend misparses Rust (closures, `impl`, generics) and yields
+# anonymous members, so the Rust side is anchored natively here, not via doxygen.
+# `visit` walks the tree; `full` parses statement/expression bodies so closures
+# inside functions are counted, not just item-level `fn`s.
+syn = { version = "2", features = ["full", "visit"] }
