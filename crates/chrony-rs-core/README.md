@@ -15,7 +15,7 @@ below come from the port-parity matrix, so they cannot disagree with what is
 actually ported. See the [full matrix](../../docs/generated/port-parity.md) and the
 [per-function gap view](../../docs/generated/port-parity-functions.md).
 
-## Fully ported chrony translation units (35)
+## Fully ported chrony translation units (36)
 
 Every function in these units has a court-backed counterpart (differential tests
 against the real compiled C and/or protocol-spec vectors):
@@ -47,6 +47,7 @@ against the real compiled C and/or protocol-spec vectors):
 - `siv_nettle_int.c` → `siv_nettle_int.rs` — AES-SIV-CMAC-256 AEAD (RFC 5297)
 - `refclock.c` → `refclock.rs` — reference-clock framework (RCL_*)
 - `refclock_shm.c` → `refclock_shm.rs` — SHM refclock driver (ntpd/gpsd shared-memory protocol)
+- `refclock_sock.c` → `refclock_sock.rs` — SOCK refclock driver (gpsd Unix-datagram sample protocol)
 - `rtc.c` → `rtc.rs` — RTC abstraction layer (RTC_*)
 - `hwclock.c` → `hwclock.rs` — hardware-clock tracking (HCL_*)
 - `sys_generic.c` → `sys_generic.rs` — generic software-slew clock-discipline driver

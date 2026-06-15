@@ -18,7 +18,7 @@ This file is **generated** (`cargo xtask gen`) and freshness-gated.
 
 ## What's inside
 
-- **35** chrony 4.5 translation units ported in full, each
+- **36** chrony 4.5 translation units ported in full, each
 function court-backed against the real compiled C and/or protocol-spec vectors —
 see the [port-parity matrix](../../docs/generated/port-parity.md) and the core
 crate's [README](../chrony-rs-core/README.md).

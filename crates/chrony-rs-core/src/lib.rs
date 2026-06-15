@@ -56,6 +56,7 @@ pub mod privops;
 pub mod quantiles;
 pub mod refclock;
 pub mod refclock_shm;
+pub mod refclock_sock;
 pub mod reference;
 pub mod regress;
 pub mod replay;

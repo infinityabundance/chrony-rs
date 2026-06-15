@@ -216,7 +216,9 @@ const MAP: &[Row] = &[
     Row { c: "refclock_shm.c", role: "SHM refclock driver (ntpd/gpsd shared-memory protocol)",
         rust: &["refclock_shm.rs"], port: Port::Full,
         note: "complete port of all 3 functions: shm_poll's sample extraction (mode 0/1 validity gates incl. the mode-1 concurrent-writer count-stability check, the valid flag, clearing valid, and the nanosecond-vs-microsecond timestamp selection + normalisation) feeding the refclock framework's RCL_AddSample, plus shm_initialise's unit-key (SHMKEY + unit) and octal perm parsing. The shared-memory segment (shmget/shmat) is the injected ShmSource; composes the ported refclock.rs. Differential-tested vs the REAL compiled refclock_shm.c (RCL_SHM_driver.poll over a controlled shmTime: byte-identical receive/clock/leap + accept/reject, valid cleared on accept); the writer race and key/perm parsing unit-tested" },
-    Row { c: "refclock_sock.c", role: "socket refclock driver", rust: &[], port: Port::None, note: "" },
+    Row { c: "refclock_sock.c", role: "SOCK refclock driver (gpsd Unix-datagram sample protocol)",
+        rust: &["refclock_sock.rs"], port: Port::Full,
+        note: "complete port of read_sample (the sample logic): the datagram length check, the 'SOCK' magic gate, the timeval->timespec conversion + normalisation, the time-offset sanity gate, and the pulse-vs-sample routing (RCL_AddPulse vs RCL_AddSample(sys, sys+offset, leap)); composes the ported refclock.rs. The datagram socket open + file-handler registration (sock_initialise/sock_finalise) is the injected host transport, and read_sample takes the received bytes and returns the framework call. Differential-tested vs the REAL compiled refclock_sock.c: byte-identical sock_sample datagrams (C struct layout) fed to the real read_sample, matching the sample/pulse routing + every timestamp, with magic/length/sanity rejections; short-datagram and insane-offset gates also unit-tested" },
 
     // ---- RTC / hwclock (none) ----
     Row { c: "rtc.c", role: "RTC abstraction layer (RTC_*)",
@@ -609,6 +611,12 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     (
         "refclock_shm.c",
         &["shm_initialise", "shm_finalise", "shm_poll"],
+    ),
+    (
+        // sock_initialise/sock_finalise are the injected socket-open + handler
+        // registration (the host's); read_sample carries the ported sample logic.
+        "refclock_sock.c",
+        &["read_sample"],
     ),
     (
         "reference.c",

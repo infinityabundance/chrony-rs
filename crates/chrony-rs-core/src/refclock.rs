@@ -210,7 +210,7 @@ struct RclInstance {
 }
 
 /// `UTI_IsTimeOffsetSane` (32-bit `time_t` build, as the oracle compiles).
-fn is_time_offset_sane(ts: Timespec, offset: f64) -> bool {
+pub(crate) fn is_time_offset_sane(ts: Timespec, offset: f64) -> bool {
     if !(offset > -MAX_OFFSET && offset < MAX_OFFSET) {
         return false;
     }

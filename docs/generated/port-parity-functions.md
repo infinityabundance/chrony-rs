@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 489 / 1373 C functions have a direct counterpart (35.6%).** The other 884 are gaps.
+**Overall: 490 / 1373 C functions have a direct counterpart (35.7%).** The other 883 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -56,6 +56,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
+| `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `nameserv.c` | 4 | 1 | 3 | 25.0% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
@@ -80,7 +81,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nts_ke_session.c` | 32 | 0 | 32 | 0.0% |
 | `refclock_phc.c` | 0 | 0 | 0 | 0.0% |
 | `refclock_pps.c` | 0 | 0 | 0 | 0.0% |
-| `refclock_sock.c` | 3 | 0 | 3 | 0.0% |
 | `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
 | `siv_gnutls.c` | 12 | 0 | 12 | 0.0% |
 | `socket.c` | 61 | 0 | 61 | 0.0% |
@@ -666,6 +666,12 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `send_response`
 - · `stop_helper`
 - · `submit_request`
+
+### `refclock_sock.c` — 1/3 (33.3%)
+
+- ✓ `read_sample`
+- · `sock_finalise`
+- · `sock_initialise`
 
 ### `nameserv.c` — 1/4 (25.0%)
 
