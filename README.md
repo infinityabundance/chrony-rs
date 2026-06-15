@@ -17,7 +17,7 @@ generic protocol truth.
 
 ## What exists today
 
-### Fully ported chrony 4.5 translation units (33)
+### Fully ported chrony 4.5 translation units (34)
 
 Every function in each unit has a court-backed counterpart — differential-tested
 against the **real compiled C** and/or protocol-spec vectors. This list is
@@ -38,6 +38,7 @@ file updates it automatically.
 - **`smooth.c`** — complete port of all 12 functions; the 3-stage bounded-freq/wander trajectory (update_stages/get_smoothing) verified vs a reference impl; time as seconds, config/skew injected, struct-as-handler
 - **`tempcomp.c`** — complete port of all 5 functions; quadratic + point-table interpolation (points stored in the ported array::Array); temp injected, comp returned, points/coefs as data
 - **`sched.c`** — complete port of all 22 functions: the sorted timeout queue (add/by-delay/in-class with class separation + randomness, removal, dispatch), file-handler registry + select-driven main loop, clock-step queue shift, and last-event/monotonic time tracking; clock/select/randomness injected; differential-tested vs the REAL compiled sched.c (SCH_MainLoop dispatch order + fire times, incl. ties/spacing/random/step) + an independent file-handler test
+- **`privops.c`** — complete port of the privilege-separation protocol logic: the daemon-side direct-vs-helper routing of every PRV_* call, the helper-side op dispatch (helper_main's switch), the bind port-validation security gate (do_bind_socket), the unknown-op res_fatal path, and the response assembly (rc/errno/data with errno recorded only on the per-op failure condition chrony uses). The fork()/socketpair transport, the C-struct wire marshalling (incl. the SCM_RIGHTS fd-pass for bind), and the privileged operations (adjtime/ntp_adjtime/settimeofday/bind/DNS) are injected (PrivBackend + transport). The per-op handlers are platform-conditional and absent from the default-build inventory (so the curated function list is the 5 helper-shell functions). Differential-tested vs the REAL compiled privops.c driven END-TO-END through its actual fork() + Unix socketpair (adjusttime, settime errno path, name2ipaddress, reloaddns over recording op stubs); bind validation, unknown-op fatal, OP_QUIT, and client routing unit-tested
 - **`array.c`** — complete port of all 10 functions over a flat Vec<u8> (slices where chrony returns pointers): exact capacity grow/shrink policy + order-preserving removal; no unsafe
 - **`keys.c`** — complete port of all 17 functions for chrony's internal-MD5 build: key-file parse (ASCII/HEX), sorted store + binary-search + cache, MAC generate/verify (truncated), secure-length gate; differential-tested vs the REAL compiled keys.c (key file + per-id vectors) + an independent MD5(key||msg) check; CMAC cipher keys rejected at load (no crypto backend), as that build does
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU)

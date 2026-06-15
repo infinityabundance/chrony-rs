@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 41 / 70 (33 full, 7 partial, 1 scaffold); **29** have none.
-- **Files fully ported:** 33 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 908 / 1373 C functions (66.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 42 / 70 (34 full, 7 partial, 1 scaffold); **28** have none.
+- **Files fully ported:** 34 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 920 / 1373 C functions (67.0%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 1176 named functions + 222 closures across 76 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 1215 named functions + 227 closures across 78 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -66,7 +66,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `nts_ntp_client.c` | 17 | 100.0% | client-side NTS-NTP authentication (NNC_*) | `nts_ntp_client.rs` | ● full |
 | `nts_ntp_server.c` | 4 | 100.0% | server-side NTS-NTP authentication (NNS_*) | `nts_ntp_server.rs` | ● full |
 | `pktlength.c` | 3 | 100.0% | cmdmon request/reply length tables (PKL_*) | `pktlength.rs` | ● full |
-| `privops.c` | 12 | 0.0% | privilege-separation helper | — | · none |
+| `privops.c` | 12 | 41.7% | privilege-separation helper (PRV_*) | `privops.rs` | ● full |
 | `quantiles.c` | 8 | 100.0% | streaming (stochastic) quantile estimator | `quantiles.rs` | ● full |
 | `refclock.c` | 28 | 92.9% | reference-clock framework (RCL_*) | `refclock.rs` | ● full |
 | `refclock_phc.c` | 0 | 0.0% | PHC refclock driver | — | · none |
@@ -121,6 +121,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`sched.c`** — complete port of all 22 functions: the sorted timeout queue (add/by-delay/in-class with class separation + randomness, removal, dispatch), file-handler registry + select-driven main loop, clock-step queue shift, and last-event/monotonic time tracking; clock/select/randomness injected; differential-tested vs the REAL compiled sched.c (SCH_MainLoop dispatch order + fire times, incl. ties/spacing/random/step) + an independent file-handler test _(≈34 Rust `fn` in mapped modules)_
 - **`client.c`** — tracking/sources/sourcestats/activity/serverstats rendered (print_report+print_info_field engines, all print_* value helpers; all live-witnessed vs 4.5); 5 of ~40 process_cmd_* commands; no socket transport _(≈36 Rust `fn` in mapped modules)_
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
+- **`privops.c`** — complete port of the privilege-separation protocol logic: the daemon-side direct-vs-helper routing of every PRV_* call, the helper-side op dispatch (helper_main's switch), the bind port-validation security gate (do_bind_socket), the unknown-op res_fatal path, and the response assembly (rc/errno/data with errno recorded only on the per-op failure condition chrony uses). The fork()/socketpair transport, the C-struct wire marshalling (incl. the SCM_RIGHTS fd-pass for bind), and the privileged operations (adjtime/ntp_adjtime/settimeofday/bind/DNS) are injected (PrivBackend + transport). The per-op handlers are platform-conditional and absent from the default-build inventory (so the curated function list is the 5 helper-shell functions). Differential-tested vs the REAL compiled privops.c driven END-TO-END through its actual fork() + Unix socketpair (adjusttime, settime errno path, name2ipaddress, reloaddns over recording op stubs); bind validation, unknown-op fatal, OP_QUIT, and client routing unit-tested _(≈24 Rust `fn` in mapped modules)_
 - **`util.c`** — pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not _(≈39 Rust `fn` in mapped modules)_
 - **`array.c`** — complete port of all 10 functions over a flat Vec<u8> (slices where chrony returns pointers): exact capacity grow/shrink policy + order-preserving removal; no unsafe _(≈17 Rust `fn` in mapped modules)_
 - **`keys.c`** — complete port of all 17 functions for chrony's internal-MD5 build: key-file parse (ASCII/HEX), sorted store + binary-search + cache, MAC generate/verify (truncated), secure-length gate; differential-tested vs the REAL compiled keys.c (key file + per-id vectors) + an independent MD5(key||msg) check; CMAC cipher keys rejected at load (no crypto backend), as that build does _(≈27 Rust `fn` in mapped modules)_

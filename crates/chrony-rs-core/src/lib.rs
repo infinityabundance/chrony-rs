@@ -52,6 +52,7 @@ pub mod ntp;
 pub mod ntp_auth;
 pub mod ntp_signd;
 pub mod pktlength;
+pub mod privops;
 pub mod quantiles;
 pub mod refclock;
 pub mod reference;

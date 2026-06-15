@@ -150,7 +150,9 @@ const MAP: &[Row] = &[
     Row { c: "main.c", role: "daemon entry, arg parsing, lifecycle",
         rust: &["../chronyd-rs/src/main.rs"], port: Port::Partial,
         note: "--check-config and --replay only; no scheduler/privdrop/daemonize" },
-    Row { c: "privops.c", role: "privilege-separation helper", rust: &[], port: Port::None, note: "" },
+    Row { c: "privops.c", role: "privilege-separation helper (PRV_*)",
+        rust: &["privops.rs"], port: Port::Full,
+        note: "complete port of the privilege-separation protocol logic: the daemon-side direct-vs-helper routing of every PRV_* call, the helper-side op dispatch (helper_main's switch), the bind port-validation security gate (do_bind_socket), the unknown-op res_fatal path, and the response assembly (rc/errno/data with errno recorded only on the per-op failure condition chrony uses). The fork()/socketpair transport, the C-struct wire marshalling (incl. the SCM_RIGHTS fd-pass for bind), and the privileged operations (adjtime/ntp_adjtime/settimeofday/bind/DNS) are injected (PrivBackend + transport). The per-op handlers are platform-conditional and absent from the default-build inventory (so the curated function list is the 5 helper-shell functions). Differential-tested vs the REAL compiled privops.c driven END-TO-END through its actual fork() + Unix socketpair (adjusttime, settime errno path, name2ipaddress, reloaddns over recording op stubs); bind validation, unknown-op fatal, OP_QUIT, and client routing unit-tested" },
 
     // ---- utilities (subsumed by std, or partially ported) ----
     Row { c: "util.c", role: "time/UTI/byte utilities (UTI_*)",
@@ -593,6 +595,14 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "add_dispersion",
             "log_sample",
         ],
+    ),
+    (
+        // The per-op handlers (do_*/PRV_AdjustTime/...) are platform-conditional and
+        // absent from the default-build doxygen inventory; only the helper-shell
+        // functions appear there. Those op handlers are nonetheless ported (the
+        // dispatch arms + client methods) and exercised by the end-to-end differential.
+        "privops.c",
+        &["have_helper", "res_fatal", "helper_main", "PRV_Initialise", "PRV_Finalise"],
     ),
     (
         "reference.c",

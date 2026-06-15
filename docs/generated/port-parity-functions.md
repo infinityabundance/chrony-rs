@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 481 / 1373 C functions have a direct counterpart (35.0%).** The other 892 are gaps.
+**Overall: 486 / 1373 C functions have a direct counterpart (35.4%).** The other 887 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -54,6 +54,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
+| `privops.c` | 12 | 5 | 7 | 41.7% |
 | `nameserv.c` | 4 | 1 | 3 | 25.0% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
@@ -76,7 +77,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nts_ke_client.c` | 10 | 0 | 10 | 0.0% |
 | `nts_ke_server.c` | 21 | 0 | 21 | 0.0% |
 | `nts_ke_session.c` | 32 | 0 | 32 | 0.0% |
-| `privops.c` | 12 | 0 | 12 | 0.0% |
 | `refclock_phc.c` | 0 | 0 | 0 | 0.0% |
 | `refclock_pps.c` | 0 | 0 | 0 | 0.0% |
 | `refclock_shm.c` | 3 | 0 | 3 | 0.0% |
@@ -645,6 +645,21 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `pps_stratum`
 - ✓ `slew_samples`
 - ✓ `valid_sample_time`
+
+### `privops.c` — 5/12 (41.7%)
+
+- ✓ `PRV_Finalise`
+- ✓ `PRV_Initialise`
+- · `PRV_StartHelper`
+- ✓ `have_helper`
+- ✓ `helper_main`
+- · `receive_from_daemon`
+- · `receive_response`
+- ✓ `res_fatal`
+- · `send_request`
+- · `send_response`
+- · `stop_helper`
+- · `submit_request`
 
 ### `nameserv.c` — 1/4 (25.0%)
 

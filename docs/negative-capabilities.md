@@ -31,6 +31,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `sched.c` — timer/event scheduler (SCH_*) _(port: full)_
 - `client.c` — chronyc CLI: command dispatch + report formatters _(port: partial)_
 - `main.c` — daemon entry, arg parsing, lifecycle _(port: partial)_
+- `privops.c` — privilege-separation helper (PRV_*) _(port: full)_
 - `util.c` — time/UTI/byte utilities (UTI_*) _(port: partial)_
 - `array.c` — generic dynamic array (ARR_*) _(port: full)_
 - `keys.c` — symmetric key store (KEY_*) _(port: full)_
