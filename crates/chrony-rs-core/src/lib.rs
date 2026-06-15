@@ -32,6 +32,7 @@
 
 pub mod addrfilt;
 pub mod array;
+pub mod clientlog;
 pub mod clock;
 pub mod cmdparse;
 pub mod config;

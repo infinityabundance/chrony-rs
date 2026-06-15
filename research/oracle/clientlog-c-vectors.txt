@@ -1,0 +1,176 @@
+# Differential-oracle vectors: inputs + outputs of chrony 4.5's REAL clientlog.c
+# (compiled from /tmp/chrony-src commit 120dfb8 with array.c + minimal CNF/LCL/LOG
+# stubs and verbatim UTI helpers; random bytes from a deterministic LCG so the
+# stream is reproducible and replicable in Rust). Five scenarios:
+#   0-2  NTP token bucket / rate estimate at different intervals & bursts
+#   3    multi-service (NTP + CMDMON + NTSKE) interleaving
+#   4    interleaved-mode RX->TX timestamp map (save + query)
+# INIT  = config + rng seed; STEP = log+limit access -> public report fields;
+# SAVE/QUERY = interleaved map; STATS = server-wide totals.
+# Used by clientlog.rs (tests) to differential-test the Rust port against the
+# actual C. NO Python anywhere: generator is C (the real module), consumer is Rust.
+INIT scenario=0 ntp_on=1 ntp=-4,8,2 cmd_on=0 cmd=0,0,0 nts_on=0 nts=0,0,0 noclientlog=0 loglimit=1000000 seed=1311768467294899695
+STEP svc=0 sec=1700000000 nsec=0 limit=1 | idx=0 drop=0 hits=1 drops=0 interval=127 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=50000000 limit=1 | idx=0 drop=0 hits=2 drops=0 interval=-5 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=100000000 limit=1 | idx=0 drop=0 hits=3 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=150000000 limit=1 | idx=0 drop=0 hits=4 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=200000000 limit=1 | idx=0 drop=0 hits=5 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=250000000 limit=1 | idx=0 drop=0 hits=6 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=300000000 limit=1 | idx=0 drop=0 hits=7 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=350000000 limit=1 | idx=0 drop=0 hits=8 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=400000000 limit=1 | idx=0 drop=0 hits=9 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=450000000 limit=1 | idx=0 drop=0 hits=10 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=500000000 limit=1 | idx=0 drop=0 hits=11 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=550000000 limit=1 | idx=0 drop=0 hits=12 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=600000000 limit=1 | idx=0 drop=0 hits=13 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=650000000 limit=1 | idx=0 drop=0 hits=14 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=700000000 limit=1 | idx=0 drop=0 hits=15 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=750000000 limit=1 | idx=0 drop=0 hits=16 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=800000000 limit=1 | idx=0 drop=0 hits=17 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=850000000 limit=1 | idx=0 drop=0 hits=18 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=900000000 limit=1 | idx=0 drop=0 hits=19 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=950000000 limit=1 | idx=0 drop=0 hits=20 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=0 limit=1 | idx=0 drop=0 hits=21 drops=0 interval=1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=200000000 limit=1 | idx=0 drop=0 hits=22 drops=0 interval=0 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=400000000 limit=1 | idx=0 drop=0 hits=23 drops=0 interval=0 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=600000000 limit=1 | idx=0 drop=0 hits=24 drops=0 interval=0 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=800000000 limit=1 | idx=0 drop=0 hits=25 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=0 limit=1 | idx=0 drop=0 hits=26 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=200000000 limit=1 | idx=0 drop=0 hits=27 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=400000000 limit=1 | idx=0 drop=0 hits=28 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=600000000 limit=1 | idx=0 drop=0 hits=29 drops=0 interval=-2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=800000000 limit=1 | idx=0 drop=0 hits=30 drops=0 interval=-2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000018 nsec=0 limit=1 | idx=0 drop=0 hits=31 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000023 nsec=0 limit=1 | idx=0 drop=0 hits=32 drops=0 interval=1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000028 nsec=0 limit=1 | idx=0 drop=0 hits=33 drops=0 interval=2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000033 nsec=0 limit=1 | idx=0 drop=0 hits=34 drops=0 interval=2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000038 nsec=0 limit=1 | idx=0 drop=0 hits=35 drops=0 interval=2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000043 nsec=0 limit=1 | idx=0 drop=0 hits=36 drops=0 interval=2 timeout=127 last_ago=0
+STATS ntp_hits=36 ntp_drops=0 nke_hits=0 nke_drops=0 cmd_hits=0 cmd_drops=0 log_drops=0 ntp_timestamps=0
+INIT scenario=1 ntp_on=1 ntp=2,4,3 cmd_on=0 cmd=0,0,0 nts_on=0 nts=0,0,0 noclientlog=0 loglimit=1000000 seed=1311768467294899695
+STEP svc=0 sec=1700000000 nsec=0 limit=1 | idx=0 drop=0 hits=1 drops=0 interval=127 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=50000000 limit=1 | idx=0 drop=0 hits=2 drops=0 interval=-5 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=100000000 limit=1 | idx=0 drop=0 hits=3 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=150000000 limit=1 | idx=0 drop=0 hits=4 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=200000000 limit=1 | idx=0 drop=1 hits=5 drops=1 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=250000000 limit=1 | idx=0 drop=1 hits=6 drops=2 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=300000000 limit=1 | idx=0 drop=1 hits=7 drops=3 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=350000000 limit=1 | idx=0 drop=1 hits=8 drops=4 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=400000000 limit=1 | idx=0 drop=1 hits=9 drops=5 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=450000000 limit=1 | idx=0 drop=1 hits=10 drops=6 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=500000000 limit=1 | idx=0 drop=1 hits=11 drops=7 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=550000000 limit=1 | idx=0 drop=1 hits=12 drops=8 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=600000000 limit=1 | idx=0 drop=1 hits=13 drops=9 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=650000000 limit=1 | idx=0 drop=1 hits=14 drops=10 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=700000000 limit=1 | idx=0 drop=1 hits=15 drops=11 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=750000000 limit=1 | idx=0 drop=1 hits=16 drops=12 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=800000000 limit=1 | idx=0 drop=1 hits=17 drops=13 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=850000000 limit=1 | idx=0 drop=1 hits=18 drops=14 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=900000000 limit=1 | idx=0 drop=1 hits=19 drops=15 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000000 nsec=950000000 limit=1 | idx=0 drop=0 hits=20 drops=15 interval=-4 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000011 nsec=0 limit=1 | idx=0 drop=0 hits=21 drops=15 interval=1 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000011 nsec=200000000 limit=1 | idx=0 drop=0 hits=22 drops=15 interval=0 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000011 nsec=400000000 limit=1 | idx=0 drop=0 hits=23 drops=15 interval=0 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000011 nsec=600000000 limit=1 | idx=0 drop=1 hits=24 drops=16 interval=0 timeout=-4 last_ago=0
+STEP svc=0 sec=1700000011 nsec=800000000 limit=1 | idx=0 drop=0 hits=25 drops=16 interval=0 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000012 nsec=0 limit=1 | idx=0 drop=0 hits=26 drops=16 interval=-1 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000012 nsec=200000000 limit=1 | idx=0 drop=0 hits=27 drops=16 interval=-1 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000012 nsec=400000000 limit=1 | idx=0 drop=0 hits=28 drops=16 interval=-1 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000012 nsec=600000000 limit=1 | idx=0 drop=0 hits=29 drops=16 interval=-1 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000012 nsec=800000000 limit=1 | idx=0 drop=0 hits=30 drops=16 interval=-2 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000018 nsec=0 limit=1 | idx=0 drop=0 hits=31 drops=16 interval=-1 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000023 nsec=0 limit=1 | idx=0 drop=0 hits=32 drops=16 interval=1 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000028 nsec=0 limit=1 | idx=0 drop=0 hits=33 drops=16 interval=2 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000033 nsec=0 limit=1 | idx=0 drop=0 hits=34 drops=16 interval=2 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000038 nsec=0 limit=1 | idx=0 drop=0 hits=35 drops=16 interval=2 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000043 nsec=0 limit=1 | idx=0 drop=0 hits=36 drops=16 interval=2 timeout=-3 last_ago=0
+STATS ntp_hits=36 ntp_drops=16 nke_hits=0 nke_drops=0 cmd_hits=0 cmd_drops=0 log_drops=0 ntp_timestamps=0
+INIT scenario=2 ntp_on=1 ntp=-6,16,1 cmd_on=0 cmd=0,0,0 nts_on=0 nts=0,0,0 noclientlog=0 loglimit=1000000 seed=1311768467294899695
+STEP svc=0 sec=1700000000 nsec=0 limit=1 | idx=0 drop=0 hits=1 drops=0 interval=127 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=50000000 limit=1 | idx=0 drop=0 hits=2 drops=0 interval=-5 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=100000000 limit=1 | idx=0 drop=0 hits=3 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=150000000 limit=1 | idx=0 drop=0 hits=4 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=200000000 limit=1 | idx=0 drop=0 hits=5 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=250000000 limit=1 | idx=0 drop=0 hits=6 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=300000000 limit=1 | idx=0 drop=0 hits=7 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=350000000 limit=1 | idx=0 drop=0 hits=8 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=400000000 limit=1 | idx=0 drop=0 hits=9 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=450000000 limit=1 | idx=0 drop=0 hits=10 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=500000000 limit=1 | idx=0 drop=0 hits=11 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=550000000 limit=1 | idx=0 drop=0 hits=12 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=600000000 limit=1 | idx=0 drop=0 hits=13 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=650000000 limit=1 | idx=0 drop=0 hits=14 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=700000000 limit=1 | idx=0 drop=0 hits=15 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=750000000 limit=1 | idx=0 drop=0 hits=16 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=800000000 limit=1 | idx=0 drop=0 hits=17 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=850000000 limit=1 | idx=0 drop=0 hits=18 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=900000000 limit=1 | idx=0 drop=0 hits=19 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=950000000 limit=1 | idx=0 drop=0 hits=20 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=0 limit=1 | idx=0 drop=0 hits=21 drops=0 interval=1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=200000000 limit=1 | idx=0 drop=0 hits=22 drops=0 interval=0 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=400000000 limit=1 | idx=0 drop=0 hits=23 drops=0 interval=0 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=600000000 limit=1 | idx=0 drop=0 hits=24 drops=0 interval=0 timeout=127 last_ago=0
+STEP svc=0 sec=1700000011 nsec=800000000 limit=1 | idx=0 drop=0 hits=25 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=0 limit=1 | idx=0 drop=0 hits=26 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=200000000 limit=1 | idx=0 drop=0 hits=27 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=400000000 limit=1 | idx=0 drop=0 hits=28 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=600000000 limit=1 | idx=0 drop=0 hits=29 drops=0 interval=-2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000012 nsec=800000000 limit=1 | idx=0 drop=0 hits=30 drops=0 interval=-2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000018 nsec=0 limit=1 | idx=0 drop=0 hits=31 drops=0 interval=-1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000023 nsec=0 limit=1 | idx=0 drop=0 hits=32 drops=0 interval=1 timeout=127 last_ago=0
+STEP svc=0 sec=1700000028 nsec=0 limit=1 | idx=0 drop=0 hits=33 drops=0 interval=2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000033 nsec=0 limit=1 | idx=0 drop=0 hits=34 drops=0 interval=2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000038 nsec=0 limit=1 | idx=0 drop=0 hits=35 drops=0 interval=2 timeout=127 last_ago=0
+STEP svc=0 sec=1700000043 nsec=0 limit=1 | idx=0 drop=0 hits=36 drops=0 interval=2 timeout=127 last_ago=0
+STATS ntp_hits=36 ntp_drops=0 nke_hits=0 nke_drops=0 cmd_hits=0 cmd_drops=0 log_drops=0 ntp_timestamps=0
+INIT scenario=3 ntp_on=1 ntp=-2,4,2 cmd_on=1 cmd=0,2,2 nts_on=1 nts=1,2,2 noclientlog=0 loglimit=1000000 seed=1311768467294899695
+STEP svc=0 sec=1700000000 nsec=0 limit=1 | idx=0 drop=0 hits=1 drops=0 interval=127 timeout=127 last_ago=0
+STEP svc=2 sec=1700000000 nsec=0 limit=1 | idx=0 drop=0 hits=1 drops=0 interval=127 timeout=127 last_ago=0
+STEP svc=1 sec=1700000000 nsec=0 limit=1 | idx=0 drop=0 hits=1 drops=0 interval=127 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=100000000 limit=1 | idx=0 drop=0 hits=2 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=2 sec=1700000000 nsec=100000000 limit=1 | idx=0 drop=0 hits=2 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=1 sec=1700000000 nsec=100000000 limit=1 | idx=0 drop=0 hits=2 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=200000000 limit=1 | idx=0 drop=0 hits=3 drops=0 interval=-3 timeout=127 last_ago=0
+STEP svc=2 sec=1700000000 nsec=200000000 limit=1 | idx=0 drop=1 hits=3 drops=1 interval=-3 timeout=127 last_ago=0
+STEP svc=1 sec=1700000000 nsec=200000000 limit=1 | idx=0 drop=0 hits=3 drops=0 interval=-3 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=300000000 limit=1 | idx=0 drop=0 hits=4 drops=0 interval=-4 timeout=127 last_ago=0
+STEP svc=2 sec=1700000000 nsec=300000000 limit=1 | idx=0 drop=1 hits=4 drops=2 interval=-4 timeout=127 last_ago=0
+STEP svc=1 sec=1700000000 nsec=300000000 limit=1 | idx=0 drop=1 hits=4 drops=1 interval=-4 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=400000000 limit=1 | idx=0 drop=0 hits=5 drops=0 interval=-3 timeout=127 last_ago=0
+STEP svc=2 sec=1700000000 nsec=400000000 limit=1 | idx=0 drop=0 hits=5 drops=2 interval=-3 timeout=127 last_ago=0
+STEP svc=1 sec=1700000000 nsec=400000000 limit=1 | idx=0 drop=1 hits=5 drops=2 interval=-3 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=500000000 limit=1 | idx=0 drop=0 hits=6 drops=0 interval=-3 timeout=127 last_ago=0
+STEP svc=2 sec=1700000000 nsec=500000000 limit=1 | idx=0 drop=1 hits=6 drops=3 interval=-3 timeout=127 last_ago=0
+STEP svc=1 sec=1700000000 nsec=500000000 limit=1 | idx=0 drop=1 hits=6 drops=3 interval=-3 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=600000000 limit=1 | idx=0 drop=1 hits=7 drops=1 interval=-3 timeout=127 last_ago=0
+STEP svc=2 sec=1700000000 nsec=600000000 limit=1 | idx=0 drop=1 hits=7 drops=4 interval=-3 timeout=127 last_ago=0
+STEP svc=1 sec=1700000000 nsec=600000000 limit=1 | idx=0 drop=1 hits=7 drops=4 interval=-3 timeout=127 last_ago=0
+STEP svc=0 sec=1700000000 nsec=700000000 limit=1 | idx=0 drop=1 hits=8 drops=2 interval=-3 timeout=-3 last_ago=0
+STEP svc=2 sec=1700000000 nsec=700000000 limit=1 | idx=0 drop=0 hits=8 drops=4 interval=-3 timeout=-3 last_ago=0
+STEP svc=1 sec=1700000000 nsec=700000000 limit=1 | idx=0 drop=1 hits=8 drops=5 interval=-3 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000000 nsec=800000000 limit=1 | idx=0 drop=0 hits=9 drops=2 interval=-3 timeout=-3 last_ago=0
+STEP svc=2 sec=1700000000 nsec=800000000 limit=1 | idx=0 drop=1 hits=9 drops=5 interval=-3 timeout=-3 last_ago=0
+STEP svc=1 sec=1700000000 nsec=800000000 limit=1 | idx=0 drop=0 hits=9 drops=5 interval=-3 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000000 nsec=900000000 limit=1 | idx=0 drop=1 hits=10 drops=3 interval=-3 timeout=-3 last_ago=0
+STEP svc=2 sec=1700000000 nsec=900000000 limit=1 | idx=0 drop=1 hits=10 drops=6 interval=-3 timeout=-3 last_ago=0
+STEP svc=1 sec=1700000000 nsec=900000000 limit=1 | idx=0 drop=1 hits=10 drops=6 interval=-3 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000001 nsec=0 limit=1 | idx=0 drop=0 hits=11 drops=3 interval=-3 timeout=-3 last_ago=0
+STEP svc=2 sec=1700000001 nsec=0 limit=1 | idx=0 drop=1 hits=11 drops=7 interval=-3 timeout=-3 last_ago=0
+STEP svc=1 sec=1700000001 nsec=0 limit=1 | idx=0 drop=1 hits=11 drops=7 interval=-3 timeout=-3 last_ago=0
+STEP svc=0 sec=1700000001 nsec=100000000 limit=1 | idx=0 drop=1 hits=12 drops=4 interval=-3 timeout=-3 last_ago=0
+STEP svc=2 sec=1700000001 nsec=100000000 limit=1 | idx=0 drop=1 hits=12 drops=8 interval=-3 timeout=-3 last_ago=0
+STEP svc=1 sec=1700000001 nsec=100000000 limit=1 | idx=0 drop=0 hits=12 drops=7 interval=-3 timeout=-3 last_ago=0
+STATS ntp_hits=12 ntp_drops=4 nke_hits=12 nke_drops=7 cmd_hits=12 cmd_drops=8 log_drops=0 ntp_timestamps=0
+INIT scenario=4 ntp_on=1 ntp=-4,8,2 cmd_on=0 cmd=0,0,0 nts_on=0 nts=0,0,0 noclientlog=0 loglimit=1000000 seed=1311768467294899695
+SAVE rx=e500000000000000 tx_sec=1700000000 tx_nsec=123456789 src=1
+SAVE rx=e500000140000000 tx_sec=1700000001 tx_nsec=123456789 src=1
+SAVE rx=e500000280000000 tx_sec=1700000002 tx_nsec=123456789 src=1
+SAVE rx=e500000300000000 tx_sec=1700000003 tx_nsec=123456789 src=1
+SAVE rx=e500000500000000 tx_sec=1700000004 tx_nsec=123456789 src=1
+QUERY rx=e500000000000000 | found=1 tx_sec=0 tx_nsec=0 src=0
+QUERY rx=e500000140000000 | found=1 tx_sec=0 tx_nsec=0 src=0
+QUERY rx=e500000280000000 | found=1 tx_sec=0 tx_nsec=0 src=0
+QUERY rx=e500000300000000 | found=1 tx_sec=0 tx_nsec=0 src=0
+QUERY rx=e500000500000000 | found=1 tx_sec=0 tx_nsec=0 src=0
+QUERY rx=e500000900000000 | found=0 tx_sec=0 tx_nsec=0 src=0
+STATS ntp_hits=0 ntp_drops=0 nke_hits=0 nke_drops=0 cmd_hits=0 cmd_drops=0 log_drops=0 ntp_timestamps=5

@@ -17,6 +17,7 @@ where chrony policy differs from generic protocol truth.
 | MD5 (RFC 1321) for NTP symmetric-key auth | **complete port of `md5.c`** (all 4 functions); byte-exact vs RFC 1321 §A.5 vectors |
 | NTP/cmd access control (allow/deny subnet trie) | **complete port of `addrfilt.c`** (all 16 functions); decisions **live-witnessed vs `chronyc accheck`** on chrony 4.5 |
 | Robust regression | **complete port of `regress.c`** (all 11 functions): weighted LS, runs-test & median-based robust fits, 2-var regression; vs the REAL compiled regress.c (80 differential vectors) + an independent reference |
+| Client access log + response rate limiter | **complete port of `clientlog.c`** (all 35 functions): per-client hash table, per-service token-bucket limiter w/ probabilistic leak, log2 rate estimate, interleaved-mode RX→TX timestamp map; vs the REAL compiled clientlog.c (5-scenario differential fixture) + an independent token-bucket invariant |
 | Streaming quantile estimator | **complete port of `quantiles.c`** (all 8 functions); structural (convergence-tested; inherently non-deterministic so not byte-witnessed) |
 | NTP packet decode/encode (48-byte header) | byte-roundtrip courts `CHRONY.PACKET.1–.13` (subset admitted) |
 | NTP timestamp / short fixed-point types | bit-exact roundtrip |
@@ -34,7 +35,7 @@ Run:
 
 ```sh
 cargo build
-cargo test                                    # 191 tests, deterministic
+cargo test                                    # 198 tests, deterministic
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>

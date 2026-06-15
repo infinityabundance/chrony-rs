@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 27 / 70 (17 full, 8 partial, 2 scaffold); **43** have none.
-- **Files fully ported:** 17 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 721 / 1373 C functions (52.5%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 28 / 70 (18 full, 8 partial, 2 scaffold); **42** have none.
+- **Files fully ported:** 18 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 756 / 1373 C functions (55.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 543 named functions + 83 closures across 43 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 603 named functions + 87 closures across 45 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -31,7 +31,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `addrfilt.c` | 16 | 100.0% | NTP/cmd access-control subnet trie (ADF_*) | `addrfilt.rs` | ● full |
 | `array.c` | 10 | 100.0% | generic dynamic array (ARR_*) | `array.rs` | ● full |
 | `client.c` | 90 | 14.4% | chronyc CLI: command dispatch + report formatters | `report.rs`<br>`chronyc-rs/src/main.rs` | ◑ partial |
-| `clientlog.c` | 35 | 0.0% | client access log / rate limiting | — | · none |
+| `clientlog.c` | 35 | 100.0% | client access log / rate limiting | `clientlog.rs` | ● full |
 | `cmac_gnutls.c` | 7 | 0.0% | gnutls CMAC backend | — | · none |
 | `cmac_nettle.c` | 4 | 0.0% | nettle CMAC backend | — | · none |
 | `cmdmon.c` | 64 | 0.0% | control/monitoring protocol server (candm) | — | · none |
@@ -127,6 +127,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`sys_null.c`** — complete port of all 8 functions; the virtual-clock offset/frequency model (set_freq/accrue/offset_convert); raw time injected as seconds, driver-as-struct (no global LCL registration) _(≈10 Rust `fn` in mapped modules)_
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
 - **`nameserv.c`** — DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported _(≈3 Rust `fn` in mapped modules)_
+- **`clientlog.c`** — complete port of all 35 functions: per-client hash table with oldest-record eviction, per-service token-bucket rate limiter with probabilistic leak, log2 request-rate estimate (incl. NTP timeout-rate inversion), and the interleaved-mode RX->TX timestamp map; differential-tested vs the REAL compiled clientlog.c (165-line vector fixture, injected reproducible RNG) + an independent token-bucket invariant _(≈48 Rust `fn` in mapped modules)_
 - **`manual.c`** — complete port of all 11 functions; sample store + robust-regression slew/frequency estimate (uses the verified regress); time as seconds, REF correction returned not applied, struct-as-handler _(≈16 Rust `fn` in mapped modules)_
 
 ## What "partial"/"scaffold" deliberately does not mean

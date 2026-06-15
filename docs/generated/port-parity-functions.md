@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 229 / 1373 C functions have a direct counterpart (16.7%).** The other 1144 are gaps.
+**Overall: 264 / 1373 C functions have a direct counterpart (19.2%).** The other 1109 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -23,6 +23,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 |---|---:|---:|---:|---:|
 | `addrfilt.c` | 16 | 16 | 0 | 100.0% |
 | `array.c` | 10 | 10 | 0 | 100.0% |
+| `clientlog.c` | 35 | 35 | 0 | 100.0% |
 | `cmdparse.c` | 8 | 8 | 0 | 100.0% |
 | `hash_intmd5.c` | 3 | 3 | 0 | 100.0% |
 | `hwclock.c` | 7 | 7 | 0 | 100.0% |
@@ -45,7 +46,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sources.c` | 48 | 3 | 45 | 6.2% |
 | `ntp_core.c` | 69 | 2 | 67 | 2.9% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
-| `clientlog.c` | 35 | 0 | 35 | 0.0% |
 | `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
 | `cmac_nettle.c` | 4 | 0 | 4 | 0.0% |
 | `cmdmon.c` | 64 | 0 | 64 | 0.0% |
@@ -127,6 +127,44 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `ARR_RemoveElement`
 - ✓ `ARR_SetSize`
 - ✓ `realloc_array`
+
+### `clientlog.c` — 35/35 (100.0%)
+
+- ✓ `CLG_DisableNtpTimestamps`
+- ✓ `CLG_Finalise`
+- ✓ `CLG_GetClientAccessReportByIndex`
+- ✓ `CLG_GetClientIndex`
+- ✓ `CLG_GetNtpMinPoll`
+- ✓ `CLG_GetNtpTxTimestamp`
+- ✓ `CLG_GetNumberOfIndices`
+- ✓ `CLG_GetServerStatsReport`
+- ✓ `CLG_Initialise`
+- ✓ `CLG_LimitServiceRate`
+- ✓ `CLG_LogServiceAccess`
+- ✓ `CLG_SaveNtpTimestamps`
+- ✓ `CLG_UndoNtpTxTimestampSlew`
+- ✓ `CLG_UpdateNtpStats`
+- ✓ `CLG_UpdateNtpTxTimestamp`
+- ✓ `check_service_number`
+- ✓ `compare_total_hits`
+- ✓ `compare_ts`
+- ✓ `expand_hashtable`
+- ✓ `find_ntp_rx_ts`
+- ✓ `get_index`
+- ✓ `get_interval`
+- ✓ `get_last_ago`
+- ✓ `get_ntp_tss`
+- ✓ `get_ntp_tx`
+- ✓ `get_record`
+- ✓ `get_ts_from_timespec`
+- ✓ `handle_slew`
+- ✓ `int64_to_ntp64`
+- ✓ `limit_response_random`
+- ✓ `ntp64_to_int64`
+- ✓ `push_ntp_tss`
+- ✓ `set_bucket_params`
+- ✓ `set_ntp_tx`
+- ✓ `update_record`
 
 ### `cmdparse.c` — 8/8 (100.0%)
 

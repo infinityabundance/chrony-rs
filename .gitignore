@@ -13,5 +13,7 @@ Cargo.lock.orig
 
 # Doxygen output is regenerable (research/doxygen/README.md), not vendored
 /research/doxygen/output
-chrony-*/
+# Top-level cloned chrony C checkouts (anchored to root so it does NOT match the
+# nested `crates/chrony-rs-core/` crate, which IS tracked).
+/chrony-*/
 *.doxyfile
