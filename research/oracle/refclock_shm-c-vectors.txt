@@ -1,0 +1,8 @@
+# Differential-oracle vectors: REAL chrony refclock_shm.c shm_poll.
+# Drives RCL_SHM_driver.poll over a controlled shmTime. Consumer Rust; NO Python.
+NSEC ret=1 acc_n=1 recv_sec=2000000000 recv_nsec=123456789 clock_sec=2000000000 clock_nsec=654321987 leap=1
+NSEC_valid_after=0
+USEC ret=1 acc_n=1 recv_sec=2000000005 recv_nsec=222222000 clock_sec=2000000005 clock_nsec=111111000 leap=0
+MODE1_OK ret=1 acc_n=1 recv_sec=2000000010 recv_nsec=500000000 clock_sec=2000000010 clock_nsec=400000000 leap=2
+INVALID ret=0 acc_n=0 recv_sec=2000000010 recv_nsec=500000000 clock_sec=2000000010 clock_nsec=400000000 leap=2
+BADMODE ret=0 acc_n=0 recv_sec=2000000010 recv_nsec=500000000 clock_sec=2000000010 clock_nsec=400000000 leap=2

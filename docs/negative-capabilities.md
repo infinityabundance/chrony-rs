@@ -44,6 +44,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `siv_nettle.c` — SIV AEAD instance API (SIV_*) _(port: full)_
 - `siv_nettle_int.c` — AES-SIV-CMAC-256 AEAD (RFC 5297) _(port: full)_
 - `refclock.c` — reference-clock framework (RCL_*) _(port: full)_
+- `refclock_shm.c` — SHM refclock driver (ntpd/gpsd shared-memory protocol) _(port: full)_
 - `rtc.c` — RTC abstraction layer (RTC_*) _(port: full)_
 - `hwclock.c` — hardware-clock tracking (HCL_*) _(port: full)_
 - `sys_generic.c` — generic software-slew clock-discipline driver _(port: full)_

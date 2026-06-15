@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 486 / 1373 C functions have a direct counterpart (35.4%).** The other 887 are gaps.
+**Overall: 489 / 1373 C functions have a direct counterpart (35.6%).** The other 884 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -40,6 +40,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nts_ntp_server.c` | 4 | 4 | 0 | 100.0% |
 | `pktlength.c` | 3 | 3 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
+| `refclock_shm.c` | 3 | 3 | 0 | 100.0% |
 | `reference.c` | 45 | 45 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
 | `rtc.c` | 9 | 9 | 0 | 100.0% |
@@ -79,7 +80,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nts_ke_session.c` | 32 | 0 | 32 | 0.0% |
 | `refclock_phc.c` | 0 | 0 | 0 | 0.0% |
 | `refclock_pps.c` | 0 | 0 | 0 | 0.0% |
-| `refclock_shm.c` | 3 | 0 | 3 | 0.0% |
 | `refclock_sock.c` | 3 | 0 | 3 | 0.0% |
 | `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
 | `siv_gnutls.c` | 12 | 0 | 12 | 0.0% |
@@ -368,6 +368,12 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `QNT_Reset`
 - ✓ `insert_initial_value`
 - ✓ `update_estimate`
+
+### `refclock_shm.c` — 3/3 (100.0%)
+
+- ✓ `shm_finalise`
+- ✓ `shm_initialise`
+- ✓ `shm_poll`
 
 ### `reference.c` — 45/45 (100.0%)
 

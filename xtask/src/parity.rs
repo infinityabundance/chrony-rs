@@ -213,7 +213,9 @@ const MAP: &[Row] = &[
         note: "complete port of the refclock framework (26 functions; the void* driver-data accessors RCL_SetDriverData/RCL_GetDriverData are subsumed by the driver trait owning its own state): sample/pulse offset computation, PPS-interval folding, lock-reference alignment, pulse-edge + time-offset sanity gates, TAI->UTC conversion, pps_stratum, the poll loop, local-mode follow, and the slew/dispersion handlers. Unblocked by reference.c (file 32); composes the ported samplefilt + regress + local + sched, with SPF_/SRC_/REF_/LCL_/SCH_ and the platform driver injected via one RefclockHost trait. The sample/pulse core (RCL_AddSample/AddPulse/AddCookedPulse + pps_stratum/valid_sample_time/convert_tai_offset) is differential-tested vs the REAL compiled refclock.c (+ array.c, memory.c): byte-identical offset+dispersion handed to the filter and accept/reject decisions; driver-option parsing + refid derivation unit-tested" },
     Row { c: "refclock_phc.c", role: "PHC refclock driver", rust: &[], port: Port::None, note: "not in Linux preprocessing (0 fns)" },
     Row { c: "refclock_pps.c", role: "PPS refclock driver", rust: &[], port: Port::None, note: "not in Linux preprocessing (0 fns)" },
-    Row { c: "refclock_shm.c", role: "SHM refclock driver", rust: &[], port: Port::None, note: "" },
+    Row { c: "refclock_shm.c", role: "SHM refclock driver (ntpd/gpsd shared-memory protocol)",
+        rust: &["refclock_shm.rs"], port: Port::Full,
+        note: "complete port of all 3 functions: shm_poll's sample extraction (mode 0/1 validity gates incl. the mode-1 concurrent-writer count-stability check, the valid flag, clearing valid, and the nanosecond-vs-microsecond timestamp selection + normalisation) feeding the refclock framework's RCL_AddSample, plus shm_initialise's unit-key (SHMKEY + unit) and octal perm parsing. The shared-memory segment (shmget/shmat) is the injected ShmSource; composes the ported refclock.rs. Differential-tested vs the REAL compiled refclock_shm.c (RCL_SHM_driver.poll over a controlled shmTime: byte-identical receive/clock/leap + accept/reject, valid cleared on accept); the writer race and key/perm parsing unit-tested" },
     Row { c: "refclock_sock.c", role: "socket refclock driver", rust: &[], port: Port::None, note: "" },
 
     // ---- RTC / hwclock (none) ----
@@ -603,6 +605,10 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
         // dispatch arms + client methods) and exercised by the end-to-end differential.
         "privops.c",
         &["have_helper", "res_fatal", "helper_main", "PRV_Initialise", "PRV_Finalise"],
+    ),
+    (
+        "refclock_shm.c",
+        &["shm_initialise", "shm_finalise", "shm_poll"],
     ),
     (
         "reference.c",
