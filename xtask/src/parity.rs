@@ -187,7 +187,9 @@ const MAP: &[Row] = &[
     Row { c: "nts_ntp_client.c", role: "NTS NTP client", rust: &[], port: Port::None, note: "" },
     Row { c: "nts_ntp_server.c", role: "NTS NTP server", rust: &[], port: Port::None, note: "" },
     Row { c: "siv_gnutls.c", role: "SIV-AEAD (gnutls)", rust: &[], port: Port::None, note: "" },
-    Row { c: "siv_nettle.c", role: "SIV-AEAD (nettle)", rust: &[], port: Port::None, note: "" },
+    Row { c: "siv_nettle.c", role: "SIV AEAD instance API (SIV_*)",
+        rust: &["siv_nettle.rs"], port: Port::Full,
+        note: "complete port of all 9 functions (no-GCM build): keyed AEAD instance, key/nonce/tag length table, input validation, encrypt/decrypt dispatch over the ported siv_nettle_int (AES-SIV-CMAC-256); GCM-SIV unsupported as that build is; also bridges nts_ntp_auth's SIV so the NTS auth EF round-trips over real AES-SIV. Differential-tested vs the REAL compiled siv_nettle.c (API + validation) — the crypto itself is triple-anchored in siv_nettle_int" },
     Row { c: "siv_nettle_int.c", role: "AES-SIV-CMAC-256 AEAD (RFC 5297)",
         rust: &["siv_nettle_int.rs"], port: Port::Full,
         note: "complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors)" },
@@ -498,6 +500,20 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     (
         "nts_ntp_auth.c",
         &["NNA_GenerateAuthEF", "NNA_DecryptAuthEF", "get_padding_length", "get_padded_length"],
+    ),
+    (
+        "siv_nettle.c",
+        &[
+            "SIV_CreateInstance",
+            "SIV_DestroyInstance",
+            "SIV_GetKeyLength",
+            "SIV_SetKey",
+            "SIV_GetMinNonceLength",
+            "SIV_GetMaxNonceLength",
+            "SIV_GetTagLength",
+            "SIV_Encrypt",
+            "SIV_Decrypt",
+        ],
     ),
     (
         "siv_nettle_int.c",

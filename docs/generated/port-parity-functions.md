@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 321 / 1373 C functions have a direct counterpart (23.4%).** The other 1052 are gaps.
+**Overall: 330 / 1373 C functions have a direct counterpart (24.0%).** The other 1043 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -37,6 +37,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
 | `samplefilt.c` | 18 | 18 | 0 | 100.0% |
+| `siv_nettle.c` | 9 | 9 | 0 | 100.0% |
 | `siv_nettle_int.c` | 12 | 12 | 0 | 100.0% |
 | `smooth.c` | 12 | 12 | 0 | 100.0% |
 | `sourcestats.c` | 32 | 32 | 0 | 100.0% |
@@ -82,7 +83,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
 | `sched.c` | 22 | 0 | 22 | 0.0% |
 | `siv_gnutls.c` | 12 | 0 | 12 | 0.0% |
-| `siv_nettle.c` | 9 | 0 | 9 | 0.0% |
 | `socket.c` | 61 | 0 | 61 | 0.0% |
 | `stubs.c` | 78 | 0 | 78 | 0.0% |
 | `sys.c` | 6 | 0 | 6 | 0.0% |
@@ -339,6 +339,18 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `drop_samples`
 - ✓ `get_first_last`
 - ✓ `select_samples`
+
+### `siv_nettle.c` — 9/9 (100.0%)
+
+- ✓ `SIV_CreateInstance`
+- ✓ `SIV_Decrypt`
+- ✓ `SIV_DestroyInstance`
+- ✓ `SIV_Encrypt`
+- ✓ `SIV_GetKeyLength`
+- ✓ `SIV_GetMaxNonceLength`
+- ✓ `SIV_GetMinNonceLength`
+- ✓ `SIV_GetTagLength`
+- ✓ `SIV_SetKey`
 
 ### `siv_nettle_int.c` — 12/12 (100.0%)
 

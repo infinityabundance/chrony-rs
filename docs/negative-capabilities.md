@@ -34,6 +34,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `md5.c` — MD5 digest (RFC 1321 reference, NTP symmetric-key auth) _(port: full)_
 - `hash_intmd5.c` — internal MD5 hash backend (HSH_*) _(port: full)_
 - `nts_ntp_auth.c` — NTS authenticator + encrypted-EEF extension field (NNA_*) _(port: full)_
+- `siv_nettle.c` — SIV AEAD instance API (SIV_*) _(port: full)_
 - `siv_nettle_int.c` — AES-SIV-CMAC-256 AEAD (RFC 5297) _(port: full)_
 - `hwclock.c` — hardware-clock tracking (HCL_*) _(port: full)_
 - `sys_generic.c` — generic software-slew clock-discipline driver _(port: full)_

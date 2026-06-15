@@ -1,0 +1,20 @@
+# Differential-oracle vectors: REAL chrony siv_nettle.c (the SIV_* API wrapper,
+# which #includes siv_nettle_int.c) compiled from /tmp/chrony-src commit 120dfb8
+# over a FIPS-197-verified shim AES, built WITHOUT HAVE_NETTLE_SIV_GCM (so only
+# AEAD_AES_SIV_CMAC_256=15 is supported; GCM/CMAC-384/512 report key length 0).
+# Inputs: key=000102..1f (32B), nonce=0011..ff (16B), ad=a0a1a2a3, pt=0102..0a.
+# Exercises GetKeyLength, CreateInstance, SetKey, the nonce/length validation in
+# Encrypt/Decrypt, a round-trip, tamper rejection, and the no-key refusal.
+# Consumer is Rust (siv_nettle.rs); NO Python.
+KEYLEN cmac256=32 cmac384=0 gcm128=0 bogus=0
+CREATE gcm_null=1
+CREATE cmac_ok=1 min=1 max=2147483647 tag=16
+SETKEY short=0 ok=1
+ENC badnonce=0
+ENC badctlen=0
+ENC ok=1 cl=26
+CT 9c384d31db7f07673f26eaecb55fe2c7dff38e733f3a568f281e
+DEC ok=1
+PT 0102030405060708090a
+DEC tampered=0
+ENC nokey=0
