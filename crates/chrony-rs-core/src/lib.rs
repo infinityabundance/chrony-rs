@@ -40,6 +40,7 @@ pub mod hash_intmd5;
 pub mod md5;
 pub mod nameserv;
 pub mod ntp;
+pub mod pktlength;
 pub mod quantiles;
 pub mod regress;
 pub mod replay;

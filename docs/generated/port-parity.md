@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 20 / 70 (8 full, 8 partial, 4 scaffold); **50** have none.
-- **Files fully ported:** 8 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Files with any chrony-rs counterpart:** 20 / 70 (9 full, 8 partial, 3 scaffold); **50** have none.
+- **Files fully ported:** 9 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 628 / 1373 C functions (45.7%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 352 named functions + 57 closures across 34 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 359 named functions + 57 closures across 35 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -65,7 +65,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `nts_ntp_auth.c` | 4 | 0.0% | NTS NTPv4 auth | — | · none |
 | `nts_ntp_client.c` | 17 | 0.0% | NTS NTP client | — | · none |
 | `nts_ntp_server.c` | 4 | 0.0% | NTS NTP server | — | · none |
-| `pktlength.c` | 3 | 0.0% | NTP packet length validation | `ntp/packet.rs` | ○ scaffold |
+| `pktlength.c` | 3 | 100.0% | cmdmon request/reply length tables (PKL_*) | `pktlength.rs` | ● full |
 | `privops.c` | 12 | 0.0% | privilege-separation helper | — | · none |
 | `quantiles.c` | 8 | 100.0% | streaming (stochastic) quantile estimator | `quantiles.rs` | ● full |
 | `refclock.c` | 28 | 0.0% | reference-clock framework (RCL_*) | — | · none |
@@ -105,7 +105,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`cmdparse.c`** — all 8: source options + word split/normalize/refid/key/local + allow-deny (incl. DNS hostname via nameserv; drives addrfilt end-to-end vs `chronyc accheck`) _(≈37 Rust `fn` in mapped modules)_
 - **`ntp_core.c`** — RFC 5905 §8 offset/delay algebra + 48-byte header codec; poll state machine not ported _(≈23 Rust `fn` in mapped modules)_
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
-- **`pktlength.c`** — length checks partial via the codec _(≈14 Rust `fn` in mapped modules)_
+- **`pktlength.c`** — complete port of all 3 functions; per-command length/padding + per-reply length tables extracted exactly from candm.h offsets (compiled probe), not guessed _(≈7 Rust `fn` in mapped modules)_
 - **`ntp_ext.c`** — complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested _(≈17 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
 - **`regress.c`** — all 11: weighted LS + runs-test + median-based robust (outlier-tolerant) + 2-var regression + t/chi2 tables + order-statistic median; verified vs independent reference impls _(≈23 Rust `fn` in mapped modules)_

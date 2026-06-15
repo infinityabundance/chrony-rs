@@ -89,8 +89,9 @@ const MAP: &[Row] = &[
         note: "RFC 5905 §8 offset/delay algebra + 48-byte header codec; poll state machine not ported" },
     Row { c: "ntp_io.c", role: "NTP socket send/recv path",
         rust: &["ntp/packet.rs"], port: Port::Scaffold, note: "packet bytes only; no socket IO" },
-    Row { c: "pktlength.c", role: "NTP packet length validation",
-        rust: &["ntp/packet.rs"], port: Port::Scaffold, note: "length checks partial via the codec" },
+    Row { c: "pktlength.c", role: "cmdmon request/reply length tables (PKL_*)",
+        rust: &["pktlength.rs"], port: Port::Full,
+        note: "complete port of all 3 functions; per-command length/padding + per-reply length tables extracted exactly from candm.h offsets (compiled probe), not guessed" },
     Row { c: "ntp_io_linux.c", role: "Linux HW/kernel RX timestamping", rust: &[], port: Port::None, note: "" },
     Row { c: "ntp_ext.c", role: "NTP extension-field (RFC 7822) framing (NEF_*)",
         rust: &["ntp/ext.rs"], port: Port::Full,
@@ -278,6 +279,7 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("nameserv.c", &["DNS_Name2IPAddress"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     ("hash_intmd5.c", &["HSH_GetHashId", "HSH_Hash", "HSH_Finalise"]),
+    ("pktlength.c", &["PKL_CommandLength", "PKL_CommandPaddingLength", "PKL_ReplyLength"]),
     (
         "array.c",
         &[
