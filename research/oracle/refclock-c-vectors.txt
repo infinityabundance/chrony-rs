@@ -1,0 +1,8 @@
+# Differential-oracle vectors: REAL chrony refclock.c sample/pulse core.
+# delay=1e-3 precision=1e-6 poll=4 pps_rate=1. correction/cooked/ref injected.
+# Consumer Rust (refclock.rs); NO Python.
+SAMPLE ret=1 acc_n=1 off=0.0094999999999999998 disp=1.1000000000000001e-06
+SAMPLE_STALE ret=0 acc_n=0
+PULSE ret=1 acc_n=1 off=-0.20000000000000001 disp=1.1000000000000001e-06
+PULSE2 ret=1 acc_n=1 off=0.30000000000000004 disp=1.1000000000000001e-06
+PULSE_UNSYNC ret=0 acc_n=0

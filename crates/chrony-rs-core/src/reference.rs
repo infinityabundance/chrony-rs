@@ -1435,7 +1435,7 @@ fn civil_from_unix(t: i64) -> (i64, i64, i64, i64, i64, i64) {
 }
 
 /// chrony `UTI_TimeToLogForm`: `"%Y-%m-%d %H:%M:%S"` in UTC.
-fn time_to_log_form(t: i64) -> String {
+pub(crate) fn time_to_log_form(t: i64) -> String {
     let (y, mo, d, h, mi, s) = civil_from_unix(t);
     format!("{y:04}-{mo:02}-{d:02} {h:02}:{mi:02}:{s:02}")
 }

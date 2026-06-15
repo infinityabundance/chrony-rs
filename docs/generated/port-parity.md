@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 40 / 70 (32 full, 7 partial, 1 scaffold); **30** have none.
-- **Files fully ported:** 32 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 880 / 1373 C functions (64.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 41 / 70 (33 full, 7 partial, 1 scaffold); **29** have none.
+- **Files fully ported:** 33 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 908 / 1373 C functions (66.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 1087 named functions + 213 closures across 74 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 1176 named functions + 222 closures across 76 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -68,7 +68,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `pktlength.c` | 3 | 100.0% | cmdmon request/reply length tables (PKL_*) | `pktlength.rs` | ● full |
 | `privops.c` | 12 | 0.0% | privilege-separation helper | — | · none |
 | `quantiles.c` | 8 | 100.0% | streaming (stochastic) quantile estimator | `quantiles.rs` | ● full |
-| `refclock.c` | 28 | 0.0% | reference-clock framework (RCL_*) | — | · none |
+| `refclock.c` | 28 | 92.9% | reference-clock framework (RCL_*) | `refclock.rs` | ● full |
 | `refclock_phc.c` | 0 | 0.0% | PHC refclock driver | — | · none |
 | `refclock_pps.c` | 0 | 0.0% | PPS refclock driver | — | · none |
 | `refclock_shm.c` | 3 | 0.0% | SHM refclock driver | — | · none |
@@ -132,6 +132,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`nts_ntp_server.c`** — complete port of all 4 functions: parse NTS request EFs (unique-id/cookie/placeholder/auth), decode cookie -> session keys, key SIV with C2S + verify/decrypt the authenticator, prepare fresh cookies, and build the S2C-authenticated response; composes the ported ntp_ext + nts_ntp_auth + siv (real AES-SIV-CMAC), with the cookie codec injected. Differential-tested vs the REAL compiled nts_ntp_server.c (byte-identical response + tamper/missing-cookie rejection) + a full round-trip _(≈7 Rust `fn` in mapped modules)_
 - **`siv_nettle.c`** — complete port of all 9 functions (no-GCM build): keyed AEAD instance, key/nonce/tag length table, input validation, encrypt/decrypt dispatch over the ported siv_nettle_int (AES-SIV-CMAC-256); GCM-SIV unsupported as that build is; also bridges nts_ntp_auth's SIV so the NTS auth EF round-trips over real AES-SIV. Differential-tested vs the REAL compiled siv_nettle.c (API + validation) — the crypto itself is triple-anchored in siv_nettle_int _(≈13 Rust `fn` in mapped modules)_
 - **`siv_nettle_int.c`** — complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors) _(≈24 Rust `fn` in mapped modules)_
+- **`refclock.c`** — complete port of the refclock framework (26 functions; the void* driver-data accessors RCL_SetDriverData/RCL_GetDriverData are subsumed by the driver trait owning its own state): sample/pulse offset computation, PPS-interval folding, lock-reference alignment, pulse-edge + time-offset sanity gates, TAI->UTC conversion, pps_stratum, the poll loop, local-mode follow, and the slew/dispersion handlers. Unblocked by reference.c (file 32); composes the ported samplefilt + regress + local + sched, with SPF_/SRC_/REF_/LCL_/SCH_ and the platform driver injected via one RefclockHost trait. The sample/pulse core (RCL_AddSample/AddPulse/AddCookedPulse + pps_stratum/valid_sample_time/convert_tai_offset) is differential-tested vs the REAL compiled refclock.c (+ array.c, memory.c): byte-identical offset+dispersion handed to the filter and accept/reject decisions; driver-option parsing + refid derivation unit-tested _(≈56 Rust `fn` in mapped modules)_
 - **`rtc.c`** — complete port of all 9 functions: the driver-load decision tree, lifecycle/measurement forwarding, and the drift-file time restore (step the clock to the drift file's mtime if behind); the platform RTC driver is the injected RtcDriver trait and the clock/step/driftfile-mtime are injected. Differential-tested vs the REAL compiled rtc.c (-DLINUX -DFEAT_RTC): pre-init ok / pre-init fail->drift step / rtcfile+rtcsync fatal, with the forwarded call log + return codes matched _(≈17 Rust `fn` in mapped modules)_
 - **`hwclock.c`** — complete port of all 7 functions; composes the ported quantile delay filter + robust regression over Vec<f64> sample buffers; clean-offset model verified vs reference; cook/precision/abs-freq injected _(≈11 Rust `fn` in mapped modules)_
 - **`sys_generic.c`** — complete port of all 14 functions: the offset->frequency slew model (bounded rate/duration, excess-duration tracking, offset_convert, dispersion on frequency change), with base driver/raw clock/scheduler/step injected; differential-tested vs the REAL compiled sys_generic.c (set_frequency/accrue_offset/end-of-slew sequence) + an independent slew-drain check _(≈29 Rust `fn` in mapped modules)_
