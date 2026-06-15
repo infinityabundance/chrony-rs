@@ -19,7 +19,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `ntp_ext.c` — NTP extension-field (RFC 7822) framing (NEF_*) _(port: full)_
 - `ntp_auth.c` — NTP authentication (MAC/NTS dispatch) (NAU_*) _(port: full)_
 - `ntp_signd.c` — Samba MS-SNTP signing-daemon bridge (NSD_*) _(port: full)_
-- `sources.c` — source reachability + selection (SRC_*) _(port: partial)_
+- `sources.c` — source reachability + selection (SRC_*) _(port: full)_
 - `sourcestats.c` — per-source regression statistics (SST_*) _(port: full)_
 - `regress.c` — robust linear regression + statistical primitives _(port: full)_
 - `samplefilt.c` — per-source NTP sample filtering (SPF_*) _(port: full)_

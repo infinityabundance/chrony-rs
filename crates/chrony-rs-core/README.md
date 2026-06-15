@@ -15,7 +15,7 @@ below come from the port-parity matrix, so they cannot disagree with what is
 actually ported. See the [full matrix](../../docs/generated/port-parity.md) and the
 [per-function gap view](../../docs/generated/port-parity-functions.md).
 
-## Fully ported chrony translation units (37)
+## Fully ported chrony translation units (38)
 
 Every function in these units has a court-backed counterpart (differential tests
 against the real compiled C and/or protocol-spec vectors):
@@ -25,6 +25,7 @@ against the real compiled C and/or protocol-spec vectors):
 - `ntp_ext.c` → `ntp/ext.rs` — NTP extension-field (RFC 7822) framing (NEF_*)
 - `ntp_auth.c` → `ntp_auth.rs` — NTP authentication (MAC/NTS dispatch) (NAU_*)
 - `ntp_signd.c` → `ntp_signd.rs` — Samba MS-SNTP signing-daemon bridge (NSD_*)
+- `sources.c` → `sources/registry.rs`, `sources/combine.rs`, `sources/source.rs`, `sources/reachability.rs`, `sources/selection.rs` — source reachability + selection (SRC_*)
 - `sourcestats.c` → `sourcestats.rs` — per-source regression statistics (SST_*)
 - `regress.c` → `regress.rs` — robust linear regression + statistical primitives
 - `samplefilt.c` → `samplefilt.rs` — per-source NTP sample filtering (SPF_*)
@@ -58,14 +59,13 @@ against the real compiled C and/or protocol-spec vectors):
 - `clientlog.c` → `clientlog.rs` — client access log / rate limiting
 - `manual.c` → `manual.rs` — manual time input / settime (MNL_*)
 
-## Partially ported (6)
+## Partially ported (5)
 
 Behavior ported with at least one executable court, but not every function (see the
 matrix for the exact gap):
 
 - `conf.c` → `config/parser.rs`, `config/lexer.rs`, `config/diagnostics.rs`, `config/model.rs`, `config/mod.rs` — config file parser + 93-directive dispatch (CNF_*)
 - `ntp_core.c` → `ntp/measurements.rs`, `ntp/packet.rs` — NTP protocol engine: poll, process-response, offset/delay (NCR_*)
-- `sources.c` → `sources/registry.rs`, `sources/combine.rs`, `sources/source.rs`, `sources/reachability.rs`, `sources/selection.rs` — source reachability + selection (SRC_*)
 - `client.c` → `report.rs`, `../chronyc-rs/src/main.rs` — chronyc CLI: command dispatch + report formatters
 - `main.c` → `../chronyd-rs/src/main.rs` — daemon entry, arg parsing, lifecycle
 - `util.c` → `util.rs`, `ntp/timestamp.rs`, `ntp/measurements.rs` — time/UTI/byte utilities (UTI_*)

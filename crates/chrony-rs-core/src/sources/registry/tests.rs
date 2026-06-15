@@ -496,3 +496,107 @@ fn slew_and_dispersion_and_reset_compose_sourcestats() {
     assert_eq!(reg.source(0).conf_sel_options & SRC_SELECT_NOSELECT, SRC_SELECT_NOSELECT);
     assert!(!reg.modify_select_options(99, 0, 0, AuthSelectMode::Ignore), "missing index");
 }
+
+// ---- Stage 5: dump save/load ----
+
+#[test]
+fn dump_save_format_and_round_trip_match_real_c() {
+    let vectors = include_str!("../../../../../research/oracle/sources-dump-c-vectors.txt");
+    let find = |p: &str| vectors.lines().map(str::trim).find(|l| l.starts_with(p)).unwrap();
+
+    let mut host = RecHost { mode_normal: true, precision: 1.0e-9, ..Default::default() };
+    let mut reg = SourceRegistry::new();
+    let s = refclock(&mut reg, 0x5245_4643);
+    reg.set_active(s);
+
+    // Accumulate a few samples so the source has stats to dump.
+    for k in 0..6 {
+        let sample = crate::samplefilt::NtpSample {
+            time: 2_000_000_000.0 + k as f64 * 64.0,
+            offset: 0.001,
+            peer_delay: 0.001,
+            peer_dispersion: 1e-6,
+            root_delay: 0.001,
+            root_dispersion: 1e-6,
+        };
+        reg.accumulate_sample(&mut host, s, &sample);
+    }
+
+    // reach pattern 1,0,1 -> 5 (size 3); stratum 3, leap InsertSecond.
+    reg.update_status(&mut host, s, 3, NtpLeap::InsertSecond);
+    reg.update_reachability(&mut host, s, true);
+    reg.update_reachability(&mut host, s, false);
+    reg.update_reachability(&mut host, s, true);
+
+    let dump = reg.save_source(s, ".").expect("a source with stats produces a dump");
+    let mut lines = dump.lines();
+    let l = find("SAVE");
+    assert_eq!(lines.next().unwrap(), field(l, "line1"), "dump line 1");
+    assert_eq!(lines.next().unwrap(), field(l, "line2"), "dump line 2 (name)");
+    // line3 has spaces; the fixture quotes it after "line3=".
+    let want_l3 = l.split_once("line3=").unwrap().1;
+    assert_eq!(lines.next().unwrap(), want_l3, "dump line 3 (auth reach size stratum leap)");
+
+    // Round-trip: load into a fresh source restores reach/stratum/leap.
+    let mut reg2 = SourceRegistry::new();
+    let s2 = refclock(&mut reg2, 0x5245_4643);
+    assert!(reg2.load_source(s2, &dump, Some("."), 2_000_000_400.0), "dump loads");
+    let ll = find("LOAD");
+    assert_eq!(reg2.source(s2).reachability, field(ll, "reach").parse::<u32>().unwrap(), "reach");
+    assert_eq!(reg2.source(s2).stratum, field(ll, "stratum").parse::<i32>().unwrap(), "stratum");
+    assert_eq!(reg2.source(s2).leap as i32, field(ll, "leap").parse::<i32>().unwrap(), "leap");
+}
+
+#[test]
+fn dump_load_rejects_bad_input() {
+    let mut reg = SourceRegistry::new();
+    let s = refclock(&mut reg, 0x5245_4643);
+    // Wrong magic.
+    assert!(!reg.load_source(s, "BAD0\n.\n0 5 3 3 1\n", Some("."), 0.0));
+    // Out-of-range stratum.
+    assert!(!reg.load_source(s, "SRC0\n.\n0 5 3 99 1\nx\n", Some("."), 0.0));
+    // Out-of-range leap (3 = Unsynchronised, excluded).
+    assert!(!reg.load_source(s, "SRC0\n.\n0 5 3 3 3\nx\n", Some("."), 0.0));
+
+    // dump_filename: refclock uses refid:HHHHHHHH; NTP needs a real IP string.
+    assert_eq!(reg.dump_filename(s, None).as_deref(), Some("refid:52454643"));
+    assert!(SourceRegistry::is_dump_file_name("refid:52454643", |_| false));
+    assert!(SourceRegistry::is_dump_file_name("10.0.0.1", |n| n == "10.0.0.1"));
+    assert!(!SourceRegistry::is_dump_file_name("garbage", |_| false));
+}
+
+#[test]
+fn reports_and_log_gating() {
+    let mut host = RecHost { mode_normal: true, precision: 1.0e-9, ..Default::default() };
+    let mut reg = SourceRegistry::new();
+    let s = refclock(&mut reg, 0x0102_0304);
+    reg.set_active(s);
+    for k in 0..6 {
+        let sample = crate::samplefilt::NtpSample {
+            time: 2_000_000_000.0 + k as f64 * 64.0,
+            offset: 0.001,
+            peer_delay: 0.001,
+            peer_dispersion: 1e-6,
+            root_delay: 0.001,
+            root_dispersion: 1e-6,
+        };
+        reg.accumulate_sample(&mut host, s, &sample);
+    }
+    reg.source_mut(s).status = SrcStatus::Selected;
+    reg.source_mut(s).reachability = 0o377;
+    reg.source_mut(s).stratum = 2;
+
+    let (state, reach, stratum, ref_id, _rep) = reg.report_source(s, 2_000_000_400.0).unwrap();
+    assert_eq!((state, reach, stratum, ref_id), (5, 0o377, 2, 0x0102_0304));
+    let (rid, _stats) = reg.report_sourcestats(s, 2_000_000_400.0).unwrap();
+    assert_eq!(rid, 0x0102_0304);
+    assert!(reg.report_source(99, 0.0).is_none());
+
+    // log_selection_* is gated on the normal reference mode.
+    assert_eq!(reg.log_selection_message(true, "hi").as_deref(), Some("hi"));
+    assert_eq!(reg.log_selection_message(false, "hi"), None);
+    assert_eq!(
+        reg.log_selection_source(true, "Detected falseticker %s", "REF").as_deref(),
+        Some("Detected falseticker REF")
+    );
+}

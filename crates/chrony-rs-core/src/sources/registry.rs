@@ -60,6 +60,8 @@ pub const SRC_SELECT_REQUIRE: i32 = 0x8;
 
 /// chrony `INVALID_SOURCE`.
 pub const INVALID_SOURCE: i32 = -1;
+/// chrony `NTP_MAX_STRATUM`.
+pub const NTP_MAX_STRATUM: i32 = 16;
 
 /// chrony `SRC_AuthSelectMode` (the `authselectmode` directive).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -1240,6 +1242,182 @@ impl SourceRegistry {
             SrcStatus::Selected => 5,
             _ => 0,
         }
+    }
+
+    /// chrony `source_to_string`: the refid string for a refclock; for an NTP source
+    /// the caller supplies its IP string (chrony's `UTI_IPToString`).
+    pub fn source_to_string(&self, index: usize, ntp_ip: Option<&str>) -> String {
+        match self.sources[index].type_ {
+            SrcType::Refclock => crate::util::refid_to_string(self.sources[index].ref_id),
+            SrcType::Ntp => ntp_ip.unwrap_or("").to_string(),
+        }
+    }
+
+    /// chrony `get_dumpfile`: the dump filename for a source. Refclocks use
+    /// `refid:HHHHHHHH`; NTP sources use their IP string (supplied, must be real).
+    pub fn dump_filename(&self, index: usize, ntp_ip: Option<&str>) -> Option<String> {
+        match self.sources[index].type_ {
+            SrcType::Refclock => Some(format!("refid:{:08x}", self.sources[index].ref_id)),
+            SrcType::Ntp => ntp_ip.filter(|s| !s.is_empty()).map(|s| s.to_string()),
+        }
+    }
+
+    /// chrony `SRC_RemoveDumpFiles`'s per-file gate: whether a `.dat` base name looks
+    /// like an actual dump file (`refid:` prefix or a valid IP literal).
+    pub fn is_dump_file_name(name: &str, is_ip: impl Fn(&str) -> bool) -> bool {
+        name.starts_with("refid:") || is_ip(name)
+    }
+
+    /// chrony `save_source`: serialise a source's dump (the `SRC0` header + the ported
+    /// sourcestats dump). `ntp_name` is the resolved server name (`"."` for refclocks).
+    pub fn save_source(&self, index: usize, ntp_name: &str) -> Option<String> {
+        let s = &self.sources[index];
+        let sst = s.stats.save_to_string()?;
+        Some(format!(
+            "SRC0\n{}\n{} {:o} {} {} {}\n{}",
+            ntp_name,
+            s.authenticated as i32,
+            s.reachability,
+            s.reachability_size,
+            s.stratum,
+            s.leap as i32,
+            sst,
+        ))
+    }
+
+    /// chrony `load_source`: restore a source from its dump `content`. For NTP sources
+    /// the saved name must match `ntp_name`. Returns whether the dump loaded.
+    pub fn load_source(
+        &mut self,
+        index: usize,
+        content: &str,
+        ntp_name: Option<&str>,
+        now: f64,
+    ) -> bool {
+        let mut parts = content.splitn(4, '\n');
+        let (Some(l1), Some(l2), Some(l3), sst) =
+            (parts.next(), parts.next(), parts.next(), parts.next().unwrap_or(""))
+        else {
+            return false;
+        };
+        if l1 != "SRC0" {
+            return false;
+        }
+        // chrony splits line 2 to one word (the saved name).
+        let name_word = l2.split_whitespace().next().unwrap_or("");
+        if self.sources[index].type_ == SrcType::Ntp
+            && !matches!(ntp_name, Some(n) if n == name_word)
+        {
+            return false;
+        }
+        // line 3: "auth reach(octal) reach_size stratum leap".
+        let mut it = l3.split_whitespace();
+        let parse_i32 = |o: Option<&str>| o.and_then(|w| w.parse::<i32>().ok());
+        let auth = parse_i32(it.next());
+        let reach = it.next().and_then(|w| u32::from_str_radix(w, 8).ok());
+        let reach_size = parse_i32(it.next());
+        let stratum = parse_i32(it.next());
+        let leap = parse_i32(it.next());
+        let (Some(auth), Some(reach), Some(reach_size), Some(stratum), Some(leap)) =
+            (auth, reach, reach_size, stratum, leap)
+        else {
+            return false;
+        };
+
+        if (auth == 0 && self.sources[index].authenticated)
+            || !(0..NTP_MAX_STRATUM).contains(&stratum)
+            || !(0..3).contains(&leap)
+            || !self.sources[index].stats.load_from_string(sst, now)
+        {
+            return false;
+        }
+
+        let s = &mut self.sources[index];
+        s.reachability = reach & ((1u32 << SOURCE_REACH_BITS) - 1);
+        s.reachability_size = reach_size.clamp(0, SOURCE_REACH_BITS as i32);
+        s.stratum = stratum;
+        s.leap = match leap {
+            1 => NtpLeap::InsertSecond,
+            2 => NtpLeap::DeleteSecond,
+            _ => NtpLeap::Normal,
+        };
+        true
+    }
+
+    /// chrony `SRC_ReportSource`: the source-level report fields (state + reachability
+    /// + stratum + ref_id) merged with the ported sourcestats source report.
+    pub fn report_source(
+        &self,
+        index: usize,
+        now: f64,
+    ) -> Option<(i32, u32, i32, u32, crate::sourcestats::SourceReport)> {
+        let s = self.sources.get(index)?;
+        Some((
+            self.report_state(index),
+            s.reachability,
+            s.stratum,
+            s.ref_id,
+            s.stats.source_report(now),
+        ))
+    }
+
+    /// chrony `SRC_ReportSourcestats`: ref_id + the ported sourcestats statistics report.
+    pub fn report_sourcestats(
+        &self,
+        index: usize,
+        now: f64,
+    ) -> Option<(u32, crate::sourcestats::SourcestatsReport)> {
+        let s = self.sources.get(index)?;
+        Some((s.ref_id, s.stats.sourcestats_report(now)))
+    }
+
+    /// chrony `log_selection_message`: only emitted in the normal reference mode.
+    pub fn log_selection_message(&self, mode_is_normal: bool, message: &str) -> Option<String> {
+        if !mode_is_normal {
+            return None;
+        }
+        Some(message.to_string())
+    }
+
+    /// chrony `log_selection_source`: format a source identity into a selection log
+    /// message (mode-gated). `name` is the source string (refid or IP[+name]).
+    pub fn log_selection_source(
+        &self,
+        mode_is_normal: bool,
+        format: &str,
+        name: &str,
+    ) -> Option<String> {
+        self.log_selection_message(mode_is_normal, &format.replace("%s", name))
+    }
+
+    /// chrony `SRC_DumpSources`: serialise every source via `save`, keyed by index.
+    pub fn dump_sources(&self, mut save: impl FnMut(usize, String)) {
+        for i in 0..self.sources.len() {
+            // The NTP name is the daemon's; refclocks use ".".
+            if self.sources[i].type_ == SrcType::Refclock {
+                if let Some(dump) = self.save_source(i, ".") {
+                    save(i, dump);
+                }
+            }
+        }
+    }
+
+    /// chrony `SRC_ReloadSources`: restore every source via `load`, then allow an
+    /// immediate reference update and re-select.
+    pub fn reload_sources(
+        &mut self,
+        host: &mut dyn SourcesHost,
+        now: f64,
+        mut load: impl FnMut(usize) -> Option<String>,
+    ) {
+        for i in 0..self.sources.len() {
+            if let Some(content) = load(i) {
+                let name = if self.sources[i].type_ == SrcType::Refclock { Some(".") } else { None };
+                self.load_source(i, &content, name, now);
+            }
+            self.sources[i].updates += 1;
+        }
+        self.select_source(host, None);
     }
 }
 
