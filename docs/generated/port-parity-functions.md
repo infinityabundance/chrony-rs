@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 403 / 1373 C functions have a direct counterpart (29.4%).** The other 970 are gaps.
+**Overall: 410 / 1373 C functions have a direct counterpart (29.9%).** The other 963 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -34,6 +34,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `md5.c` | 4 | 4 | 0 | 100.0% |
 | `ntp_auth.c` | 17 | 17 | 0 | 100.0% |
 | `ntp_ext.c` | 6 | 6 | 0 | 100.0% |
+| `ntp_signd.c` | 7 | 7 | 0 | 100.0% |
 | `nts_ntp_auth.c` | 4 | 4 | 0 | 100.0% |
 | `nts_ntp_client.c` | 17 | 17 | 0 | 100.0% |
 | `nts_ntp_server.c` | 4 | 4 | 0 | 100.0% |
@@ -69,7 +70,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
 | `ntp_io.c` | 19 | 0 | 19 | 0.0% |
 | `ntp_io_linux.c` | 16 | 0 | 16 | 0.0% |
-| `ntp_signd.c` | 7 | 0 | 7 | 0.0% |
 | `ntp_sources.c` | 58 | 0 | 58 | 0.0% |
 | `nts_ke_client.c` | 10 | 0 | 10 | 0.0% |
 | `nts_ke_server.c` | 21 | 0 | 21 | 0.0% |
@@ -307,6 +307,16 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `NEF_ParseSingleField`
 - ✓ `NEF_SetField`
 - ✓ `format_field`
+
+### `ntp_signd.c` — 7/7 (100.0%)
+
+- ✓ `NSD_Finalise`
+- ✓ `NSD_Initialise`
+- ✓ `NSD_SignAndSendPacket`
+- ✓ `close_socket`
+- ✓ `open_socket`
+- ✓ `process_response`
+- ✓ `read_write_socket`
 
 ### `nts_ntp_auth.c` — 4/4 (100.0%)
 

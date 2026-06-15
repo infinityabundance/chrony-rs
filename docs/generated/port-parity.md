@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 39 / 70 (30 full, 8 partial, 1 scaffold); **31** have none.
-- **Files fully ported:** 30 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 873 / 1373 C functions (63.6%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 40 / 70 (31 full, 8 partial, 1 scaffold); **30** have none.
+- **Files fully ported:** 31 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 880 / 1373 C functions (64.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 939 named functions + 204 closures across 70 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 970 named functions + 209 closures across 72 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -57,7 +57,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `ntp_ext.c` | 6 | 100.0% | NTP extension-field (RFC 7822) framing (NEF_*) | `ntp/ext.rs` | ● full |
 | `ntp_io.c` | 19 | 0.0% | NTP socket send/recv path | `ntp/packet.rs` | ○ scaffold |
 | `ntp_io_linux.c` | 16 | 0.0% | Linux HW/kernel RX timestamping | — | · none |
-| `ntp_signd.c` | 7 | 0.0% | Samba signing daemon bridge | — | · none |
+| `ntp_signd.c` | 7 | 100.0% | Samba MS-SNTP signing-daemon bridge (NSD_*) | `ntp_signd.rs` | ● full |
 | `ntp_sources.c` | 58 | 0.0% | NTP source record add/remove/pool (NSR_*) | — | · none |
 | `nts_ke_client.c` | 10 | 0.0% | NTS-KE client | — | · none |
 | `nts_ke_server.c` | 21 | 0.0% | NTS-KE server | — | · none |
@@ -108,6 +108,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`pktlength.c`** — complete port of all 3 functions; per-command length/padding + per-reply length tables extracted exactly from candm.h offsets (compiled probe), not guessed _(≈7 Rust `fn` in mapped modules)_
 - **`ntp_ext.c`** — complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested _(≈18 Rust `fn` in mapped modules)_
 - **`ntp_auth.c`** — complete port of all 17 functions: the authentication dispatcher unifying none / symmetric-key (MD5/CMAC MAC via the ported key store) / NTS (RFC 8915 client+server EFs) / MS-SNTP, including suggested NTP version, request/response generate+check, address change, cookie dump, and report; composes the ported keys + nts_ntp_client/server (over nts_ntp_auth + real AES-SIV), with only the MS-SNTP signing daemon injected as a closure. Differential-tested vs the REAL compiled ntp_auth.c (+ keys.c, hash_intmd5.c): byte-identical symmetric MAC on request+response, check accept, tamper reject, key report; mode dispatch (none/MS-SNTP/NTS) covered over the oracle-backed NTS modules + an injected signer _(≈16 Rust `fn` in mapped modules)_
+- **`ntp_signd.c`** — complete port of all 7 functions: the asynchronous Samba ntp_signd client — serialise the SigndRequest (the ntp_signd IDL wire format), the bounded ring queue (bursts not lost), the writable/readable state machine (partial send/recv), response validation (packet_id/op/length) and signed-packet emission; the other half of the MS-SNTP path that ntp_auth injects. Host boundaries (socket SCK_*, scheduler file-handler events SCH_*, NTP send NIO_*) are one injected trait. Differential-tested vs the REAL compiled ntp_signd.c (+ array.c, memory.c): byte-identical SigndRequest + emitted signed packet, with bad-packet-id / non-success-op / over-short-length rejection + an independent partial-write/queue-capacity check _(≈16 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
 - **`sourcestats.c`** — complete port of all 32 functions (the keystone): dual circular buffers + weighted robust regression + jitter-asymmetry multiple regression + dump/reload; composes ALL of the verified regress engine; regression/prune/asymmetry/save-load tested _(≈39 Rust `fn` in mapped modules)_
 - **`regress.c`** — all 11: weighted LS + runs-test + median-based robust + 2-var regression + t/chi2 tables + median; verified by TWO oracles -- the REAL compiled regress.c (80 differential vectors) and an independent reference impl _(≈24 Rust `fn` in mapped modules)_

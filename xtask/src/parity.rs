@@ -99,7 +99,9 @@ const MAP: &[Row] = &[
     Row { c: "ntp_auth.c", role: "NTP authentication (MAC/NTS dispatch) (NAU_*)",
         rust: &["ntp_auth.rs"], port: Port::Full,
         note: "complete port of all 17 functions: the authentication dispatcher unifying none / symmetric-key (MD5/CMAC MAC via the ported key store) / NTS (RFC 8915 client+server EFs) / MS-SNTP, including suggested NTP version, request/response generate+check, address change, cookie dump, and report; composes the ported keys + nts_ntp_client/server (over nts_ntp_auth + real AES-SIV), with only the MS-SNTP signing daemon injected as a closure. Differential-tested vs the REAL compiled ntp_auth.c (+ keys.c, hash_intmd5.c): byte-identical symmetric MAC on request+response, check accept, tamper reject, key report; mode dispatch (none/MS-SNTP/NTS) covered over the oracle-backed NTS modules + an injected signer" },
-    Row { c: "ntp_signd.c", role: "Samba signing daemon bridge", rust: &[], port: Port::None, note: "" },
+    Row { c: "ntp_signd.c", role: "Samba MS-SNTP signing-daemon bridge (NSD_*)",
+        rust: &["ntp_signd.rs"], port: Port::Full,
+        note: "complete port of all 7 functions: the asynchronous Samba ntp_signd client — serialise the SigndRequest (the ntp_signd IDL wire format), the bounded ring queue (bursts not lost), the writable/readable state machine (partial send/recv), response validation (packet_id/op/length) and signed-packet emission; the other half of the MS-SNTP path that ntp_auth injects. Host boundaries (socket SCK_*, scheduler file-handler events SCH_*, NTP send NIO_*) are one injected trait. Differential-tested vs the REAL compiled ntp_signd.c (+ array.c, memory.c): byte-identical SigndRequest + emitted signed packet, with bad-packet-id / non-success-op / over-short-length rejection + an independent partial-write/queue-capacity check" },
     Row { c: "ntp_sources.c", role: "NTP source record add/remove/pool (NSR_*)", rust: &[], port: Port::None,
         note: "source *records* not ported; selection brain lives under sources.c mapping" },
 
@@ -546,6 +548,18 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     (
         "nts_ntp_server.c",
         &["NNS_Initialise", "NNS_Finalise", "NNS_CheckRequestAuth", "NNS_GenerateResponseAuth"],
+    ),
+    (
+        "ntp_signd.c",
+        &[
+            "close_socket",
+            "open_socket",
+            "process_response",
+            "read_write_socket",
+            "NSD_Initialise",
+            "NSD_Finalise",
+            "NSD_SignAndSendPacket",
+        ],
     ),
     (
         "ntp_auth.c",

@@ -1,0 +1,13 @@
+# Differential-oracle vectors: REAL chrony ntp_signd.c (+ array.c).
+# SigndRequest wire format (Samba ntp_signd IDL): length(4) version(4) op(4)
+# packet_id(2) pad(2) key_id(4) packet_to_sign(NTP hdr). op=SIGN_TO_CLIENT(0),
+# version=SIGND_VERSION(0). key_id=0x01020304. NTP packet[i]=i. Consumer Rust.
+SIGN ret=1 output_enabled=1
+REQLEN 68
+REQ 0000004000000000000000000000000001020304000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f
+SENTLEN 48
+SENT c8c7c6c5c4c3c2c1c0bfbebdbcbbbab9b8b7b6b5b4b3b2b1b0afaeadacabaaa9a8a7a6a5a4a3a2a1a09f9e9d9c9b9a99
+BADID sentlen=-1
+FAILOP sentlen=-1
+BADLEN sentlen=-1
+BADREQLEN ret=0
