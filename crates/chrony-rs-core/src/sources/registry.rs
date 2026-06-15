@@ -61,6 +61,19 @@ pub const SRC_SELECT_REQUIRE: i32 = 0x8;
 /// chrony `INVALID_SOURCE`.
 pub const INVALID_SOURCE: i32 = -1;
 
+/// chrony `SRC_AuthSelectMode` (the `authselectmode` directive).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum AuthSelectMode {
+    /// `SRC_AUTHSELECT_IGNORE`.
+    Ignore,
+    /// `SRC_AUTHSELECT_MIX`.
+    Mix,
+    /// `SRC_AUTHSELECT_PREFER`.
+    Prefer,
+    /// `SRC_AUTHSELECT_REQUIRE`.
+    Require,
+}
+
 /// chrony `SRC_Type`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SrcType {
@@ -449,6 +462,65 @@ impl SourceRegistry {
         self.sources[index].reachability = 0;
         self.sources[index].reachability_size = 0;
         self.update_reachability(host, index, false);
+    }
+
+    /// chrony `update_sel_options`: recompute every source's effective `sel_options`
+    /// from the configured options and the `authselectmode` policy. Returns the new
+    /// effective options per source (the registry is updated in place).
+    pub fn update_sel_options(&mut self, mode: AuthSelectMode) -> Vec<i32> {
+        let mut auth_ntp_sources = 0;
+        let mut unauth_ntp_sources = 0;
+        for s in &self.sources {
+            if s.conf_sel_options & SRC_SELECT_NOSELECT != 0 {
+                continue;
+            }
+            if s.type_ != SrcType::Ntp {
+                continue;
+            }
+            if s.authenticated {
+                auth_ntp_sources += 1;
+            } else {
+                unauth_ntp_sources += 1;
+            }
+        }
+
+        let (mut auth_ntp_options, mut unauth_ntp_options, mut refclk_options) = (0, 0, 0);
+        match mode {
+            AuthSelectMode::Ignore => {}
+            AuthSelectMode::Mix => {
+                if auth_ntp_sources > 0 && unauth_ntp_sources > 0 {
+                    auth_ntp_options = SRC_SELECT_REQUIRE | SRC_SELECT_TRUST;
+                    refclk_options = SRC_SELECT_REQUIRE | SRC_SELECT_TRUST;
+                }
+            }
+            AuthSelectMode::Prefer => {
+                if auth_ntp_sources > 0 {
+                    unauth_ntp_options = SRC_SELECT_NOSELECT;
+                }
+            }
+            AuthSelectMode::Require => {
+                unauth_ntp_options = SRC_SELECT_NOSELECT;
+            }
+        }
+
+        for s in &mut self.sources {
+            let mut options = s.conf_sel_options;
+            if options & SRC_SELECT_NOSELECT == 0 {
+                options |= match s.type_ {
+                    SrcType::Ntp => {
+                        if s.authenticated {
+                            auth_ntp_options
+                        } else {
+                            unauth_ntp_options
+                        }
+                    }
+                    SrcType::Refclock => refclk_options,
+                };
+            }
+            s.sel_options = options;
+        }
+
+        self.sources.iter().map(|s| s.sel_options).collect()
     }
 
     /// chrony `find_source`: by IP (NTP) or refid (refclock).

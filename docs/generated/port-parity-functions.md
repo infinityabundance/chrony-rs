@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 510 / 1373 C functions have a direct counterpart (37.1%).** The other 863 are gaps.
+**Overall: 514 / 1373 C functions have a direct counterpart (37.4%).** The other 859 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -56,8 +56,8 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
+| `sources.c` | 48 | 24 | 24 | 50.0% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
-| `sources.c` | 48 | 20 | 28 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
@@ -659,22 +659,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `slew_samples`
 - ✓ `valid_sample_time`
 
-### `privops.c` — 5/12 (41.7%)
-
-- ✓ `PRV_Finalise`
-- ✓ `PRV_Initialise`
-- · `PRV_StartHelper`
-- ✓ `have_helper`
-- ✓ `helper_main`
-- · `receive_from_daemon`
-- · `receive_response`
-- ✓ `res_fatal`
-- · `send_request`
-- · `send_response`
-- · `stop_helper`
-- · `submit_request`
-
-### `sources.c` — 20/48 (41.7%)
+### `sources.c` — 24/48 (50.0%)
 
 - ✓ `SRC_AccumulateSample`
 - ✓ `SRC_ActiveSources`
@@ -706,12 +691,12 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `SRC_UpdateReachability`
 - ✓ `SRC_UpdateStatus`
 - · `add_dispersion`
-- · `combine_sources`
-- · `compare_sort_elements`
+- ✓ `combine_sources`
+- ✓ `compare_sort_elements`
 - ✓ `find_source`
 - · `get_dumpfile`
 - ✓ `get_leap_status`
-- · `get_status_char`
+- ✓ `get_status_char`
 - ✓ `handle_bad_source`
 - · `load_source`
 - · `log_selection_message`
@@ -723,7 +708,22 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `source_to_string`
 - ✓ `special_mode_end`
 - · `unselect_selected_source`
-- · `update_sel_options`
+- ✓ `update_sel_options`
+
+### `privops.c` — 5/12 (41.7%)
+
+- ✓ `PRV_Finalise`
+- ✓ `PRV_Initialise`
+- · `PRV_StartHelper`
+- ✓ `have_helper`
+- ✓ `helper_main`
+- · `receive_from_daemon`
+- · `receive_response`
+- ✓ `res_fatal`
+- · `send_request`
+- · `send_response`
+- · `stop_helper`
+- · `submit_request`
 
 ### `refclock_sock.c` — 1/3 (33.3%)
 

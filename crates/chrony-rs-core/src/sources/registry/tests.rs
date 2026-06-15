@@ -171,6 +171,35 @@ fn ntp_bad_source_fires_after_eight_misses() {
 }
 
 #[test]
+fn update_sel_options_applies_authselect_policy() {
+    // PREFER: when an authenticated NTP source exists, unauthenticated NTP sources
+    // get the NOSELECT option added; authenticated ones are untouched.
+    let mut reg = SourceRegistry::new();
+    let auth = reg.create_new_instance(1, SrcType::Ntp, true, 0, true, 6, 16, 0.0, 0.0);
+    let unauth = reg.create_new_instance(2, SrcType::Ntp, false, 0, true, 6, 16, 0.0, 0.0);
+    let refclk = reg.create_new_instance(3, SrcType::Refclock, false, 0, false, 6, 16, 0.0, 0.0);
+
+    let opts = reg.update_sel_options(AuthSelectMode::Prefer);
+    assert_eq!(opts[auth], 0, "authenticated NTP unchanged");
+    assert_eq!(opts[unauth], SRC_SELECT_NOSELECT, "unauthenticated NTP gets NOSELECT");
+    assert_eq!(opts[refclk], 0, "refclock unchanged under PREFER");
+
+    // MIX: with both auth and unauth NTP present, auth NTP + refclocks gain REQUIRE|TRUST.
+    let opts = reg.update_sel_options(AuthSelectMode::Mix);
+    assert_eq!(opts[auth], SRC_SELECT_REQUIRE | SRC_SELECT_TRUST);
+    assert_eq!(opts[unauth], 0, "unauthenticated NTP untouched under MIX");
+    assert_eq!(opts[refclk], SRC_SELECT_REQUIRE | SRC_SELECT_TRUST);
+
+    // IGNORE: nothing added.
+    let opts = reg.update_sel_options(AuthSelectMode::Ignore);
+    assert_eq!(opts, vec![0, 0, 0]);
+
+    // REQUIRE: all unauthenticated NTP get NOSELECT regardless of auth presence.
+    let opts = reg.update_sel_options(AuthSelectMode::Require);
+    assert_eq!(opts[unauth], SRC_SELECT_NOSELECT);
+}
+
+#[test]
 fn accumulate_sample_drops_around_leap_and_status_updates_leap() {
     let mut host = RecHost { mode_normal: true, precision: 1.0e-9, ..Default::default() };
     let mut reg = SourceRegistry::new();

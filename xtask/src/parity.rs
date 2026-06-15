@@ -107,8 +107,8 @@ const MAP: &[Row] = &[
 
     // ---- source selection / statistics ----
     Row { c: "sources.c", role: "source reachability + selection (SRC_*)",
-        rust: &["sources/registry.rs", "sources/source.rs", "sources/reachability.rs", "sources/selection.rs"], port: Port::Partial,
-        note: "STAGED port of the 48-function selection brain (the largest chrony TU; SRC_SelectSource alone is 517 lines). Stage 1 DONE (sources/registry.rs): the faithful source registry + 8-bit reachability register + status/stratum/leap bookkeeping + leap-second vote + sample accumulation (composing the ported sourcestats) + special-mode-end check + accessors, with REF_/NSR_ and the selection pass injected. Differential-tested vs the REAL compiled sources.c (reachability register evolution read back via SRC_ReportSource + bad-source / special-mode-unsync triggers) + independent leap-vote/NTP-bad-source/accumulate units. REMAINING stages: update_sel_options + classification (mark_source) + combine_sources, then SRC_SelectSource, then dump/reload + reports. NOT Full until those land" },
+        rust: &["sources/registry.rs", "sources/combine.rs", "sources/source.rs", "sources/reachability.rs", "sources/selection.rs"], port: Port::Partial,
+        note: "STAGED port of the 48-function selection brain (the largest chrony TU; SRC_SelectSource alone is 517 lines). Stage 1 (sources/registry.rs): the source registry + 8-bit reachability register + status/stratum/leap bookkeeping + leap-second vote + sample accumulation (composing the ported sourcestats) + special-mode-end + accessors. Stage 2 (sources/combine.rs): the numeric combine_sources (weighted offset/frequency blend), update_sel_options (authselectmode policy), and the get_status_char/compare_sort_elements helpers. combine_sources is differential-tested vs the REAL compiled sources.c by driving SRC_SelectSource over two controlled agreeing sources and matching the combined REF_SetReference result; the Stage-1 machinery vs the real reachability register + triggers; authselect/distant/status-char/sort units. REMAINING: SRC_SelectSource (the classification + falseticker intersection + scoring pipeline), then dump/reload + reports. NOT Full until those land" },
     Row { c: "sourcestats.c", role: "per-source regression statistics (SST_*)",
         rust: &["sourcestats.rs"], port: Port::Full,
         note: "complete port of all 32 functions (the keystone): dual circular buffers + weighted robust regression + jitter-asymmetry multiple regression + dump/reload; composes ALL of the verified regress engine; regression/prune/asymmetry/save-load tested" },
@@ -330,6 +330,11 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "SRC_ActiveSources",
             "find_source",
             "SRC_GetType",
+            // Stage 2: combine + selection helpers.
+            "combine_sources",
+            "update_sel_options",
+            "get_status_char",
+            "compare_sort_elements",
         ],
     ),
     ("ntp_core.c", &["parse_packet", "process_response"]),
