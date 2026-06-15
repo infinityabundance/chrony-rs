@@ -110,7 +110,7 @@ const MAP: &[Row] = &[
         note: "complete port of all 32 functions (the keystone): dual circular buffers + weighted robust regression + jitter-asymmetry multiple regression + dump/reload; composes ALL of the verified regress engine; regression/prune/asymmetry/save-load tested" },
     Row { c: "regress.c", role: "robust linear regression + statistical primitives",
         rust: &["regress.rs"], port: Port::Full,
-        note: "all 11: weighted LS + runs-test + median-based robust (outlier-tolerant) + 2-var regression + t/chi2 tables + order-statistic median; verified vs independent reference impls" },
+        note: "all 11: weighted LS + runs-test + median-based robust + 2-var regression + t/chi2 tables + median; verified by TWO oracles -- the REAL compiled regress.c (80 differential vectors) and an independent reference impl" },
     Row { c: "samplefilt.c", role: "per-source NTP sample filtering (SPF_*)",
         rust: &["samplefilt.rs"], port: Port::Full,
         note: "complete port of all 18 functions; circular sample buffer + dispersion/offset selection + weighted-regression combine (composes the verified regress); select_samples' index-permutation computed directly to the same result; precision/time injected" },

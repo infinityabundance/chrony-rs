@@ -20,7 +20,7 @@ method, provenance, and how the doxygen runs were produced on both sides.
 - **Files fully ported:** 17 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 721 / 1373 C functions (52.5%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 542 named functions + 77 closures across 43 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 543 named functions + 83 closures across 43 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -109,7 +109,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`ntp_ext.c`** — complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested _(≈17 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
 - **`sourcestats.c`** — complete port of all 32 functions (the keystone): dual circular buffers + weighted robust regression + jitter-asymmetry multiple regression + dump/reload; composes ALL of the verified regress engine; regression/prune/asymmetry/save-load tested _(≈39 Rust `fn` in mapped modules)_
-- **`regress.c`** — all 11: weighted LS + runs-test + median-based robust (outlier-tolerant) + 2-var regression + t/chi2 tables + order-statistic median; verified vs independent reference impls _(≈23 Rust `fn` in mapped modules)_
+- **`regress.c`** — all 11: weighted LS + runs-test + median-based robust + 2-var regression + t/chi2 tables + median; verified by TWO oracles -- the REAL compiled regress.c (80 differential vectors) and an independent reference impl _(≈24 Rust `fn` in mapped modules)_
 - **`samplefilt.c`** — complete port of all 18 functions; circular sample buffer + dispersion/offset selection + weighted-regression combine (composes the verified regress); select_samples' index-permutation computed directly to the same result; precision/time injected _(≈23 Rust `fn` in mapped modules)_
 - **`quantiles.c`** — complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable _(≈14 Rust `fn` in mapped modules)_
 - **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈42 Rust `fn` in mapped modules)_
