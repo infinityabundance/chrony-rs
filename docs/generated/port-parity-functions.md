@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 410 / 1373 C functions have a direct counterpart (29.9%).** The other 963 are gaps.
+**Overall: 455 / 1373 C functions have a direct counterpart (33.1%).** The other 918 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -40,6 +40,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nts_ntp_server.c` | 4 | 4 | 0 | 100.0% |
 | `pktlength.c` | 3 | 3 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
+| `reference.c` | 45 | 45 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
 | `rtc.c` | 9 | 9 | 0 | 100.0% |
 | `samplefilt.c` | 18 | 18 | 0 | 100.0% |
@@ -80,7 +81,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `refclock_pps.c` | 0 | 0 | 0 | 0.0% |
 | `refclock_shm.c` | 3 | 0 | 3 | 0.0% |
 | `refclock_sock.c` | 3 | 0 | 3 | 0.0% |
-| `reference.c` | 45 | 0 | 45 | 0.0% |
 | `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
 | `siv_gnutls.c` | 12 | 0 | 12 | 0.0% |
 | `socket.c` | 61 | 0 | 61 | 0.0% |
@@ -368,6 +368,54 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `QNT_Reset`
 - ✓ `insert_initial_value`
 - ✓ `update_estimate`
+
+### `reference.c` — 45/45 (100.0%)
+
+- ✓ `REF_AdjustReference`
+- ✓ `REF_DisableLocal`
+- ✓ `REF_EnableLocal`
+- ✓ `REF_Finalise`
+- ✓ `REF_GetLeapMode`
+- ✓ `REF_GetMode`
+- ✓ `REF_GetOrphanStratum`
+- ✓ `REF_GetOurStratum`
+- ✓ `REF_GetReferenceParams`
+- ✓ `REF_GetSkew`
+- ✓ `REF_GetTaiOffset`
+- ✓ `REF_GetTrackingReport`
+- ✓ `REF_Initialise`
+- ✓ `REF_IsLeapSecondClose`
+- ✓ `REF_ModifyMakestep`
+- ✓ `REF_ModifyMaxupdateskew`
+- ✓ `REF_SetManualReference`
+- ✓ `REF_SetMode`
+- ✓ `REF_SetModeEndHandler`
+- ✓ `REF_SetReference`
+- ✓ `REF_SetUnsynchronised`
+- ✓ `REF_UpdateLeapStatus`
+- ✓ `end_ref_mode`
+- ✓ `fb_drift_timeout`
+- ✓ `fuzz_ref_time`
+- ✓ `get_clock_estimates`
+- ✓ `get_correction_rate`
+- ✓ `get_root_dispersion`
+- ✓ `get_tz_leap`
+- ✓ `handle_slew`
+- ✓ `is_leap_close`
+- ✓ `is_leap_second_day`
+- ✓ `is_offset_ok`
+- ✓ `is_step_limit_reached`
+- ✓ `leap_end_timeout`
+- ✓ `leap_start_timeout`
+- ✓ `maybe_log_offset`
+- ✓ `schedule_fb_drift`
+- ✓ `set_leap_timeout`
+- ✓ `special_mode_sync`
+- ✓ `update_drift_file`
+- ✓ `update_fb_drifts`
+- ✓ `update_leap_status`
+- ✓ `update_sync_status`
+- ✓ `write_log`
 
 ### `regress.c` — 11/11 (100.0%)
 

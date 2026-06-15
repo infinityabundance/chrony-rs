@@ -15,7 +15,7 @@ below come from the port-parity matrix, so they cannot disagree with what is
 actually ported. See the [full matrix](../../docs/generated/port-parity.md) and the
 [per-function gap view](../../docs/generated/port-parity-functions.md).
 
-## Fully ported chrony translation units (31)
+## Fully ported chrony translation units (32)
 
 Every function in these units has a court-backed counterpart (differential tests
 against the real compiled C and/or protocol-spec vectors):
@@ -29,6 +29,7 @@ against the real compiled C and/or protocol-spec vectors):
 - `regress.c` → `regress.rs` — robust linear regression + statistical primitives
 - `samplefilt.c` → `samplefilt.rs` — per-source NTP sample filtering (SPF_*)
 - `quantiles.c` → `quantiles.rs` — streaming (stochastic) quantile estimator
+- `reference.c` → `reference.rs`, `report.rs`, `clock.rs` — tracking + drift state, leap handling (REF_*)
 - `local.c` → `local.rs` — local clock hub: read/cook time, discipline, handlers (LCL_*)
 - `smooth.c` → `smooth.rs` — served-time smoothing (SMT_*)
 - `tempcomp.c` → `tempcomp.rs` — temperature compensation (TMC_*)
@@ -52,7 +53,7 @@ against the real compiled C and/or protocol-spec vectors):
 - `clientlog.c` → `clientlog.rs` — client access log / rate limiting
 - `manual.c` → `manual.rs` — manual time input / settime (MNL_*)
 
-## Partially ported (8)
+## Partially ported (7)
 
 Behavior ported with at least one executable court, but not every function (see the
 matrix for the exact gap):
@@ -60,7 +61,6 @@ matrix for the exact gap):
 - `conf.c` → `config/parser.rs`, `config/lexer.rs`, `config/diagnostics.rs`, `config/model.rs`, `config/mod.rs` — config file parser + 93-directive dispatch (CNF_*)
 - `ntp_core.c` → `ntp/measurements.rs`, `ntp/packet.rs` — NTP protocol engine: poll, process-response, offset/delay (NCR_*)
 - `sources.c` → `sources/source.rs`, `sources/reachability.rs`, `sources/selection.rs` — source reachability + selection (SRC_*)
-- `reference.c` → `report.rs`, `clock.rs` — tracking + drift state, leap handling (REF_*)
 - `client.c` → `report.rs`, `../chronyc-rs/src/main.rs` — chronyc CLI: command dispatch + report formatters
 - `main.c` → `../chronyd-rs/src/main.rs` — daemon entry, arg parsing, lifecycle
 - `util.c` → `util.rs`, `ntp/timestamp.rs`, `ntp/measurements.rs` — time/UTI/byte utilities (UTI_*)

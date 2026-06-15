@@ -24,7 +24,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `regress.c` — robust linear regression + statistical primitives _(port: full)_
 - `samplefilt.c` — per-source NTP sample filtering (SPF_*) _(port: full)_
 - `quantiles.c` — streaming (stochastic) quantile estimator _(port: full)_
-- `reference.c` — tracking + drift state, leap handling (REF_*) _(port: partial)_
+- `reference.c` — tracking + drift state, leap handling (REF_*) _(port: full)_
 - `local.c` — local clock hub: read/cook time, discipline, handlers (LCL_*) _(port: full)_
 - `smooth.c` — served-time smoothing (SMT_*) _(port: full)_
 - `tempcomp.c` — temperature compensation (TMC_*) _(port: full)_

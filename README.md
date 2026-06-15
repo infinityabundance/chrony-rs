@@ -17,7 +17,7 @@ generic protocol truth.
 
 ## What exists today
 
-### Fully ported chrony 4.5 translation units (31)
+### Fully ported chrony 4.5 translation units (32)
 
 Every function in each unit has a court-backed counterpart — differential-tested
 against the **real compiled C** and/or protocol-spec vectors. This list is
@@ -33,6 +33,7 @@ file updates it automatically.
 - **`regress.c`** — all 11: weighted LS + runs-test + median-based robust + 2-var regression + t/chi2 tables + median; verified by TWO oracles -- the REAL compiled regress.c (80 differential vectors) and an independent reference impl
 - **`samplefilt.c`** — complete port of all 18 functions; circular sample buffer + dispersion/offset selection + weighted-regression combine (composes the verified regress); select_samples' index-permutation computed directly to the same result; precision/time injected
 - **`quantiles.c`** — complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable
+- **`reference.c`** — complete port of all 46 functions (the discipline keystone above local.c): the offset/frequency/skew combine (get_clock_estimates), correction-rate, root-dispersion, step decision, drift-file persistence, fallback-drift accumulator, leap-second scheduling (system/slew/step/ignore), special init/update/print modes, sync status, tracking log, and tracking report; gmtime/strftime reimplemented (civil-date math) so is_leap_second_day and the log timestamp are deterministic, with only the timezone-leap lookup left as a host boundary. Composes the ported local clock; all of LCL_/SCH_/drift-file/leap-tz/RNG/mail/log injected via one RefHost trait. The numeric core (REF_SetReference/REF_AdjustReference + estimator/step/dispersion helpers, incl. the fuzz-fed report root dispersion) is differential-tested vs the REAL compiled reference.c (byte-identical corrections/step/sync/report over recording LCL_/SCH_ stubs); leap/local/accessor paths unit-tested
 - **`local.c`** — complete port of all 35 functions; composes the ported sys_null driver (ClockDriver trait) + optional smooth hooks; raw clock/config injected, handlers id-registered (closures); discipline/temp-comp/precision/handler tests
 - **`smooth.c`** — complete port of all 12 functions; the 3-stage bounded-freq/wander trajectory (update_stages/get_smoothing) verified vs a reference impl; time as seconds, config/skew injected, struct-as-handler
 - **`tempcomp.c`** — complete port of all 5 functions; quadratic + point-table interpolation (points stored in the ported array::Array); temp injected, comp returned, points/coefs as data

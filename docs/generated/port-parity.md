@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 40 / 70 (31 full, 8 partial, 1 scaffold); **30** have none.
-- **Files fully ported:** 31 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Files with any chrony-rs counterpart:** 40 / 70 (32 full, 7 partial, 1 scaffold); **30** have none.
+- **Files fully ported:** 32 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 880 / 1373 C functions (64.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 970 named functions + 209 closures across 72 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 1087 named functions + 213 closures across 74 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -73,7 +73,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `refclock_pps.c` | 0 | 0.0% | PPS refclock driver | — | · none |
 | `refclock_shm.c` | 3 | 0.0% | SHM refclock driver | — | · none |
 | `refclock_sock.c` | 3 | 0.0% | socket refclock driver | — | · none |
-| `reference.c` | 45 | 0.0% | tracking + drift state, leap handling (REF_*) | `report.rs`<br>`clock.rs` | ◑ partial |
+| `reference.c` | 45 | 100.0% | tracking + drift state, leap handling (REF_*) | `reference.rs`<br>`report.rs`<br>`clock.rs` | ● full |
 | `regress.c` | 11 | 100.0% | robust linear regression + statistical primitives | `regress.rs` | ● full |
 | `rtc.c` | 9 | 100.0% | RTC abstraction layer (RTC_*) | `rtc.rs` | ● full |
 | `rtc_linux.c` | 26 | 0.0% | Linux RTC driver | — | · none |
@@ -114,7 +114,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`regress.c`** — all 11: weighted LS + runs-test + median-based robust + 2-var regression + t/chi2 tables + median; verified by TWO oracles -- the REAL compiled regress.c (80 differential vectors) and an independent reference impl _(≈24 Rust `fn` in mapped modules)_
 - **`samplefilt.c`** — complete port of all 18 functions; circular sample buffer + dispersion/offset selection + weighted-regression combine (composes the verified regress); select_samples' index-permutation computed directly to the same result; precision/time injected _(≈23 Rust `fn` in mapped modules)_
 - **`quantiles.c`** — complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable _(≈14 Rust `fn` in mapped modules)_
-- **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈42 Rust `fn` in mapped modules)_
+- **`reference.c`** — complete port of all 46 functions (the discipline keystone above local.c): the offset/frequency/skew combine (get_clock_estimates), correction-rate, root-dispersion, step decision, drift-file persistence, fallback-drift accumulator, leap-second scheduling (system/slew/step/ignore), special init/update/print modes, sync status, tracking log, and tracking report; gmtime/strftime reimplemented (civil-date math) so is_leap_second_day and the log timestamp are deterministic, with only the timezone-leap lookup left as a host boundary. Composes the ported local clock; all of LCL_/SCH_/drift-file/leap-tz/RNG/mail/log injected via one RefHost trait. The numeric core (REF_SetReference/REF_AdjustReference + estimator/step/dispersion helpers, incl. the fuzz-fed report root dispersion) is differential-tested vs the REAL compiled reference.c (byte-identical corrections/step/sync/report over recording LCL_/SCH_ stubs); leap/local/accessor paths unit-tested _(≈122 Rust `fn` in mapped modules)_
 - **`local.c`** — complete port of all 35 functions; composes the ported sys_null driver (ClockDriver trait) + optional smooth hooks; raw clock/config injected, handlers id-registered (closures); discipline/temp-comp/precision/handler tests _(≈54 Rust `fn` in mapped modules)_
 - **`smooth.c`** — complete port of all 12 functions; the 3-stage bounded-freq/wander trajectory (update_stages/get_smoothing) verified vs a reference impl; time as seconds, config/skew injected, struct-as-handler _(≈17 Rust `fn` in mapped modules)_
 - **`tempcomp.c`** — complete port of all 5 functions; quadratic + point-table interpolation (points stored in the ported array::Array); temp injected, comp returned, points/coefs as data _(≈11 Rust `fn` in mapped modules)_
