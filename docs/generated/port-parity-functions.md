@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 81 / 1373 C functions have a direct counterpart (5.9%).** The other 1292 are gaps.
+**Overall: 87 / 1373 C functions have a direct counterpart (6.3%).** The other 1286 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -25,6 +25,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `cmdparse.c` | 8 | 8 | 0 | 100.0% |
 | `hash_intmd5.c` | 3 | 3 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
+| `ntp_ext.c` | 6 | 6 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
 | `nameserv.c` | 4 | 1 | 3 | 25.0% |
@@ -51,7 +52,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `memory.c` | 6 | 0 | 6 | 0.0% |
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
 | `ntp_auth.c` | 17 | 0 | 17 | 0.0% |
-| `ntp_ext.c` | 6 | 0 | 6 | 0.0% |
 | `ntp_io.c` | 19 | 0 | 19 | 0.0% |
 | `ntp_io_linux.c` | 16 | 0 | 16 | 0.0% |
 | `ntp_signd.c` | 7 | 0 | 7 | 0.0% |
@@ -138,6 +138,15 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `MD5Init`
 - ✓ `MD5Update`
 - ✓ `Transform`
+
+### `ntp_ext.c` — 6/6 (100.0%)
+
+- ✓ `NEF_AddBlankField`
+- ✓ `NEF_AddField`
+- ✓ `NEF_ParseField`
+- ✓ `NEF_ParseSingleField`
+- ✓ `NEF_SetField`
+- ✓ `format_field`
 
 ### `quantiles.c` — 8/8 (100.0%)
 

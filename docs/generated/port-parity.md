@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 18 / 70 (6 full, 8 partial, 4 scaffold); **52** have none.
-- **Files fully ported:** 6 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 612 / 1373 C functions (44.6%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 19 / 70 (7 full, 8 partial, 4 scaffold); **51** have none.
+- **Files fully ported:** 7 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 618 / 1373 C functions (45.0%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 318 named functions + 56 closures across 32 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 335 named functions + 57 closures across 33 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -54,7 +54,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `nameserv_async.c` | 0 | 0.0% | async DNS resolution | — | · none |
 | `ntp_auth.c` | 17 | 0.0% | NTP authentication (MAC/NTS dispatch) | — | · none |
 | `ntp_core.c` | 69 | 2.9% | NTP protocol engine: poll, process-response, offset/delay (NCR_*) | `ntp/measurements.rs`<br>`ntp/packet.rs` | ◑ partial |
-| `ntp_ext.c` | 6 | 0.0% | NTP extension-field framing | — | · none |
+| `ntp_ext.c` | 6 | 100.0% | NTP extension-field (RFC 7822) framing (NEF_*) | `ntp/ext.rs` | ● full |
 | `ntp_io.c` | 19 | 0.0% | NTP socket send/recv path | `ntp/packet.rs` | ○ scaffold |
 | `ntp_io_linux.c` | 16 | 0.0% | Linux HW/kernel RX timestamping | — | · none |
 | `ntp_signd.c` | 7 | 0.0% | Samba signing daemon bridge | — | · none |
@@ -106,6 +106,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`ntp_core.c`** — RFC 5905 §8 offset/delay algebra + 48-byte header codec; poll state machine not ported _(≈23 Rust `fn` in mapped modules)_
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
 - **`pktlength.c`** — length checks partial via the codec _(≈14 Rust `fn` in mapped modules)_
+- **`ntp_ext.c`** — complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested _(≈17 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
 - **`regress.c`** — all 11: weighted LS + runs-test + median-based robust (outlier-tolerant) + 2-var regression + t/chi2 tables + order-statistic median; verified vs independent reference impls _(≈23 Rust `fn` in mapped modules)_
 - **`quantiles.c`** — complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable _(≈14 Rust `fn` in mapped modules)_

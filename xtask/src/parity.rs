@@ -92,7 +92,9 @@ const MAP: &[Row] = &[
     Row { c: "pktlength.c", role: "NTP packet length validation",
         rust: &["ntp/packet.rs"], port: Port::Scaffold, note: "length checks partial via the codec" },
     Row { c: "ntp_io_linux.c", role: "Linux HW/kernel RX timestamping", rust: &[], port: Port::None, note: "" },
-    Row { c: "ntp_ext.c", role: "NTP extension-field framing", rust: &[], port: Port::None, note: "" },
+    Row { c: "ntp_ext.c", role: "NTP extension-field (RFC 7822) framing (NEF_*)",
+        rust: &["ntp/ext.rs"], port: Port::Full,
+        note: "complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested" },
     Row { c: "ntp_auth.c", role: "NTP authentication (MAC/NTS dispatch)", rust: &[], port: Port::None, note: "" },
     Row { c: "ntp_signd.c", role: "Samba signing daemon bridge", rust: &[], port: Port::None, note: "" },
     Row { c: "ntp_sources.c", role: "NTP source record add/remove/pool (NSR_*)", rust: &[], port: Port::None,
@@ -274,6 +276,17 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("nameserv.c", &["DNS_Name2IPAddress"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     ("hash_intmd5.c", &["HSH_GetHashId", "HSH_Hash", "HSH_Finalise"]),
+    (
+        "ntp_ext.c",
+        &[
+            "format_field",
+            "NEF_SetField",
+            "NEF_ParseSingleField",
+            "NEF_AddBlankField",
+            "NEF_AddField",
+            "NEF_ParseField",
+        ],
+    ),
     (
         "regress.c",
         &[
