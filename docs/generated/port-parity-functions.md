@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 120 / 1373 C functions have a direct counterpart (8.7%).** The other 1253 are gaps.
+**Overall: 132 / 1373 C functions have a direct counterpart (9.6%).** The other 1241 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -25,6 +25,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `array.c` | 10 | 10 | 0 | 100.0% |
 | `cmdparse.c` | 8 | 8 | 0 | 100.0% |
 | `hash_intmd5.c` | 3 | 3 | 0 | 100.0% |
+| `manual.c` | 11 | 11 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
 | `ntp_ext.c` | 6 | 6 | 0 | 100.0% |
 | `pktlength.c` | 3 | 3 | 0 | 100.0% |
@@ -34,7 +35,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_null.c` | 8 | 8 | 0 | 100.0% |
 | `nameserv.c` | 4 | 1 | 3 | 25.0% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
-| `util.c` | 76 | 9 | 67 | 11.8% |
+| `util.c` | 76 | 10 | 66 | 13.2% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
 | `sources.c` | 48 | 3 | 45 | 6.2% |
 | `ntp_core.c` | 69 | 2 | 67 | 2.9% |
@@ -51,7 +52,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `keys.c` | 17 | 0 | 17 | 0.0% |
 | `local.c` | 35 | 0 | 35 | 0.0% |
 | `logging.c` | 17 | 0 | 17 | 0.0% |
-| `manual.c` | 11 | 0 | 11 | 0.0% |
 | `memory.c` | 6 | 0 | 6 | 0.0% |
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
 | `ntp_auth.c` | 17 | 0 | 17 | 0.0% |
@@ -144,6 +144,20 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `HSH_Finalise`
 - ✓ `HSH_GetHashId`
 - ✓ `HSH_Hash`
+
+### `manual.c` — 11/11 (100.0%)
+
+- ✓ `MNL_AcceptTimestamp`
+- ✓ `MNL_DeleteSample`
+- ✓ `MNL_Disable`
+- ✓ `MNL_Enable`
+- ✓ `MNL_Finalise`
+- ✓ `MNL_Initialise`
+- ✓ `MNL_IsEnabled`
+- ✓ `MNL_ReportSamples`
+- ✓ `MNL_Reset`
+- ✓ `estimate_and_set_system`
+- ✓ `slew_samples`
 
 ### `md5.c` — 4/4 (100.0%)
 
@@ -318,7 +332,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `signal_handler`
 - · `submit_request`
 
-### `util.c` — 9/76 (11.8%)
+### `util.c` — 10/76 (13.2%)
 
 - · `UTI_AddDiffToTimespec`
 - · `UTI_AddDoubleToTimespec`
@@ -362,7 +376,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_IsEqualAnyNtp64`
 - · `UTI_IsIPReal`
 - · `UTI_IsStringIP`
-- · `UTI_IsTimeOffsetSane`
+- ✓ `UTI_IsTimeOffsetSane`
 - · `UTI_IsZeroNtp64`
 - · `UTI_IsZeroTimespec`
 - ✓ `UTI_Log2ToDouble`

@@ -214,7 +214,9 @@ const MAP: &[Row] = &[
         note: "DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported" },
     Row { c: "nameserv_async.c", role: "async DNS resolution", rust: &[], port: Port::None, note: "not in Linux preprocessing (0 fns)" },
     Row { c: "clientlog.c", role: "client access log / rate limiting", rust: &[], port: Port::None, note: "" },
-    Row { c: "manual.c", role: "manual time input (settime)", rust: &[], port: Port::None, note: "" },
+    Row { c: "manual.c", role: "manual time input / settime (MNL_*)",
+        rust: &["manual.rs"], port: Port::Full,
+        note: "complete port of all 11 functions; sample store + robust-regression slew/frequency estimate (uses the verified regress); time as seconds, REF correction returned not applied, struct-as-handler" },
 ];
 
 /// Curated set of C functions that have a *direct, named behavioral counterpart*
@@ -277,6 +279,23 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "UTI_BytesToHex",
             "UTI_HexToBytes",
             "UTI_RefidToString",
+            "UTI_IsTimeOffsetSane",
+        ],
+    ),
+    (
+        "manual.c",
+        &[
+            "MNL_Initialise",
+            "MNL_Finalise",
+            "MNL_Enable",
+            "MNL_Disable",
+            "MNL_IsEnabled",
+            "MNL_Reset",
+            "MNL_AcceptTimestamp",
+            "MNL_DeleteSample",
+            "MNL_ReportSamples",
+            "estimate_and_set_system",
+            "slew_samples",
         ],
     ),
     ("main.c", &["main"]),

@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 22 / 70 (11 full, 8 partial, 3 scaffold); **48** have none.
-- **Files fully ported:** 11 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 648 / 1373 C functions (47.2%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 23 / 70 (12 full, 8 partial, 3 scaffold); **47** have none.
+- **Files fully ported:** 12 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 659 / 1373 C functions (48.0%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 386 named functions + 57 closures across 37 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 404 named functions + 59 closures across 38 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -47,7 +47,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `local.c` | 35 | 0.0% | local clock read/adjust abstraction (LCL_*) | `clock.rs` | ○ scaffold |
 | `logging.c` | 17 | 0.0% | logging subsystem (LOG_*) | — | · none |
 | `main.c` | 16 | 6.2% | daemon entry, arg parsing, lifecycle | `chronyd-rs/src/main.rs` | ◑ partial |
-| `manual.c` | 11 | 0.0% | manual time input (settime) | — | · none |
+| `manual.c` | 11 | 100.0% | manual time input / settime (MNL_*) | `manual.rs` | ● full |
 | `md5.c` | 4 | 100.0% | MD5 digest (RFC 1321 reference, NTP symmetric-key auth) | `md5.rs` | ● full |
 | `memory.c` | 6 | 0.0% | xmalloc/xrealloc wrappers | — | · none |
 | `nameserv.c` | 4 | 25.0% | synchronous DNS resolution | `nameserv.rs` | ◑ partial |
@@ -97,7 +97,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `sys_solaris.c` | 3 | 0.0% | Solaris clock adapter | — | · none |
 | `sys_timex.c` | 10 | 0.0% | timex clock adapter | — | · none |
 | `tempcomp.c` | 5 | 0.0% | temperature compensation | — | · none |
-| `util.c` | 76 | 11.8% | time/UTI/byte utilities (UTI_*) | `util.rs`<br>`ntp/timestamp.rs`<br>`ntp/measurements.rs` | ◑ partial |
+| `util.c` | 76 | 13.2% | time/UTI/byte utilities (UTI_*) | `util.rs`<br>`ntp/timestamp.rs`<br>`ntp/measurements.rs` | ◑ partial |
 
 ## Coverage notes (files with a counterpart)
 
@@ -116,13 +116,14 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`sched.c`** — deterministic replay loop is a stand-in, not the SCH_ timer wheel _(≈13 Rust `fn` in mapped modules)_
 - **`client.c`** — tracking/sources/sourcestats/activity/serverstats rendered (print_report+print_info_field engines, all print_* value helpers; all live-witnessed vs 4.5); 5 of ~40 process_cmd_* commands; no socket transport _(≈36 Rust `fn` in mapped modules)_
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
-- **`util.c`** — pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not _(≈37 Rust `fn` in mapped modules)_
+- **`util.c`** — pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not _(≈39 Rust `fn` in mapped modules)_
 - **`array.c`** — complete port of all 10 functions over a flat Vec<u8> (slices where chrony returns pointers): exact capacity grow/shrink policy + order-preserving removal; no unsafe _(≈17 Rust `fn` in mapped modules)_
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_
 - **`hash_intmd5.c`** — complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested _(≈8 Rust `fn` in mapped modules)_
 - **`sys_null.c`** — complete port of all 8 functions; the virtual-clock offset/frequency model (set_freq/accrue/offset_convert); raw time injected as seconds, driver-as-struct (no global LCL registration) _(≈10 Rust `fn` in mapped modules)_
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
 - **`nameserv.c`** — DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported _(≈3 Rust `fn` in mapped modules)_
+- **`manual.c`** — complete port of all 11 functions; sample store + robust-regression slew/frequency estimate (uses the verified regress); time as seconds, REF correction returned not applied, struct-as-handler _(≈16 Rust `fn` in mapped modules)_
 
 ## What "partial"/"scaffold" deliberately does not mean
 
