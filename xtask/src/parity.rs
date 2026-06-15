@@ -105,8 +105,9 @@ const MAP: &[Row] = &[
     Row { c: "sources.c", role: "source reachability + selection (SRC_*)",
         rust: &["sources/source.rs", "sources/reachability.rs", "sources/selection.rs"], port: Port::Partial,
         note: "8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported" },
-    Row { c: "sourcestats.c", role: "per-source regression statistics (SST_*)", rust: &[], port: Port::None,
-        note: "planned filter/regression surface" },
+    Row { c: "sourcestats.c", role: "per-source regression statistics (SST_*)",
+        rust: &["sourcestats.rs"], port: Port::Full,
+        note: "complete port of all 32 functions (the keystone): dual circular buffers + weighted robust regression + jitter-asymmetry multiple regression + dump/reload; composes ALL of the verified regress engine; regression/prune/asymmetry/save-load tested" },
     Row { c: "regress.c", role: "robust linear regression + statistical primitives",
         rust: &["regress.rs"], port: Port::Full,
         note: "all 11: weighted LS + runs-test + median-based robust (outlier-tolerant) + 2-var regression + t/chi2 tables + order-statistic median; verified vs independent reference impls" },
@@ -308,6 +309,20 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("nameserv.c", &["DNS_Name2IPAddress"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     ("hash_intmd5.c", &["HSH_GetHashId", "HSH_Hash", "HSH_Finalise"]),
+    (
+        "sourcestats.c",
+        &[
+            "SST_Initialise", "SST_Finalise", "SST_CreateInstance", "SST_DeleteInstance",
+            "SST_ResetInstance", "SST_SetRefid", "SST_AccumulateSample", "SST_DoNewRegression",
+            "SST_GetFrequencyRange", "SST_GetSelectionData", "SST_GetTrackingData",
+            "SST_SlewSamples", "SST_AddDispersion", "SST_CorrectOffset", "SST_PredictOffset",
+            "SST_MinRoundTripDelay", "SST_GetDelayTestData", "SST_SaveToFile", "SST_LoadFromFile",
+            "SST_DoSourceReport", "SST_DoSourcestatsReport", "SST_GetJitterAsymmetry",
+            "SST_Samples", "SST_GetMinSamples", "convert_to_intervals", "correct_asymmetry",
+            "estimate_asymmetry", "find_best_sample_index", "find_min_delay_sample",
+            "get_buf_index", "get_runsbuf_index", "prune_register",
+        ],
+    ),
     (
         "samplefilt.c",
         &[
