@@ -124,7 +124,9 @@ const MAP: &[Row] = &[
     Row { c: "smooth.c", role: "served-time smoothing (SMT_*)",
         rust: &["smooth.rs"], port: Port::Full,
         note: "complete port of all 12 functions; the 3-stage bounded-freq/wander trajectory (update_stages/get_smoothing) verified vs a reference impl; time as seconds, config/skew injected, struct-as-handler" },
-    Row { c: "tempcomp.c", role: "temperature compensation", rust: &[], port: Port::None, note: "" },
+    Row { c: "tempcomp.c", role: "temperature compensation (TMC_*)",
+        rust: &["tempcomp.rs"], port: Port::Full,
+        note: "complete port of all 5 functions; quadratic + point-table interpolation (points stored in the ported array::Array); temp injected, comp returned, points/coefs as data" },
     Row { c: "sched.c", role: "timer/event scheduler (SCH_*)",
         rust: &["replay.rs"], port: Port::Scaffold, note: "deterministic replay loop is a stand-in, not the SCH_ timer wheel" },
 
@@ -303,6 +305,10 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     ("hash_intmd5.c", &["HSH_GetHashId", "HSH_Hash", "HSH_Finalise"]),
     ("pktlength.c", &["PKL_CommandLength", "PKL_CommandPaddingLength", "PKL_ReplyLength"]),
+    (
+        "tempcomp.c",
+        &["TMC_Initialise", "TMC_Finalise", "get_tempcomp", "read_points", "read_timeout"],
+    ),
     (
         "smooth.c",
         &[

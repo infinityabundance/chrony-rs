@@ -49,6 +49,7 @@ pub mod report;
 pub mod smooth;
 pub mod sources;
 pub mod sys_null;
+pub mod tempcomp;
 pub mod trace;
 pub mod util;
 
