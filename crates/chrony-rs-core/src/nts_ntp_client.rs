@@ -110,6 +110,8 @@ pub trait NkeClient {
 /// chrony's `RPT_AuthReport` (the fields this module fills).
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct AuthReport {
+    /// Authentication mode (chrony `NTP_AuthMode`).
+    pub mode: i32,
     /// Context (key) id.
     pub key_id: u32,
     /// Algorithm enum value.
@@ -676,6 +678,8 @@ impl NtsClient {
             -1.0
         };
         AuthReport {
+            // chrony `NNC_GetReport` reports `NTP_AUTH_NTS` (== 4).
+            mode: 4,
             key_id: self.context_id,
             key_type: self.context.algorithm as i32,
             key_length,

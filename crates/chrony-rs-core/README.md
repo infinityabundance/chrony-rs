@@ -15,7 +15,7 @@ below come from the port-parity matrix, so they cannot disagree with what is
 actually ported. See the [full matrix](../../docs/generated/port-parity.md) and the
 [per-function gap view](../../docs/generated/port-parity-functions.md).
 
-## Fully ported chrony translation units (29)
+## Fully ported chrony translation units (30)
 
 Every function in these units has a court-backed counterpart (differential tests
 against the real compiled C and/or protocol-spec vectors):
@@ -23,6 +23,7 @@ against the real compiled C and/or protocol-spec vectors):
 - `cmdparse.c` → `config/parser.rs`, `cmdparse.rs` — command/config line parsing (CPS_*)
 - `pktlength.c` → `pktlength.rs` — cmdmon request/reply length tables (PKL_*)
 - `ntp_ext.c` → `ntp/ext.rs` — NTP extension-field (RFC 7822) framing (NEF_*)
+- `ntp_auth.c` → `ntp_auth.rs` — NTP authentication (MAC/NTS dispatch) (NAU_*)
 - `sourcestats.c` → `sourcestats.rs` — per-source regression statistics (SST_*)
 - `regress.c` → `regress.rs` — robust linear regression + statistical primitives
 - `samplefilt.c` → `samplefilt.rs` — per-source NTP sample filtering (SPF_*)

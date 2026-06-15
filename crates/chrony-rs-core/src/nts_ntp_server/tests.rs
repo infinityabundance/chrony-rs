@@ -94,7 +94,7 @@ fn build_request(ctx: &NkeContext) -> (NtpPacketBuf, NtpPacketInfo) {
         b[40..44].copy_from_slice(&0xe5000001u32.to_be_bytes());
         b[44..48].copy_from_slice(&0x40000000u32.to_be_bytes());
     }
-    let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_CLIENT, ext_fields: 0 };
+    let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_CLIENT, ext_fields: 0, ..Default::default() };
 
     let uniq: Vec<u8> = (0..32).map(|i| 0x10 + i as u8).collect();
     assert!(add_field(&mut pkt, &mut info, NTP_EF_NTS_UNIQUE_IDENTIFIER, &uniq));
@@ -146,7 +146,7 @@ fn matches_real_c_nts_server_vectors() {
     let mut resp = NtpPacketBuf::new();
     resp.bytes_mut()[0] = ((4 << 3) | MODE_SERVER) as u8; // NTP_LVM(0,4,MODE_SERVER)
     let mut res_info =
-        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_SERVER, ext_fields: 0 };
+        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_SERVER, ext_fields: 0, ..Default::default() };
     let gret = server.generate_response_auth(&req, &req_info, &mut resp, &mut res_info, 0);
     let rl = line("RESP");
     assert_eq!(gret, field(&rl, "ret") == "1", "RESP ret");
@@ -168,7 +168,7 @@ fn matches_real_c_nts_server_vectors() {
     let mut req3 = NtpPacketBuf::new();
     req3.bytes_mut()[0] = ((4 << 3) | MODE_CLIENT) as u8;
     let mut req3_info =
-        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_CLIENT, ext_fields: 0 };
+        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_CLIENT, ext_fields: 0, ..Default::default() };
     assert!(add_field(&mut req3, &mut req3_info, NTP_EF_NTS_UNIQUE_IDENTIFIER, &[0u8; 32]));
     let (nret, nkod) = server.check_request_auth(&req3, &req3_info);
     let nl = line("NOCOOKIE");
@@ -191,7 +191,7 @@ fn full_nts_round_trip_then_client_uses_returned_cookie() {
     let mut resp = NtpPacketBuf::new();
     resp.bytes_mut()[0] = ((4 << 3) | MODE_SERVER) as u8;
     let mut res_info =
-        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_SERVER, ext_fields: 0 };
+        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_SERVER, ext_fields: 0, ..Default::default() };
     assert!(server.generate_response_auth(&req, &req_info, &mut resp, &mut res_info, 0));
 
     // The client verifies the response auth EF under S2C and recovers the cookies.

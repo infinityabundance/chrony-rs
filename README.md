@@ -17,7 +17,7 @@ generic protocol truth.
 
 ## What exists today
 
-### Fully ported chrony 4.5 translation units (29)
+### Fully ported chrony 4.5 translation units (30)
 
 Every function in each unit has a court-backed counterpart — differential-tested
 against the **real compiled C** and/or protocol-spec vectors. This list is
@@ -27,6 +27,7 @@ file updates it automatically.
 - **`cmdparse.c`** — all 8: source options + word split/normalize/refid/key/local + allow-deny (incl. DNS hostname via nameserv; drives addrfilt end-to-end vs `chronyc accheck`)
 - **`pktlength.c`** — complete port of all 3 functions; per-command length/padding + per-reply length tables extracted exactly from candm.h offsets (compiled probe), not guessed
 - **`ntp_ext.c`** — complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested
+- **`ntp_auth.c`** — complete port of all 17 functions: the authentication dispatcher unifying none / symmetric-key (MD5/CMAC MAC via the ported key store) / NTS (RFC 8915 client+server EFs) / MS-SNTP, including suggested NTP version, request/response generate+check, address change, cookie dump, and report; composes the ported keys + nts_ntp_client/server (over nts_ntp_auth + real AES-SIV), with only the MS-SNTP signing daemon injected as a closure. Differential-tested vs the REAL compiled ntp_auth.c (+ keys.c, hash_intmd5.c): byte-identical symmetric MAC on request+response, check accept, tamper reject, key report; mode dispatch (none/MS-SNTP/NTS) covered over the oracle-backed NTS modules + an injected signer
 - **`sourcestats.c`** — complete port of all 32 functions (the keystone): dual circular buffers + weighted robust regression + jitter-asymmetry multiple regression + dump/reload; composes ALL of the verified regress engine; regression/prune/asymmetry/save-load tested
 - **`regress.c`** — all 11: weighted LS + runs-test + median-based robust + 2-var regression + t/chi2 tables + median; verified by TWO oracles -- the REAL compiled regress.c (80 differential vectors) and an independent reference impl
 - **`samplefilt.c`** — complete port of all 18 functions; circular sample buffer + dispersion/offset selection + weighted-regression combine (composes the verified regress); select_samples' index-permutation computed directly to the same result; precision/time injected

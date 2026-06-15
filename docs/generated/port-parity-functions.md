@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 386 / 1373 C functions have a direct counterpart (28.1%).** The other 987 are gaps.
+**Overall: 403 / 1373 C functions have a direct counterpart (29.4%).** The other 970 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -32,6 +32,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `local.c` | 35 | 35 | 0 | 100.0% |
 | `manual.c` | 11 | 11 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
+| `ntp_auth.c` | 17 | 17 | 0 | 100.0% |
 | `ntp_ext.c` | 6 | 6 | 0 | 100.0% |
 | `nts_ntp_auth.c` | 4 | 4 | 0 | 100.0% |
 | `nts_ntp_client.c` | 17 | 17 | 0 | 100.0% |
@@ -66,7 +67,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `logging.c` | 17 | 0 | 17 | 0.0% |
 | `memory.c` | 6 | 0 | 6 | 0.0% |
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
-| `ntp_auth.c` | 17 | 0 | 17 | 0.0% |
 | `ntp_io.c` | 19 | 0 | 19 | 0.0% |
 | `ntp_io_linux.c` | 16 | 0 | 16 | 0.0% |
 | `ntp_signd.c` | 7 | 0 | 7 | 0.0% |
@@ -278,6 +278,26 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `MD5Init`
 - ✓ `MD5Update`
 - ✓ `Transform`
+
+### `ntp_auth.c` — 17/17 (100.0%)
+
+- ✓ `NAU_ChangeAddress`
+- ✓ `NAU_CheckRequestAuth`
+- ✓ `NAU_CheckResponseAuth`
+- ✓ `NAU_CreateNoneInstance`
+- ✓ `NAU_CreateNtsInstance`
+- ✓ `NAU_CreateSymmetricInstance`
+- ✓ `NAU_DestroyInstance`
+- ✓ `NAU_DumpData`
+- ✓ `NAU_GenerateRequestAuth`
+- ✓ `NAU_GenerateResponseAuth`
+- ✓ `NAU_GetReport`
+- ✓ `NAU_GetSuggestedNtpVersion`
+- ✓ `NAU_IsAuthEnabled`
+- ✓ `NAU_PrepareRequestAuth`
+- ✓ `check_symmetric_auth`
+- ✓ `create_instance`
+- ✓ `generate_symmetric_auth`
 
 ### `ntp_ext.c` — 6/6 (100.0%)
 

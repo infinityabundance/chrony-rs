@@ -100,7 +100,7 @@ fn matches_real_c_nts_client_vectors() {
     let mut req = NtpPacketBuf::new();
     req.bytes_mut()[0] = ((4 << 3) | MODE_CLIENT) as u8;
     let mut req_info =
-        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_CLIENT, ext_fields: 0 };
+        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_CLIENT, ext_fields: 0, ..Default::default() };
     let gret = client.generate_request_auth(&mut req, &mut req_info);
     let rl = line("REQ");
     assert_eq!(gret, field(rl, "ret") == "1", "REQ ret");
@@ -124,7 +124,7 @@ fn matches_real_c_nts_client_vectors() {
     let mut resp = NtpPacketBuf::new();
     resp.bytes_mut()[0] = ((4 << 3) | MODE_SERVER) as u8;
     let mut res_info =
-        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_SERVER, ext_fields: 0 };
+        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_SERVER, ext_fields: 0, ..Default::default() };
     add_field(&mut resp, &mut res_info, NTP_EF_NTS_UNIQUE_IDENTIFIER, &uniq);
 
     let mut plaintext = vec![0u8; 512];
@@ -167,7 +167,7 @@ fn cookie_dump_round_trip() {
     let mut req = NtpPacketBuf::new();
     req.bytes_mut()[0] = ((4 << 3) | MODE_CLIENT) as u8;
     let mut req_info =
-        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_CLIENT, ext_fields: 0 };
+        NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: MODE_CLIENT, ext_fields: 0, ..Default::default() };
     assert!(client.generate_request_auth(&mut req, &mut req_info));
 
     let dump = client.save_cookies().expect("cookies present => a dump is produced");

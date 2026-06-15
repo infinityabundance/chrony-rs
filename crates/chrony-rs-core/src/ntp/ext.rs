@@ -152,8 +152,8 @@ impl NtpPacketBuf {
     }
 }
 
-/// Subset of chrony's `NTP_PacketInfo` that `ntp_ext.c` reads/writes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Subset of chrony's `NTP_PacketInfo` that the NTP layers read/write.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct NtpPacketInfo {
     /// Current packet length (header + already-appended fields).
     pub length: i32,
@@ -162,6 +162,15 @@ pub struct NtpPacketInfo {
     /// higher layers (e.g. NTS server processing); `ntp_ext` itself ignores it.
     pub mode: i32,
     pub ext_fields: i32,
+    /// Authentication mode (chrony `auth.mode`, `NTP_AuthMode`): NONE=0,
+    /// SYMMETRIC=1, MSSNTP=2, MSSNTP_EXT=3, NTS=4. Used by `ntp_auth`.
+    pub auth_mode: i32,
+    /// Symmetric MAC start offset (chrony `auth.mac.start`).
+    pub mac_start: i32,
+    /// Symmetric MAC length, including the 4-byte key id (chrony `auth.mac.length`).
+    pub mac_length: i32,
+    /// Symmetric MAC key id (chrony `auth.mac.key_id`).
+    pub mac_key_id: u32,
 }
 
 /// `NEF_AddBlankField`: append a zero-filled extension field of `body_length`
@@ -268,7 +277,7 @@ mod tests {
     fn add_and_parse_field_on_a_packet() {
         let mut pkt = NtpPacketBuf::new();
         pkt.set_lvm(0x23); // version 4, mode 3 -> (0x23>>3)&7 = 4
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: 0, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: 0, ext_fields: 0, ..Default::default() };
 
         // A 28-byte body -> 32-byte field (> NTP_MIN_EF_LENGTH and > MAC length).
         let body: Vec<u8> = (0..28).map(|i| i as u8).collect();
@@ -286,10 +295,10 @@ mod tests {
     fn add_field_requires_v4_and_alignment() {
         let mut pkt = NtpPacketBuf::new();
         // version 3 in info -> rejected
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 3, mode: 0, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 3, mode: 0, ext_fields: 0, ..Default::default() };
         assert!(!add_field(&mut pkt, &mut info, 0x0204, &[0u8; 28]));
         // misaligned current length -> rejected
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH + 1, version: 4, mode: 0, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH + 1, version: 4, mode: 0, ext_fields: 0, ..Default::default() };
         assert!(!add_field(&mut pkt, &mut info, 0x0204, &[0u8; 28]));
     }
 

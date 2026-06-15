@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 38 / 70 (29 full, 8 partial, 1 scaffold); **32** have none.
-- **Files fully ported:** 29 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 856 / 1373 C functions (62.3%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 39 / 70 (30 full, 8 partial, 1 scaffold); **31** have none.
+- **Files fully ported:** 30 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 873 / 1373 C functions (63.6%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 909 named functions + 185 closures across 68 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 939 named functions + 204 closures across 70 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -52,7 +52,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `memory.c` | 6 | 0.0% | xmalloc/xrealloc wrappers | — | · none |
 | `nameserv.c` | 4 | 25.0% | synchronous DNS resolution | `nameserv.rs` | ◑ partial |
 | `nameserv_async.c` | 0 | 0.0% | async DNS resolution | — | · none |
-| `ntp_auth.c` | 17 | 0.0% | NTP authentication (MAC/NTS dispatch) | — | · none |
+| `ntp_auth.c` | 17 | 100.0% | NTP authentication (MAC/NTS dispatch) (NAU_*) | `ntp_auth.rs` | ● full |
 | `ntp_core.c` | 69 | 2.9% | NTP protocol engine: poll, process-response, offset/delay (NCR_*) | `ntp/measurements.rs`<br>`ntp/packet.rs` | ◑ partial |
 | `ntp_ext.c` | 6 | 100.0% | NTP extension-field (RFC 7822) framing (NEF_*) | `ntp/ext.rs` | ● full |
 | `ntp_io.c` | 19 | 0.0% | NTP socket send/recv path | `ntp/packet.rs` | ○ scaffold |
@@ -107,6 +107,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
 - **`pktlength.c`** — complete port of all 3 functions; per-command length/padding + per-reply length tables extracted exactly from candm.h offsets (compiled probe), not guessed _(≈7 Rust `fn` in mapped modules)_
 - **`ntp_ext.c`** — complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested _(≈18 Rust `fn` in mapped modules)_
+- **`ntp_auth.c`** — complete port of all 17 functions: the authentication dispatcher unifying none / symmetric-key (MD5/CMAC MAC via the ported key store) / NTS (RFC 8915 client+server EFs) / MS-SNTP, including suggested NTP version, request/response generate+check, address change, cookie dump, and report; composes the ported keys + nts_ntp_client/server (over nts_ntp_auth + real AES-SIV), with only the MS-SNTP signing daemon injected as a closure. Differential-tested vs the REAL compiled ntp_auth.c (+ keys.c, hash_intmd5.c): byte-identical symmetric MAC on request+response, check accept, tamper reject, key report; mode dispatch (none/MS-SNTP/NTS) covered over the oracle-backed NTS modules + an injected signer _(≈16 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
 - **`sourcestats.c`** — complete port of all 32 functions (the keystone): dual circular buffers + weighted robust regression + jitter-asymmetry multiple regression + dump/reload; composes ALL of the verified regress engine; regression/prune/asymmetry/save-load tested _(≈39 Rust `fn` in mapped modules)_
 - **`regress.c`** — all 11: weighted LS + runs-test + median-based robust + 2-var regression + t/chi2 tables + median; verified by TWO oracles -- the REAL compiled regress.c (80 differential vectors) and an independent reference impl _(≈24 Rust `fn` in mapped modules)_

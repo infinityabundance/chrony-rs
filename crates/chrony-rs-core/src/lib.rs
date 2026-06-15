@@ -49,6 +49,7 @@ pub mod nts_ntp_auth;
 pub mod nts_ntp_client;
 pub mod nts_ntp_server;
 pub mod ntp;
+pub mod ntp_auth;
 pub mod pktlength;
 pub mod quantiles;
 pub mod regress;
