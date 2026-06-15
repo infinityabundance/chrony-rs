@@ -11,4 +11,4 @@ keywords = ["chrony", "ntp", "time", "clock", "forensic"]
 categories = ["date-and-time"]
 
 [dependencies]
-chrony-rs-core = { version = "0.0.1", path = "../chrony-rs-core" }
+chrony-rs-core = { version = "0.1.0", path = "../chrony-rs-core" }

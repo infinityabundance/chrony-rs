@@ -12,4 +12,4 @@ name = "chronyd-rs"
 path = "src/main.rs"
 
 [dependencies]
-chrony-rs-core = { version = "0.0.1", path = "../chrony-rs-core" }
+chrony-rs-core = { version = "0.1.0", path = "../chrony-rs-core" }

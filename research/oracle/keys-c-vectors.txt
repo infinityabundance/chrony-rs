@@ -1,0 +1,28 @@
+# Differential-oracle vectors: REAL chrony keys.c (internal-MD5 build, no crypto
+# library => CMAC unsupported), compiled from /tmp/chrony-src commit 120dfb8 with
+# array.c + hash_intmd5.c (which #includes md5.c) and verbatim UTI/CPS helpers.
+# Input key file: research/oracle/keys-c-keyfile.txt. Data MAC'd is the fixed
+# string below. KEY lines = per-id KeyKnown/GetAuthLength/CheckKeyLength/GetKeyInfo
+# /GenerateAuth(mac hex); CHK lines = CheckAuth full/truncated/corrupted.
+# Consumer is Rust (keys.rs tests); NO Python anywhere.
+DATA the quick brown fox jumps over the lazy dog
+KEY id=1 known=1 authlen=16 seclen=1 info=1 type=1 bits=88 maclen=16 mac=811d85ca9ab3a0ddba29ca3d17f62378
+CHK id=1 full=1 trunc=1(4) bad=0
+KEY id=2 known=1 authlen=16 seclen=0 info=1 type=1 bits=64 maclen=16 mac=3be5892dd0570b3d0b6f8ae8497a3141
+CHK id=2 full=1 trunc=1(4) bad=0
+KEY id=3 known=1 authlen=16 seclen=1 info=1 type=1 bits=80 maclen=16 mac=c1723f041d3b86b20eb2cb9b226d7869
+CHK id=3 full=1 trunc=1(4) bad=0
+KEY id=10 known=0 authlen=0 seclen=0 info=0 type=-1 bits=-1 maclen=0 mac=
+CHK id=10 full=0 trunc=0(0) bad=0
+KEY id=11 known=0 authlen=0 seclen=0 info=0 type=-1 bits=-1 maclen=0 mac=
+CHK id=11 full=0 trunc=0(0) bad=0
+KEY id=12 known=0 authlen=0 seclen=0 info=0 type=-1 bits=-1 maclen=0 mac=
+CHK id=12 full=0 trunc=0(0) bad=0
+KEY id=20 known=1 authlen=16 seclen=0 info=1 type=1 bits=40 maclen=16 mac=db53299a83d7eb35eacbca01279c4120
+CHK id=20 full=1 trunc=1(4) bad=0
+KEY id=30 known=1 authlen=16 seclen=1 info=1 type=1 bits=152 maclen=16 mac=211bc022e88b03352398ab44df95951b
+CHK id=30 full=1 trunc=1(4) bad=0
+KEY id=31 known=1 authlen=16 seclen=1 info=1 type=1 bits=128 maclen=16 mac=782782afe141a0b791356a66a7c68689
+CHK id=31 full=1 trunc=1(4) bad=0
+KEY id=99 known=0 authlen=0 seclen=0 info=0 type=-1 bits=-1 maclen=0 mac=
+CHK id=99 full=0 trunc=0(0) bad=0

@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 264 / 1373 C functions have a direct counterpart (19.2%).** The other 1109 are gaps.
+**Overall: 356 / 1373 C functions have a direct counterpart (25.9%).** The other 1017 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -24,20 +24,28 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `addrfilt.c` | 16 | 16 | 0 | 100.0% |
 | `array.c` | 10 | 10 | 0 | 100.0% |
 | `clientlog.c` | 35 | 35 | 0 | 100.0% |
+| `cmac_nettle.c` | 4 | 4 | 0 | 100.0% |
 | `cmdparse.c` | 8 | 8 | 0 | 100.0% |
 | `hash_intmd5.c` | 3 | 3 | 0 | 100.0% |
 | `hwclock.c` | 7 | 7 | 0 | 100.0% |
+| `keys.c` | 17 | 17 | 0 | 100.0% |
 | `local.c` | 35 | 35 | 0 | 100.0% |
 | `manual.c` | 11 | 11 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
 | `ntp_ext.c` | 6 | 6 | 0 | 100.0% |
+| `nts_ntp_auth.c` | 4 | 4 | 0 | 100.0% |
 | `pktlength.c` | 3 | 3 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
 | `samplefilt.c` | 18 | 18 | 0 | 100.0% |
+| `sched.c` | 22 | 22 | 0 | 100.0% |
+| `siv_nettle.c` | 9 | 9 | 0 | 100.0% |
+| `siv_nettle_int.c` | 12 | 12 | 0 | 100.0% |
 | `smooth.c` | 12 | 12 | 0 | 100.0% |
 | `sourcestats.c` | 32 | 32 | 0 | 100.0% |
+| `sys_generic.c` | 14 | 14 | 0 | 100.0% |
 | `sys_null.c` | 8 | 8 | 0 | 100.0% |
+| `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `nameserv.c` | 4 | 1 | 3 | 25.0% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
@@ -47,13 +55,11 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `ntp_core.c` | 69 | 2 | 67 | 2.9% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
 | `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
-| `cmac_nettle.c` | 4 | 0 | 4 | 0.0% |
 | `cmdmon.c` | 64 | 0 | 64 | 0.0% |
 | `hash_gnutls.c` | 3 | 0 | 3 | 0.0% |
 | `hash_nettle.c` | 3 | 0 | 3 | 0.0% |
 | `hash_nss.c` | 3 | 0 | 3 | 0.0% |
 | `hash_tomcrypt.c` | 3 | 0 | 3 | 0.0% |
-| `keys.c` | 17 | 0 | 17 | 0.0% |
 | `logging.c` | 17 | 0 | 17 | 0.0% |
 | `memory.c` | 6 | 0 | 6 | 0.0% |
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
@@ -65,7 +71,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nts_ke_client.c` | 10 | 0 | 10 | 0.0% |
 | `nts_ke_server.c` | 21 | 0 | 21 | 0.0% |
 | `nts_ke_session.c` | 32 | 0 | 32 | 0.0% |
-| `nts_ntp_auth.c` | 4 | 0 | 4 | 0.0% |
 | `nts_ntp_client.c` | 17 | 0 | 17 | 0.0% |
 | `nts_ntp_server.c` | 4 | 0 | 4 | 0.0% |
 | `privops.c` | 12 | 0 | 12 | 0.0% |
@@ -77,20 +82,15 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `reference.c` | 45 | 0 | 45 | 0.0% |
 | `rtc.c` | 9 | 0 | 9 | 0.0% |
 | `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
-| `sched.c` | 22 | 0 | 22 | 0.0% |
 | `siv_gnutls.c` | 12 | 0 | 12 | 0.0% |
-| `siv_nettle.c` | 9 | 0 | 9 | 0.0% |
-| `siv_nettle_int.c` | 12 | 0 | 12 | 0.0% |
 | `socket.c` | 61 | 0 | 61 | 0.0% |
 | `stubs.c` | 78 | 0 | 78 | 0.0% |
 | `sys.c` | 6 | 0 | 6 | 0.0% |
-| `sys_generic.c` | 14 | 0 | 14 | 0.0% |
 | `sys_linux.c` | 14 | 0 | 14 | 0.0% |
 | `sys_macosx.c` | 0 | 0 | 0 | 0.0% |
 | `sys_netbsd.c` | 4 | 0 | 4 | 0.0% |
 | `sys_posix.c` | 0 | 0 | 0 | 0.0% |
 | `sys_solaris.c` | 3 | 0 | 3 | 0.0% |
-| `sys_timex.c` | 10 | 0 | 10 | 0.0% |
 
 ## Ported files — function-by-function (✓ ported · gap)
 
@@ -166,6 +166,13 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `set_ntp_tx`
 - ✓ `update_record`
 
+### `cmac_nettle.c` — 4/4 (100.0%)
+
+- ✓ `CMC_CreateInstance`
+- ✓ `CMC_DestroyInstance`
+- ✓ `CMC_GetKeyLength`
+- ✓ `CMC_Hash`
+
 ### `cmdparse.c` — 8/8 (100.0%)
 
 - ✓ `CPS_GetSelectOption`
@@ -192,6 +199,26 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `HCL_NeedsNewSample`
 - ✓ `HCL_ProcessReadings`
 - ✓ `handle_slew`
+
+### `keys.c` — 17/17 (100.0%)
+
+- ✓ `KEY_CheckAuth`
+- ✓ `KEY_CheckKeyLength`
+- ✓ `KEY_Finalise`
+- ✓ `KEY_GenerateAuth`
+- ✓ `KEY_GetAuthLength`
+- ✓ `KEY_GetKeyInfo`
+- ✓ `KEY_Initialise`
+- ✓ `KEY_KeyKnown`
+- ✓ `KEY_Reload`
+- ✓ `check_auth`
+- ✓ `compare_keys_by_id`
+- ✓ `decode_key`
+- ✓ `free_keys`
+- ✓ `generate_auth`
+- ✓ `get_key`
+- ✓ `get_key_by_id`
+- ✓ `lookup_key`
 
 ### `local.c` — 35/35 (100.0%)
 
@@ -261,6 +288,13 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `NEF_SetField`
 - ✓ `format_field`
 
+### `nts_ntp_auth.c` — 4/4 (100.0%)
+
+- ✓ `NNA_DecryptAuthEF`
+- ✓ `NNA_GenerateAuthEF`
+- ✓ `get_padded_length`
+- ✓ `get_padding_length`
+
 ### `pktlength.c` — 3/3 (100.0%)
 
 - ✓ `PKL_CommandLength`
@@ -313,6 +347,58 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `get_first_last`
 - ✓ `select_samples`
 
+### `sched.c` — 22/22 (100.0%)
+
+- ✓ `SCH_AddFileHandler`
+- ✓ `SCH_AddTimeout`
+- ✓ `SCH_AddTimeoutByDelay`
+- ✓ `SCH_AddTimeoutInClass`
+- ✓ `SCH_Finalise`
+- ✓ `SCH_GetLastEventMonoTime`
+- ✓ `SCH_GetLastEventTime`
+- ✓ `SCH_Initialise`
+- ✓ `SCH_MainLoop`
+- ✓ `SCH_QuitProgram`
+- ✓ `SCH_RemoveFileHandler`
+- ✓ `SCH_RemoveTimeout`
+- ✓ `SCH_SetFileHandlerEvent`
+- ✓ `allocate_tqe`
+- ✓ `check_current_time`
+- ✓ `dispatch_filehandlers`
+- ✓ `dispatch_timeouts`
+- ✓ `fill_fd_sets`
+- ✓ `get_new_tqe_id`
+- ✓ `handle_slew`
+- ✓ `release_tqe`
+- ✓ `update_monotonic_time`
+
+### `siv_nettle.c` — 9/9 (100.0%)
+
+- ✓ `SIV_CreateInstance`
+- ✓ `SIV_Decrypt`
+- ✓ `SIV_DestroyInstance`
+- ✓ `SIV_Encrypt`
+- ✓ `SIV_GetKeyLength`
+- ✓ `SIV_GetMaxNonceLength`
+- ✓ `SIV_GetMinNonceLength`
+- ✓ `SIV_GetTagLength`
+- ✓ `SIV_SetKey`
+
+### `siv_nettle_int.c` — 12/12 (100.0%)
+
+- ✓ `CMAC128_CTX`
+- ✓ `_cmac128_block_mulx`
+- ✓ `_siv_s2v`
+- ✓ `cmac128_digest`
+- ✓ `cmac128_set_key`
+- ✓ `cmac128_update`
+- ✓ `cmac_aes128_digest`
+- ✓ `cmac_aes128_set_key`
+- ✓ `cmac_aes128_update`
+- ✓ `siv_cmac_aes128_decrypt_message`
+- ✓ `siv_cmac_aes128_encrypt_message`
+- ✓ `siv_cmac_aes128_set_key`
+
 ### `smooth.c` — 12/12 (100.0%)
 
 - ✓ `SMT_Activate`
@@ -363,6 +449,23 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `get_runsbuf_index`
 - ✓ `prune_register`
 
+### `sys_generic.c` — 14/14 (100.0%)
+
+- ✓ `SYS_Generic_CompleteFreqDriver`
+- ✓ `SYS_Generic_Finalise`
+- ✓ `accrue_offset`
+- ✓ `apply_step_offset`
+- ✓ `clamp_freq`
+- ✓ `handle_end_of_slew`
+- ✓ `handle_step`
+- ✓ `offset_convert`
+- ✓ `read_frequency`
+- ✓ `set_frequency`
+- ✓ `set_sync_status`
+- ✓ `start_fastslew`
+- ✓ `stop_fastslew`
+- ✓ `update_slew`
+
 ### `sys_null.c` — 8/8 (100.0%)
 
 - ✓ `SYS_Null_Finalise`
@@ -373,6 +476,19 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `read_frequency`
 - ✓ `set_frequency`
 - ✓ `update_offset`
+
+### `sys_timex.c` — 10/10 (100.0%)
+
+- ✓ `SYS_Timex_Adjust`
+- ✓ `SYS_Timex_Finalise`
+- ✓ `SYS_Timex_Initialise`
+- ✓ `SYS_Timex_InitialiseWithFunctions`
+- ✓ `convert_timex_frequency`
+- ✓ `initialise_timex`
+- ✓ `read_frequency`
+- ✓ `set_frequency`
+- ✓ `set_leap`
+- ✓ `set_sync_status`
 
 ### `tempcomp.c` — 5/5 (100.0%)
 

@@ -26,13 +26,21 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `local.c` — local clock hub: read/cook time, discipline, handlers (LCL_*) _(port: full)_
 - `smooth.c` — served-time smoothing (SMT_*) _(port: full)_
 - `tempcomp.c` — temperature compensation (TMC_*) _(port: full)_
+- `sched.c` — timer/event scheduler (SCH_*) _(port: full)_
 - `client.c` — chronyc CLI: command dispatch + report formatters _(port: partial)_
 - `main.c` — daemon entry, arg parsing, lifecycle _(port: partial)_
 - `util.c` — time/UTI/byte utilities (UTI_*) _(port: partial)_
 - `array.c` — generic dynamic array (ARR_*) _(port: full)_
+- `keys.c` — symmetric key store (KEY_*) _(port: full)_
 - `md5.c` — MD5 digest (RFC 1321 reference, NTP symmetric-key auth) _(port: full)_
 - `hash_intmd5.c` — internal MD5 hash backend (HSH_*) _(port: full)_
+- `cmac_nettle.c` — AES-CMAC keyed-MAC instance API (CMC_*) _(port: full)_
+- `nts_ntp_auth.c` — NTS authenticator + encrypted-EEF extension field (NNA_*) _(port: full)_
+- `siv_nettle.c` — SIV AEAD instance API (SIV_*) _(port: full)_
+- `siv_nettle_int.c` — AES-SIV-CMAC-256 AEAD (RFC 5297) _(port: full)_
 - `hwclock.c` — hardware-clock tracking (HCL_*) _(port: full)_
+- `sys_generic.c` — generic software-slew clock-discipline driver _(port: full)_
+- `sys_timex.c` — adjtimex()/ntp_adjtime() clock driver _(port: full)_
 - `sys_null.c` — null clock driver (the `-x` 'disabled control' driver) _(port: full)_
 - `addrfilt.c` — NTP/cmd access-control subnet trie (ADF_*) _(port: full)_
 - `nameserv.c` — synchronous DNS resolution _(port: partial)_

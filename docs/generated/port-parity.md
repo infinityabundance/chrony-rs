@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 28 / 70 (18 full, 8 partial, 2 scaffold); **42** have none.
-- **Files fully ported:** 18 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 756 / 1373 C functions (55.1%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 35 / 70 (26 full, 8 partial, 1 scaffold); **35** have none.
+- **Files fully ported:** 26 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 826 / 1373 C functions (60.2%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 603 named functions + 87 closures across 45 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 819 named functions + 150 closures across 61 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -33,7 +33,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `client.c` | 90 | 14.4% | chronyc CLI: command dispatch + report formatters | `report.rs`<br>`chronyc-rs/src/main.rs` | ◑ partial |
 | `clientlog.c` | 35 | 100.0% | client access log / rate limiting | `clientlog.rs` | ● full |
 | `cmac_gnutls.c` | 7 | 0.0% | gnutls CMAC backend | — | · none |
-| `cmac_nettle.c` | 4 | 0.0% | nettle CMAC backend | — | · none |
+| `cmac_nettle.c` | 4 | 100.0% | AES-CMAC keyed-MAC instance API (CMC_*) | `cmac_nettle.rs` | ● full |
 | `cmdmon.c` | 64 | 0.0% | control/monitoring protocol server (candm) | — | · none |
 | `cmdparse.c` | 8 | 100.0% | command/config line parsing (CPS_*) | `config/parser.rs`<br>`cmdparse.rs` | ● full |
 | `conf.c` | 135 | 1.5% | config file parser + 93-directive dispatch (CNF_*) | `config/parser.rs`<br>`config/lexer.rs`<br>`config/diagnostics.rs`<br>`config/model.rs`<br>`config/mod.rs` | ◑ partial |
@@ -43,7 +43,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `hash_nss.c` | 3 | 0.0% | NSS hash backend | — | · none |
 | `hash_tomcrypt.c` | 3 | 0.0% | tomcrypt hash backend | — | · none |
 | `hwclock.c` | 7 | 100.0% | hardware-clock tracking (HCL_*) | `hwclock.rs` | ● full |
-| `keys.c` | 17 | 0.0% | symmetric key store | — | · none |
+| `keys.c` | 17 | 100.0% | symmetric key store (KEY_*) | `keys.rs` | ● full |
 | `local.c` | 35 | 100.0% | local clock hub: read/cook time, discipline, handlers (LCL_*) | `local.rs` | ● full |
 | `logging.c` | 17 | 0.0% | logging subsystem (LOG_*) | — | · none |
 | `main.c` | 16 | 6.2% | daemon entry, arg parsing, lifecycle | `chronyd-rs/src/main.rs` | ◑ partial |
@@ -62,7 +62,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `nts_ke_client.c` | 10 | 0.0% | NTS-KE client | — | · none |
 | `nts_ke_server.c` | 21 | 0.0% | NTS-KE server | — | · none |
 | `nts_ke_session.c` | 32 | 0.0% | NTS-KE TLS session | — | · none |
-| `nts_ntp_auth.c` | 4 | 0.0% | NTS NTPv4 auth | — | · none |
+| `nts_ntp_auth.c` | 4 | 100.0% | NTS authenticator + encrypted-EEF extension field (NNA_*) | `nts_ntp_auth.rs` | ● full |
 | `nts_ntp_client.c` | 17 | 0.0% | NTS NTP client | — | · none |
 | `nts_ntp_server.c` | 4 | 0.0% | NTS NTP server | — | · none |
 | `pktlength.c` | 3 | 100.0% | cmdmon request/reply length tables (PKL_*) | `pktlength.rs` | ● full |
@@ -78,24 +78,24 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `rtc.c` | 9 | 0.0% | RTC abstraction | — | · none |
 | `rtc_linux.c` | 26 | 0.0% | Linux RTC driver | — | · none |
 | `samplefilt.c` | 18 | 100.0% | per-source NTP sample filtering (SPF_*) | `samplefilt.rs` | ● full |
-| `sched.c` | 22 | 0.0% | timer/event scheduler (SCH_*) | `replay.rs` | ○ scaffold |
+| `sched.c` | 22 | 100.0% | timer/event scheduler (SCH_*) | `sched.rs` | ● full |
 | `siv_gnutls.c` | 12 | 0.0% | SIV-AEAD (gnutls) | — | · none |
-| `siv_nettle.c` | 9 | 0.0% | SIV-AEAD (nettle) | — | · none |
-| `siv_nettle_int.c` | 12 | 0.0% | SIV-AEAD internals | — | · none |
+| `siv_nettle.c` | 9 | 100.0% | SIV AEAD instance API (SIV_*) | `siv_nettle.rs` | ● full |
+| `siv_nettle_int.c` | 12 | 100.0% | AES-SIV-CMAC-256 AEAD (RFC 5297) | `siv_nettle_int.rs` | ● full |
 | `smooth.c` | 12 | 100.0% | served-time smoothing (SMT_*) | `smooth.rs` | ● full |
 | `socket.c` | 61 | 0.0% | socket abstraction layer | — | · none |
 | `sources.c` | 48 | 6.2% | source reachability + selection (SRC_*) | `sources/source.rs`<br>`sources/reachability.rs`<br>`sources/selection.rs` | ◑ partial |
 | `sourcestats.c` | 32 | 100.0% | per-source regression statistics (SST_*) | `sourcestats.rs` | ● full |
 | `stubs.c` | 78 | 0.0% | test-harness stub implementations | — | · none |
 | `sys.c` | 6 | 0.0% | OS adapter dispatch | — | · none |
-| `sys_generic.c` | 14 | 0.0% | generic clock-driver adapter | — | · none |
+| `sys_generic.c` | 14 | 100.0% | generic software-slew clock-discipline driver | `sys_generic.rs` | ● full |
 | `sys_linux.c` | 14 | 0.0% | Linux clock adapter (adjtimex) | — | · none |
 | `sys_macosx.c` | 0 | 0.0% | macOS clock adapter | — | · none |
 | `sys_netbsd.c` | 4 | 0.0% | NetBSD clock adapter | — | · none |
 | `sys_null.c` | 8 | 100.0% | null clock driver (the `-x` 'disabled control' driver) | `sys_null.rs` | ● full |
 | `sys_posix.c` | 0 | 0.0% | POSIX clock adapter | — | · none |
 | `sys_solaris.c` | 3 | 0.0% | Solaris clock adapter | — | · none |
-| `sys_timex.c` | 10 | 0.0% | timex clock adapter | — | · none |
+| `sys_timex.c` | 10 | 100.0% | adjtimex()/ntp_adjtime() clock driver | `sys_timex.rs` | ● full |
 | `tempcomp.c` | 5 | 100.0% | temperature compensation (TMC_*) | `tempcomp.rs` | ● full |
 | `util.c` | 76 | 13.2% | time/UTI/byte utilities (UTI_*) | `util.rs`<br>`ntp/timestamp.rs`<br>`ntp/measurements.rs` | ◑ partial |
 
@@ -106,7 +106,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`ntp_core.c`** — RFC 5905 §8 offset/delay algebra + 48-byte header codec; poll state machine not ported _(≈23 Rust `fn` in mapped modules)_
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
 - **`pktlength.c`** — complete port of all 3 functions; per-command length/padding + per-reply length tables extracted exactly from candm.h offsets (compiled probe), not guessed _(≈7 Rust `fn` in mapped modules)_
-- **`ntp_ext.c`** — complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested _(≈17 Rust `fn` in mapped modules)_
+- **`ntp_ext.c`** — complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested _(≈18 Rust `fn` in mapped modules)_
 - **`sources.c`** — 8-bit reach register (exact), selectability gate, falseticker intersection; full SRC_SelectSource not ported _(≈30 Rust `fn` in mapped modules)_
 - **`sourcestats.c`** — complete port of all 32 functions (the keystone): dual circular buffers + weighted robust regression + jitter-asymmetry multiple regression + dump/reload; composes ALL of the verified regress engine; regression/prune/asymmetry/save-load tested _(≈39 Rust `fn` in mapped modules)_
 - **`regress.c`** — all 11: weighted LS + runs-test + median-based robust + 2-var regression + t/chi2 tables + median; verified by TWO oracles -- the REAL compiled regress.c (80 differential vectors) and an independent reference impl _(≈24 Rust `fn` in mapped modules)_
@@ -116,14 +116,21 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`local.c`** — complete port of all 35 functions; composes the ported sys_null driver (ClockDriver trait) + optional smooth hooks; raw clock/config injected, handlers id-registered (closures); discipline/temp-comp/precision/handler tests _(≈54 Rust `fn` in mapped modules)_
 - **`smooth.c`** — complete port of all 12 functions; the 3-stage bounded-freq/wander trajectory (update_stages/get_smoothing) verified vs a reference impl; time as seconds, config/skew injected, struct-as-handler _(≈17 Rust `fn` in mapped modules)_
 - **`tempcomp.c`** — complete port of all 5 functions; quadratic + point-table interpolation (points stored in the ported array::Array); temp injected, comp returned, points/coefs as data _(≈11 Rust `fn` in mapped modules)_
-- **`sched.c`** — deterministic replay loop is a stand-in, not the SCH_ timer wheel _(≈13 Rust `fn` in mapped modules)_
+- **`sched.c`** — complete port of all 22 functions: the sorted timeout queue (add/by-delay/in-class with class separation + randomness, removal, dispatch), file-handler registry + select-driven main loop, clock-step queue shift, and last-event/monotonic time tracking; clock/select/randomness injected; differential-tested vs the REAL compiled sched.c (SCH_MainLoop dispatch order + fire times, incl. ties/spacing/random/step) + an independent file-handler test _(≈34 Rust `fn` in mapped modules)_
 - **`client.c`** — tracking/sources/sourcestats/activity/serverstats rendered (print_report+print_info_field engines, all print_* value helpers; all live-witnessed vs 4.5); 5 of ~40 process_cmd_* commands; no socket transport _(≈36 Rust `fn` in mapped modules)_
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
 - **`util.c`** — pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not _(≈39 Rust `fn` in mapped modules)_
 - **`array.c`** — complete port of all 10 functions over a flat Vec<u8> (slices where chrony returns pointers): exact capacity grow/shrink policy + order-preserving removal; no unsafe _(≈17 Rust `fn` in mapped modules)_
+- **`keys.c`** — complete port of all 17 functions for chrony's internal-MD5 build: key-file parse (ASCII/HEX), sorted store + binary-search + cache, MAC generate/verify (truncated), secure-length gate; differential-tested vs the REAL compiled keys.c (key file + per-id vectors) + an independent MD5(key||msg) check; CMAC cipher keys rejected at load (no crypto backend), as that build does _(≈27 Rust `fn` in mapped modules)_
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_
 - **`hash_intmd5.c`** — complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested _(≈8 Rust `fn` in mapped modules)_
+- **`cmac_nettle.c`** — complete port of all 4 functions: keyed AES-128/AES-256 CMAC instance, key-length table, truncating CMC_Hash; reuses the shared CMAC-128 from siv_nettle_int over a new FIPS-197 AES-256. Anchored by THREE oracles: RFC 4493 (AES-128-CMAC), NIST SP 800-38B (AES-256-CMAC), and the REAL compiled cmac_nettle.c over a vector-verified shim _(≈12 Rust `fn` in mapped modules)_
+- **`nts_ntp_auth.c`** — complete port of all 4 functions: build/parse the NTS auth-and-EEF field (header, nonce+ciphertext layout, 4-byte padding, min-length/min-nonce padding) over the ported ntp_ext layer, with SIV injected; differential-tested vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip, deterministic toy SIV) + independent padding/round-trip checks _(≈8 Rust `fn` in mapped modules)_
+- **`siv_nettle.c`** — complete port of all 9 functions (no-GCM build): keyed AEAD instance, key/nonce/tag length table, input validation, encrypt/decrypt dispatch over the ported siv_nettle_int (AES-SIV-CMAC-256); GCM-SIV unsupported as that build is; also bridges nts_ntp_auth's SIV so the NTS auth EF round-trips over real AES-SIV. Differential-tested vs the REAL compiled siv_nettle.c (API + validation) — the crypto itself is triple-anchored in siv_nettle_int _(≈13 Rust `fn` in mapped modules)_
+- **`siv_nettle_int.c`** — complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors) _(≈24 Rust `fn` in mapped modules)_
 - **`hwclock.c`** — complete port of all 7 functions; composes the ported quantile delay filter + robust regression over Vec<f64> sample buffers; clean-offset model verified vs reference; cook/precision/abs-freq injected _(≈11 Rust `fn` in mapped modules)_
+- **`sys_generic.c`** — complete port of all 14 functions: the offset->frequency slew model (bounded rate/duration, excess-duration tracking, offset_convert, dispersion on frequency change), with base driver/raw clock/scheduler/step injected; differential-tested vs the REAL compiled sys_generic.c (set_frequency/accrue_offset/end-of-slew sequence) + an independent slew-drain check _(≈29 Rust `fn` in mapped modules)_
+- **`sys_timex.c`** — complete port of all 10 functions (Linux build): ppm<->kernel-freq scaling, sync-status/leap/TAI status bookkeeping over the struct timex ABI, composing the generic slew driver; the adjtimex syscall is injected; differential-tested vs the REAL compiled sys_timex.c (every submitted timex captured) + an independent scaling check _(≈13 Rust `fn` in mapped modules)_
 - **`sys_null.c`** — complete port of all 8 functions; the virtual-clock offset/frequency model (set_freq/accrue/offset_convert); raw time injected as seconds, driver-as-struct (no global LCL registration) _(≈10 Rust `fn` in mapped modules)_
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
 - **`nameserv.c`** — DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported _(≈3 Rust `fn` in mapped modules)_

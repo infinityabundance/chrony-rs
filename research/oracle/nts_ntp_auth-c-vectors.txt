@@ -1,0 +1,32 @@
+# Differential-oracle vectors: REAL chrony nts_ntp_auth.c (+ ntp_ext.c),
+# compiled from /tmp/chrony-src commit 120dfb8. SIV is a deterministic toy
+# authenticated cipher (tag=16, keystream byte i = nonce[i%nl]^i, tag byte i =
+# fold(assoc)^fold(plaintext)^nonce[i%nl]^i) replicated byte-for-byte in the Rust
+# test, so the NTS auth EF framing + round-trip are reproducible. Initial 48-byte
+# NTP header: [0]=0x23 [1]=0x02 [2..4]=0, [i]=(i*7+1)&0xff for i in 4..48.
+# GEN: result of NNA_GenerateAuthEF; PKT: packet bytes [0..info.length]; DEC/PT:
+# NNA_DecryptAuthEF round-trip. Consumer is Rust (nts_ntp_auth.rs); NO Python.
+GEN p0_n16_m0 ok=1 length=88 ext_fields=1
+PKT 230200001d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a0404002800100010a0a1a2a3a4a5a6a7a8a9aaabacadaeafd1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1
+DEC p0_n16_m0 ok=1 plaintext_length=0
+PT 
+GEN p8_n16_m0 ok=1 length=96 ext_fields=1
+PKT 230200001d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a0404003000100018a0a1a2a3a4a5a6a7a8a9aaabacadaeafd1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1a5a8abaeb1b4b7ba
+DEC p8_n16_m0 ok=1 plaintext_length=8
+PT 05080b0e1114171a
+GEN p13_n16_m0 ok=1 length=104 ext_fields=1
+PKT 230200001d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a040400380010001da0a1a2a3a4a5a6a7a8a9aaabacadaeafc0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0a5a8abaeb1b4b7babd80838689000000
+DEC p13_n16_m0 ok=1 plaintext_length=13
+PT 05080b0e1114171a1d20232629
+GEN p8_n12_m0 ok=1 length=96 ext_fields=1
+PKT 230200001d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a04040030000c0018a0a1a2a3a4a5a6a7a8a9aaabd1d1d1d1d1d1d1d1d1d1d1d1dddddddda5a8abaeb1b4b7ba00000000
+DEC p8_n12_m0 ok=1 plaintext_length=8
+PT 05080b0e1114171a
+GEN p8_n16_m64 ok=1 length=112 ext_fields=1
+PKT 230200001d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a0404004000100018a0a1a2a3a4a5a6a7a8a9aaabacadaeafd1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1a5a8abaeb1b4b7ba00000000000000000000000000000000
+DEC p8_n16_m64 ok=1 plaintext_length=8
+PT 05080b0e1114171a
+GEN p32_n16_m0 ok=1 length=120 ext_fields=1
+PKT 230200001d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a0404004800100030a0a1a2a3a4a5a6a7a8a9aaabacadaeafd1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1a5a8abaeb1b4b7babd808386898c8f9285888b8ef1f4f7fafde0e3e6e9ecefd2
+DEC p32_n16_m0 ok=1 plaintext_length=32
+PT 05080b0e1114171a1d202326292c2f3235383b3e4144474a4d505356595c5f62

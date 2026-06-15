@@ -1,0 +1,19 @@
+# Differential-oracle vectors: REAL chrony cmac_nettle.c (the CMC_* API), compiled
+# from /tmp/chrony-src commit 120dfb8 over a shim AES-128/256 (FIPS-197) + RFC-4493
+# CMAC. The MAC values are the AUTHORITATIVE RFC 4493 (AES-128) and NIST SP 800-38B
+# (AES-256) test vectors, so this fixture is anchored to two independent standards.
+# KEYLEN: key-length table. MAC <name> kl ml n <hex>: CMC_Hash output. CREATE badlen:
+# wrong key length rejected. TRUNC/CLAMP: CMC_Hash out_len truncation (to 4) and
+# clamping (>16 -> 16). Consumer is Rust (cmac_nettle.rs); NO Python.
+KEYLEN aes128=16 aes256=32 inv=0
+MAC rfc4493_len0 kl=16 ml=0 n=16 bb1d6929e95937287fa37d129b756746
+MAC rfc4493_len16 kl=16 ml=16 n=16 070a16b46b4d4144f79bdd9dd04a287c
+MAC rfc4493_len40 kl=16 ml=40 n=16 dfa66747de9ae63030ca32611497c827
+MAC rfc4493_len64 kl=16 ml=64 n=16 51f0bebf7e3b9d92fc49741779363cfe
+MAC nist256_len0 kl=32 ml=0 n=16 028962f61b7bf89efc6b551f4667d983
+MAC nist256_len16 kl=32 ml=16 n=16 28a7023f452e8f82bd4bf28d8c37c35c
+MAC nist256_len40 kl=32 ml=40 n=16 aaf3d8f1de5640c232f5b169b9c911e6
+MAC nist256_len64 kl=32 ml=64 n=16 e1992190549f6ed5696a2c056c315410
+CREATE badlen=1
+TRUNC n=4 070a16b4
+CLAMP n=16 070a16b46b4d4144f79bdd9dd04a287c

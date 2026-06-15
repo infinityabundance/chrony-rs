@@ -132,7 +132,8 @@ const MAP: &[Row] = &[
         rust: &["tempcomp.rs"], port: Port::Full,
         note: "complete port of all 5 functions; quadratic + point-table interpolation (points stored in the ported array::Array); temp injected, comp returned, points/coefs as data" },
     Row { c: "sched.c", role: "timer/event scheduler (SCH_*)",
-        rust: &["replay.rs"], port: Port::Scaffold, note: "deterministic replay loop is a stand-in, not the SCH_ timer wheel" },
+        rust: &["sched.rs"], port: Port::Full,
+        note: "complete port of all 22 functions: the sorted timeout queue (add/by-delay/in-class with class separation + randomness, removal, dispatch), file-handler registry + select-driven main loop, clock-step queue shift, and last-event/monotonic time tracking; clock/select/randomness injected; differential-tested vs the REAL compiled sched.c (SCH_MainLoop dispatch order + fire times, incl. ties/spacing/random/step) + an independent file-handler test" },
 
     // ---- control client / protocol ----
     Row { c: "client.c", role: "chronyc CLI: command dispatch + report formatters",
@@ -161,7 +162,9 @@ const MAP: &[Row] = &[
         note: "upstream unit-test scaffolding, not a behavior port target" },
 
     // ---- crypto / auth / keys (none) ----
-    Row { c: "keys.c", role: "symmetric key store", rust: &[], port: Port::None, note: "" },
+    Row { c: "keys.c", role: "symmetric key store (KEY_*)",
+        rust: &["keys.rs"], port: Port::Full,
+        note: "complete port of all 17 functions for chrony's internal-MD5 build: key-file parse (ASCII/HEX), sorted store + binary-search + cache, MAC generate/verify (truncated), secure-length gate; differential-tested vs the REAL compiled keys.c (key file + per-id vectors) + an independent MD5(key||msg) check; CMAC cipher keys rejected at load (no crypto backend), as that build does" },
     Row { c: "md5.c", role: "MD5 digest (RFC 1321 reference, NTP symmetric-key auth)",
         rust: &["md5.rs"], port: Port::Full,
         note: "complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU)" },
@@ -173,18 +176,26 @@ const MAP: &[Row] = &[
     Row { c: "hash_nss.c", role: "NSS hash backend", rust: &[], port: Port::None, note: "" },
     Row { c: "hash_tomcrypt.c", role: "tomcrypt hash backend", rust: &[], port: Port::None, note: "" },
     Row { c: "cmac_gnutls.c", role: "gnutls CMAC backend", rust: &[], port: Port::None, note: "" },
-    Row { c: "cmac_nettle.c", role: "nettle CMAC backend", rust: &[], port: Port::None, note: "" },
+    Row { c: "cmac_nettle.c", role: "AES-CMAC keyed-MAC instance API (CMC_*)",
+        rust: &["cmac_nettle.rs"], port: Port::Full,
+        note: "complete port of all 4 functions: keyed AES-128/AES-256 CMAC instance, key-length table, truncating CMC_Hash; reuses the shared CMAC-128 from siv_nettle_int over a new FIPS-197 AES-256. Anchored by THREE oracles: RFC 4493 (AES-128-CMAC), NIST SP 800-38B (AES-256-CMAC), and the REAL compiled cmac_nettle.c over a vector-verified shim" },
 
     // ---- NTS (none) ----
     Row { c: "nts_ke_client.c", role: "NTS-KE client", rust: &[], port: Port::None, note: "" },
     Row { c: "nts_ke_server.c", role: "NTS-KE server", rust: &[], port: Port::None, note: "" },
     Row { c: "nts_ke_session.c", role: "NTS-KE TLS session", rust: &[], port: Port::None, note: "" },
-    Row { c: "nts_ntp_auth.c", role: "NTS NTPv4 auth", rust: &[], port: Port::None, note: "" },
+    Row { c: "nts_ntp_auth.c", role: "NTS authenticator + encrypted-EEF extension field (NNA_*)",
+        rust: &["nts_ntp_auth.rs"], port: Port::Full,
+        note: "complete port of all 4 functions: build/parse the NTS auth-and-EEF field (header, nonce+ciphertext layout, 4-byte padding, min-length/min-nonce padding) over the ported ntp_ext layer, with SIV injected; differential-tested vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip, deterministic toy SIV) + independent padding/round-trip checks" },
     Row { c: "nts_ntp_client.c", role: "NTS NTP client", rust: &[], port: Port::None, note: "" },
     Row { c: "nts_ntp_server.c", role: "NTS NTP server", rust: &[], port: Port::None, note: "" },
     Row { c: "siv_gnutls.c", role: "SIV-AEAD (gnutls)", rust: &[], port: Port::None, note: "" },
-    Row { c: "siv_nettle.c", role: "SIV-AEAD (nettle)", rust: &[], port: Port::None, note: "" },
-    Row { c: "siv_nettle_int.c", role: "SIV-AEAD internals", rust: &[], port: Port::None, note: "" },
+    Row { c: "siv_nettle.c", role: "SIV AEAD instance API (SIV_*)",
+        rust: &["siv_nettle.rs"], port: Port::Full,
+        note: "complete port of all 9 functions (no-GCM build): keyed AEAD instance, key/nonce/tag length table, input validation, encrypt/decrypt dispatch over the ported siv_nettle_int (AES-SIV-CMAC-256); GCM-SIV unsupported as that build is; also bridges nts_ntp_auth's SIV so the NTS auth EF round-trips over real AES-SIV. Differential-tested vs the REAL compiled siv_nettle.c (API + validation) — the crypto itself is triple-anchored in siv_nettle_int" },
+    Row { c: "siv_nettle_int.c", role: "AES-SIV-CMAC-256 AEAD (RFC 5297)",
+        rust: &["siv_nettle_int.rs"], port: Port::Full,
+        note: "complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors)" },
 
     // ---- refclocks (none) ----
     Row { c: "refclock.c", role: "reference-clock framework (RCL_*)", rust: &[], port: Port::None, note: "" },
@@ -202,9 +213,13 @@ const MAP: &[Row] = &[
 
     // ---- OS clock adapters (declared negative capability) ----
     Row { c: "sys.c", role: "OS adapter dispatch", rust: &[], port: Port::None, note: "host-clock mutation is a declared boundary" },
-    Row { c: "sys_generic.c", role: "generic clock-driver adapter", rust: &[], port: Port::None, note: "" },
+    Row { c: "sys_generic.c", role: "generic software-slew clock-discipline driver",
+        rust: &["sys_generic.rs"], port: Port::Full,
+        note: "complete port of all 14 functions: the offset->frequency slew model (bounded rate/duration, excess-duration tracking, offset_convert, dispersion on frequency change), with base driver/raw clock/scheduler/step injected; differential-tested vs the REAL compiled sys_generic.c (set_frequency/accrue_offset/end-of-slew sequence) + an independent slew-drain check" },
     Row { c: "sys_linux.c", role: "Linux clock adapter (adjtimex)", rust: &[], port: Port::None, note: "" },
-    Row { c: "sys_timex.c", role: "timex clock adapter", rust: &[], port: Port::None, note: "" },
+    Row { c: "sys_timex.c", role: "adjtimex()/ntp_adjtime() clock driver",
+        rust: &["sys_timex.rs"], port: Port::Full,
+        note: "complete port of all 10 functions (Linux build): ppm<->kernel-freq scaling, sync-status/leap/TAI status bookkeeping over the struct timex ABI, composing the generic slew driver; the adjtimex syscall is injected; differential-tested vs the REAL compiled sys_timex.c (every submitted timex captured) + an independent scaling check" },
     Row { c: "sys_null.c", role: "null clock driver (the `-x` 'disabled control' driver)",
         rust: &["sys_null.rs"], port: Port::Full,
         note: "complete port of all 8 functions; the virtual-clock offset/frequency model (set_freq/accrue/offset_convert); raw time injected as seconds, driver-as-struct (no global LCL registration)" },
@@ -311,6 +326,28 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("main.c", &["main"]),
     ("nameserv.c", &["DNS_Name2IPAddress"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
+    (
+        "keys.c",
+        &[
+            "KEY_Initialise",
+            "KEY_Finalise",
+            "KEY_Reload",
+            "KEY_KeyKnown",
+            "KEY_GetAuthLength",
+            "KEY_CheckKeyLength",
+            "KEY_GetKeyInfo",
+            "KEY_GenerateAuth",
+            "KEY_CheckAuth",
+            "free_keys",
+            "get_key",
+            "decode_key",
+            "compare_keys_by_id",
+            "lookup_key",
+            "get_key_by_id",
+            "generate_auth",
+            "check_auth",
+        ],
+    ),
     ("hash_intmd5.c", &["HSH_GetHashId", "HSH_Hash", "HSH_Finalise"]),
     (
         "local.c",
@@ -402,6 +439,40 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
         ],
     ),
     (
+        "sys_generic.c",
+        &[
+            "SYS_Generic_CompleteFreqDriver",
+            "SYS_Generic_Finalise",
+            "handle_step",
+            "start_fastslew",
+            "stop_fastslew",
+            "clamp_freq",
+            "update_slew",
+            "handle_end_of_slew",
+            "read_frequency",
+            "set_frequency",
+            "accrue_offset",
+            "offset_convert",
+            "apply_step_offset",
+            "set_sync_status",
+        ],
+    ),
+    (
+        "sys_timex.c",
+        &[
+            "SYS_Timex_Initialise",
+            "SYS_Timex_InitialiseWithFunctions",
+            "SYS_Timex_Finalise",
+            "SYS_Timex_Adjust",
+            "convert_timex_frequency",
+            "read_frequency",
+            "set_frequency",
+            "set_leap",
+            "set_sync_status",
+            "initialise_timex",
+        ],
+    ),
+    (
         "sys_null.c",
         &[
             "SYS_Null_Initialise",
@@ -427,6 +498,72 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "ARR_SetSize",
             "ARR_GetSize",
             "realloc_array",
+        ],
+    ),
+    (
+        "nts_ntp_auth.c",
+        &["NNA_GenerateAuthEF", "NNA_DecryptAuthEF", "get_padding_length", "get_padded_length"],
+    ),
+    (
+        "cmac_nettle.c",
+        &["CMC_GetKeyLength", "CMC_CreateInstance", "CMC_Hash", "CMC_DestroyInstance"],
+    ),
+    (
+        "sched.c",
+        &[
+            "SCH_Initialise",
+            "SCH_Finalise",
+            "SCH_AddFileHandler",
+            "SCH_RemoveFileHandler",
+            "SCH_SetFileHandlerEvent",
+            "SCH_GetLastEventTime",
+            "SCH_GetLastEventMonoTime",
+            "allocate_tqe",
+            "release_tqe",
+            "get_new_tqe_id",
+            "SCH_AddTimeout",
+            "SCH_AddTimeoutByDelay",
+            "SCH_AddTimeoutInClass",
+            "SCH_RemoveTimeout",
+            "dispatch_timeouts",
+            "dispatch_filehandlers",
+            "handle_slew",
+            "fill_fd_sets",
+            "check_current_time",
+            "update_monotonic_time",
+            "SCH_MainLoop",
+            "SCH_QuitProgram",
+        ],
+    ),
+    (
+        "siv_nettle.c",
+        &[
+            "SIV_CreateInstance",
+            "SIV_DestroyInstance",
+            "SIV_GetKeyLength",
+            "SIV_SetKey",
+            "SIV_GetMinNonceLength",
+            "SIV_GetMaxNonceLength",
+            "SIV_GetTagLength",
+            "SIV_Encrypt",
+            "SIV_Decrypt",
+        ],
+    ),
+    (
+        "siv_nettle_int.c",
+        &[
+            "CMAC128_CTX",
+            "_cmac128_block_mulx",
+            "cmac128_set_key",
+            "cmac128_update",
+            "cmac128_digest",
+            "cmac_aes128_set_key",
+            "cmac_aes128_update",
+            "cmac_aes128_digest",
+            "_siv_s2v",
+            "siv_cmac_aes128_set_key",
+            "siv_cmac_aes128_encrypt_message",
+            "siv_cmac_aes128_decrypt_message",
         ],
     ),
     (
@@ -542,6 +679,8 @@ pub(crate) struct PortedModule {
     pub role: &'static str,
     /// True for [`Port::Full`], false for [`Port::Partial`].
     pub full: bool,
+    /// chrony-rs module paths that port it.
+    pub rust: &'static [&'static str],
 }
 
 /// The Full and Partial rows of [`MAP`], in catalog order. Drives the generated
@@ -551,7 +690,7 @@ pub(crate) struct PortedModule {
 pub(crate) fn ported_modules() -> Vec<PortedModule> {
     MAP.iter()
         .filter(|r| matches!(r.port, Port::Full | Port::Partial))
-        .map(|r| PortedModule { c: r.c, role: r.role, full: r.port == Port::Full })
+        .map(|r| PortedModule { c: r.c, role: r.role, full: r.port == Port::Full, rust: r.rust })
         .collect()
 }
 

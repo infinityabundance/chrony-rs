@@ -4,14 +4,14 @@ version = 3
 
 [[package]]
 name = "chrony-rs"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "chrony-rs-core",
 ]
 
 [[package]]
 name = "chrony-rs-core"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "chronyc-rs"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "chrony-rs-core",
  "serde",
@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "chronyd-rs"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "chrony-rs-core",
 ]
@@ -125,7 +125,7 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 
 [[package]]
 name = "xtask"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "chrony-rs-core",
  "syn",

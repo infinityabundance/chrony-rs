@@ -15,19 +15,27 @@ where chrony policy differs from generic protocol truth.
 | Surface | Status |
 |---------|--------|
 | MD5 (RFC 1321) for NTP symmetric-key auth | **complete port of `md5.c`** (all 4 functions); byte-exact vs RFC 1321 §A.5 vectors |
+| Symmetric key store + NTP MAC auth | **complete port of `keys.c`** (all 17 functions, internal-MD5 build): key-file parse, sorted store + binary search, MAC generate/verify; vs the REAL compiled keys.c (per-id MAC vectors) + an independent `MD5(key‖msg)` check |
 | NTP/cmd access control (allow/deny subnet trie) | **complete port of `addrfilt.c`** (all 16 functions); decisions **live-witnessed vs `chronyc accheck`** on chrony 4.5 |
 | Robust regression | **complete port of `regress.c`** (all 11 functions): weighted LS, runs-test & median-based robust fits, 2-var regression; vs the REAL compiled regress.c (80 differential vectors) + an independent reference |
 | Client access log + response rate limiter | **complete port of `clientlog.c`** (all 35 functions): per-client hash table, per-service token-bucket limiter w/ probabilistic leak, log2 rate estimate, interleaved-mode RX→TX timestamp map; vs the REAL compiled clientlog.c (5-scenario differential fixture) + an independent token-bucket invariant |
 | Streaming quantile estimator | **complete port of `quantiles.c`** (all 8 functions); structural (convergence-tested; inherently non-deterministic so not byte-witnessed) |
 | NTP packet decode/encode (48-byte header) | byte-roundtrip courts `CHRONY.PACKET.1–.13` (subset admitted) |
+| NTS auth + encrypted-EEF extension field | **complete port of `nts_ntp_auth.c`** (all 4 functions): NTS auth-and-EEF field build/parse + padding, SIV injected; vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip) + independent checks |
+| AES-SIV-CMAC-256 AEAD (RFC 5297) | **complete port of `siv_nettle_int.c`** (all 12 functions): CMAC-128, S2V, SIV encrypt/decrypt + a dependency-free AES-128; anchored by **three** oracles — FIPS-197, RFC 5297 §A.1, and the REAL compiled siv_nettle_int.c |
+| SIV AEAD instance API (`SIV_*`) | **complete port of `siv_nettle.c`** (all 9 functions): keyed instance, length table, input validation, encrypt/decrypt; bridges the NTS auth layer to real AES-SIV; vs the REAL compiled siv_nettle.c |
+| AES-CMAC keyed-MAC API (`CMC_*`) | **complete port of `cmac_nettle.c`** (all 4 functions): AES-128/256 CMAC over a dependency-free AES-256 + the shared CMAC-128; anchored by **three** oracles — RFC 4493, NIST SP 800-38B, and the REAL compiled cmac_nettle.c |
 | NTP timestamp / short fixed-point types | bit-exact roundtrip |
 | chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; **oracle-witnessed against chrony 4.5** — 8/8 accept/reject agreement (incl. Ubuntu default) + exact phrasing for 5 error classes; 82-directive set oracle-anchored |
 | `chronyc tracking` / `sources` output layout | byte-stable courts `CHRONYC.1`/`.2`; `sources` header+legend **live-witnessed vs chrony 4.5**, rows byte-derived from `client.c` (offline render) |
+| Timer/event scheduler | **complete port of `sched.c`** (all 22 functions): sorted timeout queue (class separation + randomness), file-handler registry + select-driven main loop, clock-step shift; clock/`select` injected; vs the REAL compiled sched.c (dispatch order + fire times) + an independent fd-handler test |
 | Deterministic trace schema (`chrony-rs-trace-v1`) | parse + structural validation |
 | `chronyd-rs --replay` | **deterministic replay** through a simulated clock; reproducible decision-log hash + pinned-hash regression check (chrony selection/discipline policy not yet applied) |
 | NTP offset/delay measurement | RFC 5905 §8 algebra, era-safe differences (`ntp::Measurement`) |
 | Source reachability + selection | 8-bit reach register (exact); selectability gate; falseticker interval intersection driven by computed offsets (`sources/`, `tests/pipeline.rs`) — algorithmic, not yet oracle-witnessed |
 | SHA-256 receipts | dependency-free, FIPS-vectored (`hash.rs`) |
+| Generic software-slew clock discipline | **complete port of `sys_generic.c`** (all 14 functions): offset→frequency slew model (bounded rate/duration, `offset_convert`, dispersion); vs the REAL compiled sys_generic.c + an independent slew-drain check |
+| `adjtimex()` clock driver | **complete port of `sys_timex.c`** (all 10 functions, Linux build): ppm⇄kernel-freq scaling, sync-status/leap/TAI bookkeeping over the `struct timex` ABI (syscall injected); vs the REAL compiled sys_timex.c (every submitted `timex` captured) + an independent scaling check |
 | Simulated clock | side-effect-free time base, no host mutation (`clock.rs`) |
 | Source archaeology + ecology docs | scaffolded under `docs/` |
 
