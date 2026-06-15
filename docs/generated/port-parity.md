@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 27 / 70 (16 full, 8 partial, 3 scaffold); **43** have none.
-- **Files fully ported:** 16 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Files with any chrony-rs counterpart:** 27 / 70 (17 full, 8 partial, 2 scaffold); **43** have none.
+- **Files fully ported:** 17 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 721 / 1373 C functions (52.5%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 488 named functions + 70 closures across 42 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 542 named functions + 77 closures across 43 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -44,7 +44,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `hash_tomcrypt.c` | 3 | 0.0% | tomcrypt hash backend | — | · none |
 | `hwclock.c` | 7 | 100.0% | hardware-clock tracking (HCL_*) | `hwclock.rs` | ● full |
 | `keys.c` | 17 | 0.0% | symmetric key store | — | · none |
-| `local.c` | 35 | 0.0% | local clock read/adjust abstraction (LCL_*) | `clock.rs` | ○ scaffold |
+| `local.c` | 35 | 100.0% | local clock hub: read/cook time, discipline, handlers (LCL_*) | `local.rs` | ● full |
 | `logging.c` | 17 | 0.0% | logging subsystem (LOG_*) | — | · none |
 | `main.c` | 16 | 6.2% | daemon entry, arg parsing, lifecycle | `chronyd-rs/src/main.rs` | ◑ partial |
 | `manual.c` | 11 | 100.0% | manual time input / settime (MNL_*) | `manual.rs` | ● full |
@@ -113,7 +113,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`samplefilt.c`** — complete port of all 18 functions; circular sample buffer + dispersion/offset selection + weighted-regression combine (composes the verified regress); select_samples' index-permutation computed directly to the same result; precision/time injected _(≈23 Rust `fn` in mapped modules)_
 - **`quantiles.c`** — complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable _(≈14 Rust `fn` in mapped modules)_
 - **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈42 Rust `fn` in mapped modules)_
-- **`local.c`** — side-effect-free simulated clock; no real read/adjust _(≈12 Rust `fn` in mapped modules)_
+- **`local.c`** — complete port of all 35 functions; composes the ported sys_null driver (ClockDriver trait) + optional smooth hooks; raw clock/config injected, handlers id-registered (closures); discipline/temp-comp/precision/handler tests _(≈54 Rust `fn` in mapped modules)_
 - **`smooth.c`** — complete port of all 12 functions; the 3-stage bounded-freq/wander trajectory (update_stages/get_smoothing) verified vs a reference impl; time as seconds, config/skew injected, struct-as-handler _(≈17 Rust `fn` in mapped modules)_
 - **`tempcomp.c`** — complete port of all 5 functions; quadratic + point-table interpolation (points stored in the ported array::Array); temp injected, comp returned, points/coefs as data _(≈11 Rust `fn` in mapped modules)_
 - **`sched.c`** — deterministic replay loop is a stand-in, not the SCH_ timer wheel _(≈13 Rust `fn` in mapped modules)_

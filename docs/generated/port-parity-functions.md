@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 194 / 1373 C functions have a direct counterpart (14.1%).** The other 1179 are gaps.
+**Overall: 229 / 1373 C functions have a direct counterpart (16.7%).** The other 1144 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -26,6 +26,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `cmdparse.c` | 8 | 8 | 0 | 100.0% |
 | `hash_intmd5.c` | 3 | 3 | 0 | 100.0% |
 | `hwclock.c` | 7 | 7 | 0 | 100.0% |
+| `local.c` | 35 | 35 | 0 | 100.0% |
 | `manual.c` | 11 | 11 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
 | `ntp_ext.c` | 6 | 6 | 0 | 100.0% |
@@ -53,7 +54,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `hash_nss.c` | 3 | 0 | 3 | 0.0% |
 | `hash_tomcrypt.c` | 3 | 0 | 3 | 0.0% |
 | `keys.c` | 17 | 0 | 17 | 0.0% |
-| `local.c` | 35 | 0 | 35 | 0.0% |
 | `logging.c` | 17 | 0 | 17 | 0.0% |
 | `memory.c` | 6 | 0 | 6 | 0.0% |
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
@@ -154,6 +154,44 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `HCL_NeedsNewSample`
 - ✓ `HCL_ProcessReadings`
 - ✓ `handle_slew`
+
+### `local.c` — 35/35 (100.0%)
+
+- ✓ `LCL_AccumulateDeltaFrequency`
+- ✓ `LCL_AccumulateFrequencyAndOffset`
+- ✓ `LCL_AccumulateFrequencyAndOffsetNoHandlers`
+- ✓ `LCL_AccumulateOffset`
+- ✓ `LCL_AddDispersionNotifyHandler`
+- ✓ `LCL_AddParameterChangeHandler`
+- ✓ `LCL_ApplyStepOffset`
+- ✓ `LCL_CanSystemLeap`
+- ✓ `LCL_CancelOffsetCorrection`
+- ✓ `LCL_CookTime`
+- ✓ `LCL_Finalise`
+- ✓ `LCL_GetMaxClockError`
+- ✓ `LCL_GetOffsetCorrection`
+- ✓ `LCL_GetSysPrecisionAsLog`
+- ✓ `LCL_GetSysPrecisionAsQuantum`
+- ✓ `LCL_Initialise`
+- ✓ `LCL_IsFirstParameterChangeHandler`
+- ✓ `LCL_MakeStep`
+- ✓ `LCL_NotifyExternalTimeStep`
+- ✓ `LCL_NotifyLeap`
+- ✓ `LCL_ReadAbsoluteFrequency`
+- ✓ `LCL_ReadCookedTime`
+- ✓ `LCL_ReadRawTime`
+- ✓ `LCL_RemoveDispersionNotifyHandler`
+- ✓ `LCL_RemoveParameterChangeHandler`
+- ✓ `LCL_SetAbsoluteFrequency`
+- ✓ `LCL_SetSyncStatus`
+- ✓ `LCL_SetSystemLeap`
+- ✓ `LCL_SetTempComp`
+- ✓ `check_offset`
+- ✓ `clamp_freq`
+- ✓ `invoke_parameter_change_handlers`
+- ✓ `lcl_InvokeDispersionNotifyHandlers`
+- ✓ `lcl_RegisterSystemDrivers`
+- ✓ `measure_clock_precision`
 
 ### `manual.c` — 11/11 (100.0%)
 

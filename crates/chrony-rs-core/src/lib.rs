@@ -38,6 +38,7 @@ pub mod config;
 pub mod hash;
 pub mod hash_intmd5;
 pub mod hwclock;
+pub mod local;
 pub mod manual;
 pub mod md5;
 pub mod nameserv;
