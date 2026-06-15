@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 144 / 1373 C functions have a direct counterpart (10.5%).** The other 1229 are gaps.
+**Overall: 162 / 1373 C functions have a direct counterpart (11.8%).** The other 1211 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -32,6 +32,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `pktlength.c` | 3 | 3 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
+| `samplefilt.c` | 18 | 18 | 0 | 100.0% |
 | `smooth.c` | 12 | 12 | 0 | 100.0% |
 | `sys_null.c` | 8 | 8 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
@@ -75,7 +76,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `reference.c` | 45 | 0 | 45 | 0.0% |
 | `rtc.c` | 9 | 0 | 9 | 0.0% |
 | `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
-| `samplefilt.c` | 18 | 0 | 18 | 0.0% |
 | `sched.c` | 22 | 0 | 22 | 0.0% |
 | `siv_gnutls.c` | 12 | 0 | 12 | 0.0% |
 | `siv_nettle.c` | 9 | 0 | 9 | 0.0% |
@@ -215,6 +215,27 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `find_median`
 - ✓ `find_ordered_entry_with_flags`
 - ✓ `n_runs_from_residuals`
+
+### `samplefilt.c` — 18/18 (100.0%)
+
+- ✓ `SPF_AccumulateSample`
+- ✓ `SPF_AddDispersion`
+- ✓ `SPF_CorrectOffset`
+- ✓ `SPF_CreateInstance`
+- ✓ `SPF_DestroyInstance`
+- ✓ `SPF_DropSamples`
+- ✓ `SPF_GetAvgSampleDispersion`
+- ✓ `SPF_GetFilteredSample`
+- ✓ `SPF_GetLastSample`
+- ✓ `SPF_GetMaxSamples`
+- ✓ `SPF_GetNumberOfSamples`
+- ✓ `SPF_SlewSamples`
+- ✓ `check_sample`
+- ✓ `combine_selected_samples`
+- ✓ `compare_samples`
+- ✓ `drop_samples`
+- ✓ `get_first_last`
+- ✓ `select_samples`
 
 ### `smooth.c` — 12/12 (100.0%)
 

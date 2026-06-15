@@ -47,6 +47,7 @@ pub mod quantiles;
 pub mod regress;
 pub mod replay;
 pub mod report;
+pub mod samplefilt;
 pub mod smooth;
 pub mod sources;
 pub mod sys_null;
