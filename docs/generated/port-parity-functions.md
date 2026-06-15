@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 356 / 1373 C functions have a direct counterpart (25.9%).** The other 1017 are gaps.
+**Overall: 360 / 1373 C functions have a direct counterpart (26.2%).** The other 1013 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -34,6 +34,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `md5.c` | 4 | 4 | 0 | 100.0% |
 | `ntp_ext.c` | 6 | 6 | 0 | 100.0% |
 | `nts_ntp_auth.c` | 4 | 4 | 0 | 100.0% |
+| `nts_ntp_server.c` | 4 | 4 | 0 | 100.0% |
 | `pktlength.c` | 3 | 3 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
@@ -72,7 +73,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nts_ke_server.c` | 21 | 0 | 21 | 0.0% |
 | `nts_ke_session.c` | 32 | 0 | 32 | 0.0% |
 | `nts_ntp_client.c` | 17 | 0 | 17 | 0.0% |
-| `nts_ntp_server.c` | 4 | 0 | 4 | 0.0% |
 | `privops.c` | 12 | 0 | 12 | 0.0% |
 | `refclock.c` | 28 | 0 | 28 | 0.0% |
 | `refclock_phc.c` | 0 | 0 | 0 | 0.0% |
@@ -294,6 +294,13 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `NNA_GenerateAuthEF`
 - ✓ `get_padded_length`
 - ✓ `get_padding_length`
+
+### `nts_ntp_server.c` — 4/4 (100.0%)
+
+- ✓ `NNS_CheckRequestAuth`
+- ✓ `NNS_Finalise`
+- ✓ `NNS_GenerateResponseAuth`
+- ✓ `NNS_Initialise`
 
 ### `pktlength.c` — 3/3 (100.0%)
 

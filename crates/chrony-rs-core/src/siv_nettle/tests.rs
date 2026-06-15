@@ -118,7 +118,7 @@ fn nts_auth_round_trips_over_real_siv() {
         b[0] = 0x23;
         b[1] = 0x02;
     }
-    let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, ext_fields: 0 };
+    let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: 0, ext_fields: 0 };
 
     let nonce = [0x5au8; 16];
     let inner = b"encrypted inner extension fields";

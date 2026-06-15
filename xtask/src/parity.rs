@@ -188,7 +188,9 @@ const MAP: &[Row] = &[
         rust: &["nts_ntp_auth.rs"], port: Port::Full,
         note: "complete port of all 4 functions: build/parse the NTS auth-and-EEF field (header, nonce+ciphertext layout, 4-byte padding, min-length/min-nonce padding) over the ported ntp_ext layer, with SIV injected; differential-tested vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip, deterministic toy SIV) + independent padding/round-trip checks" },
     Row { c: "nts_ntp_client.c", role: "NTS NTP client", rust: &[], port: Port::None, note: "" },
-    Row { c: "nts_ntp_server.c", role: "NTS NTP server", rust: &[], port: Port::None, note: "" },
+    Row { c: "nts_ntp_server.c", role: "server-side NTS-NTP authentication (NNS_*)",
+        rust: &["nts_ntp_server.rs"], port: Port::Full,
+        note: "complete port of all 4 functions: parse NTS request EFs (unique-id/cookie/placeholder/auth), decode cookie -> session keys, key SIV with C2S + verify/decrypt the authenticator, prepare fresh cookies, and build the S2C-authenticated response; composes the ported ntp_ext + nts_ntp_auth + siv (real AES-SIV-CMAC), with the cookie codec injected. Differential-tested vs the REAL compiled nts_ntp_server.c (byte-identical response + tamper/missing-cookie rejection) + a full round-trip" },
     Row { c: "siv_gnutls.c", role: "SIV-AEAD (gnutls)", rust: &[], port: Port::None, note: "" },
     Row { c: "siv_nettle.c", role: "SIV AEAD instance API (SIV_*)",
         rust: &["siv_nettle.rs"], port: Port::Full,
@@ -534,6 +536,10 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "SCH_MainLoop",
             "SCH_QuitProgram",
         ],
+    ),
+    (
+        "nts_ntp_server.c",
+        &["NNS_Initialise", "NNS_Finalise", "NNS_CheckRequestAuth", "NNS_GenerateResponseAuth"],
     ),
     (
         "siv_nettle.c",

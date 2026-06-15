@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 35 / 70 (26 full, 8 partial, 1 scaffold); **35** have none.
-- **Files fully ported:** 26 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 826 / 1373 C functions (60.2%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 36 / 70 (27 full, 8 partial, 1 scaffold); **34** have none.
+- **Files fully ported:** 27 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 830 / 1373 C functions (60.5%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 819 named functions + 150 closures across 61 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 835 named functions + 159 closures across 63 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -64,7 +64,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `nts_ke_session.c` | 32 | 0.0% | NTS-KE TLS session | — | · none |
 | `nts_ntp_auth.c` | 4 | 100.0% | NTS authenticator + encrypted-EEF extension field (NNA_*) | `nts_ntp_auth.rs` | ● full |
 | `nts_ntp_client.c` | 17 | 0.0% | NTS NTP client | — | · none |
-| `nts_ntp_server.c` | 4 | 0.0% | NTS NTP server | — | · none |
+| `nts_ntp_server.c` | 4 | 100.0% | server-side NTS-NTP authentication (NNS_*) | `nts_ntp_server.rs` | ● full |
 | `pktlength.c` | 3 | 100.0% | cmdmon request/reply length tables (PKL_*) | `pktlength.rs` | ● full |
 | `privops.c` | 12 | 0.0% | privilege-separation helper | — | · none |
 | `quantiles.c` | 8 | 100.0% | streaming (stochastic) quantile estimator | `quantiles.rs` | ● full |
@@ -126,6 +126,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`hash_intmd5.c`** — complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested _(≈8 Rust `fn` in mapped modules)_
 - **`cmac_nettle.c`** — complete port of all 4 functions: keyed AES-128/AES-256 CMAC instance, key-length table, truncating CMC_Hash; reuses the shared CMAC-128 from siv_nettle_int over a new FIPS-197 AES-256. Anchored by THREE oracles: RFC 4493 (AES-128-CMAC), NIST SP 800-38B (AES-256-CMAC), and the REAL compiled cmac_nettle.c over a vector-verified shim _(≈12 Rust `fn` in mapped modules)_
 - **`nts_ntp_auth.c`** — complete port of all 4 functions: build/parse the NTS auth-and-EEF field (header, nonce+ciphertext layout, 4-byte padding, min-length/min-nonce padding) over the ported ntp_ext layer, with SIV injected; differential-tested vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip, deterministic toy SIV) + independent padding/round-trip checks _(≈8 Rust `fn` in mapped modules)_
+- **`nts_ntp_server.c`** — complete port of all 4 functions: parse NTS request EFs (unique-id/cookie/placeholder/auth), decode cookie -> session keys, key SIV with C2S + verify/decrypt the authenticator, prepare fresh cookies, and build the S2C-authenticated response; composes the ported ntp_ext + nts_ntp_auth + siv (real AES-SIV-CMAC), with the cookie codec injected. Differential-tested vs the REAL compiled nts_ntp_server.c (byte-identical response + tamper/missing-cookie rejection) + a full round-trip _(≈7 Rust `fn` in mapped modules)_
 - **`siv_nettle.c`** — complete port of all 9 functions (no-GCM build): keyed AEAD instance, key/nonce/tag length table, input validation, encrypt/decrypt dispatch over the ported siv_nettle_int (AES-SIV-CMAC-256); GCM-SIV unsupported as that build is; also bridges nts_ntp_auth's SIV so the NTS auth EF round-trips over real AES-SIV. Differential-tested vs the REAL compiled siv_nettle.c (API + validation) — the crypto itself is triple-anchored in siv_nettle_int _(≈13 Rust `fn` in mapped modules)_
 - **`siv_nettle_int.c`** — complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors) _(≈24 Rust `fn` in mapped modules)_
 - **`hwclock.c`** — complete port of all 7 functions; composes the ported quantile delay filter + robust regression over Vec<f64> sample buffers; clean-offset model verified vs reference; cook/precision/abs-freq injected _(≈11 Rust `fn` in mapped modules)_

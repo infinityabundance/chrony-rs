@@ -158,6 +158,9 @@ pub struct NtpPacketInfo {
     /// Current packet length (header + already-appended fields).
     pub length: i32,
     pub version: i32,
+    /// NTP mode (chrony `NTP_Mode`: `MODE_CLIENT` = 3, `MODE_SERVER` = 4). Read by
+    /// higher layers (e.g. NTS server processing); `ntp_ext` itself ignores it.
+    pub mode: i32,
     pub ext_fields: i32,
 }
 
@@ -265,7 +268,7 @@ mod tests {
     fn add_and_parse_field_on_a_packet() {
         let mut pkt = NtpPacketBuf::new();
         pkt.set_lvm(0x23); // version 4, mode 3 -> (0x23>>3)&7 = 4
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: 0, ext_fields: 0 };
 
         // A 28-byte body -> 32-byte field (> NTP_MIN_EF_LENGTH and > MAC length).
         let body: Vec<u8> = (0..28).map(|i| i as u8).collect();
@@ -283,10 +286,10 @@ mod tests {
     fn add_field_requires_v4_and_alignment() {
         let mut pkt = NtpPacketBuf::new();
         // version 3 in info -> rejected
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 3, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 3, mode: 0, ext_fields: 0 };
         assert!(!add_field(&mut pkt, &mut info, 0x0204, &[0u8; 28]));
         // misaligned current length -> rejected
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH + 1, version: 4, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH + 1, version: 4, mode: 0, ext_fields: 0 };
         assert!(!add_field(&mut pkt, &mut info, 0x0204, &[0u8; 28]));
     }
 

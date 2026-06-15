@@ -15,7 +15,7 @@ below come from the port-parity matrix, so they cannot disagree with what is
 actually ported. See the [full matrix](../../docs/generated/port-parity.md) and the
 [per-function gap view](../../docs/generated/port-parity-functions.md).
 
-## Fully ported chrony translation units (26)
+## Fully ported chrony translation units (27)
 
 Every function in these units has a court-backed counterpart (differential tests
 against the real compiled C and/or protocol-spec vectors):
@@ -37,6 +37,7 @@ against the real compiled C and/or protocol-spec vectors):
 - `hash_intmd5.c` → `hash_intmd5.rs` — internal MD5 hash backend (HSH_*)
 - `cmac_nettle.c` → `cmac_nettle.rs` — AES-CMAC keyed-MAC instance API (CMC_*)
 - `nts_ntp_auth.c` → `nts_ntp_auth.rs` — NTS authenticator + encrypted-EEF extension field (NNA_*)
+- `nts_ntp_server.c` → `nts_ntp_server.rs` — server-side NTS-NTP authentication (NNS_*)
 - `siv_nettle.c` → `siv_nettle.rs` — SIV AEAD instance API (SIV_*)
 - `siv_nettle_int.c` → `siv_nettle_int.rs` — AES-SIV-CMAC-256 AEAD (RFC 5297)
 - `hwclock.c` → `hwclock.rs` — hardware-clock tracking (HCL_*)

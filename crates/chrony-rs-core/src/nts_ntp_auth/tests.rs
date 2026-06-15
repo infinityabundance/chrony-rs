@@ -148,7 +148,7 @@ fn matches_real_c_nts_ntp_auth_vectors() {
 
     for (idx, (&(pl, nl, min_ef), exp)) in cases.iter().zip(exps.iter()).enumerate() {
         let mut pkt = make_packet();
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: 0, ext_fields: 0 };
         let mut siv = ToySiv;
 
         let nonce: Vec<u8> = (0..nl).map(|i| (0xA0 + i) as u8).collect();
@@ -183,7 +183,7 @@ fn independent_round_trip_and_padding() {
     // A generate→decrypt round-trip recovers the plaintext, and the field lands on
     // a 4-byte boundary.
     let mut pkt = make_packet();
-    let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, ext_fields: 0 };
+    let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: 0, ext_fields: 0 };
     let mut siv = ToySiv;
     let nonce = [0x11u8; 16];
     let plaintext = b"inner extension fields";
@@ -200,7 +200,7 @@ fn independent_round_trip_and_padding() {
 #[test]
 fn decrypt_rejects_tampered_ciphertext() {
     let mut pkt = make_packet();
-    let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, ext_fields: 0 };
+    let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: 0, ext_fields: 0 };
     let mut siv = ToySiv;
     let nonce = [0x22u8; 16];
     assert!(generate_auth_ef(&mut pkt, &mut info, &mut siv, &nonce, 16, b"secret!!", 0));
