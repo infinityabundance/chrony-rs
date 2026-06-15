@@ -188,7 +188,9 @@ const MAP: &[Row] = &[
     Row { c: "nts_ntp_server.c", role: "NTS NTP server", rust: &[], port: Port::None, note: "" },
     Row { c: "siv_gnutls.c", role: "SIV-AEAD (gnutls)", rust: &[], port: Port::None, note: "" },
     Row { c: "siv_nettle.c", role: "SIV-AEAD (nettle)", rust: &[], port: Port::None, note: "" },
-    Row { c: "siv_nettle_int.c", role: "SIV-AEAD internals", rust: &[], port: Port::None, note: "" },
+    Row { c: "siv_nettle_int.c", role: "AES-SIV-CMAC-256 AEAD (RFC 5297)",
+        rust: &["siv_nettle_int.rs"], port: Port::Full,
+        note: "complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors)" },
 
     // ---- refclocks (none) ----
     Row { c: "refclock.c", role: "reference-clock framework (RCL_*)", rust: &[], port: Port::None, note: "" },
@@ -496,6 +498,23 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     (
         "nts_ntp_auth.c",
         &["NNA_GenerateAuthEF", "NNA_DecryptAuthEF", "get_padding_length", "get_padded_length"],
+    ),
+    (
+        "siv_nettle_int.c",
+        &[
+            "CMAC128_CTX",
+            "_cmac128_block_mulx",
+            "cmac128_set_key",
+            "cmac128_update",
+            "cmac128_digest",
+            "cmac_aes128_set_key",
+            "cmac_aes128_update",
+            "cmac_aes128_digest",
+            "_siv_s2v",
+            "siv_cmac_aes128_set_key",
+            "siv_cmac_aes128_encrypt_message",
+            "siv_cmac_aes128_decrypt_message",
+        ],
     ),
     (
         "ntp_ext.c",
