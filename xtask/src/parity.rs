@@ -195,7 +195,9 @@ const MAP: &[Row] = &[
     Row { c: "sys_generic.c", role: "generic clock-driver adapter", rust: &[], port: Port::None, note: "" },
     Row { c: "sys_linux.c", role: "Linux clock adapter (adjtimex)", rust: &[], port: Port::None, note: "" },
     Row { c: "sys_timex.c", role: "timex clock adapter", rust: &[], port: Port::None, note: "" },
-    Row { c: "sys_null.c", role: "no-op clock adapter", rust: &[], port: Port::None, note: "" },
+    Row { c: "sys_null.c", role: "null clock driver (the `-x` 'disabled control' driver)",
+        rust: &["sys_null.rs"], port: Port::Full,
+        note: "complete port of all 8 functions; the virtual-clock offset/frequency model (set_freq/accrue/offset_convert); raw time injected as seconds, driver-as-struct (no global LCL registration)" },
     Row { c: "sys_macosx.c", role: "macOS clock adapter", rust: &[], port: Port::None, note: "not in Linux preprocessing (0 fns)" },
     Row { c: "sys_netbsd.c", role: "NetBSD clock adapter", rust: &[], port: Port::None, note: "" },
     Row { c: "sys_posix.c", role: "POSIX clock adapter", rust: &[], port: Port::None, note: "not in Linux preprocessing (0 fns)" },
@@ -280,6 +282,19 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     ("hash_intmd5.c", &["HSH_GetHashId", "HSH_Hash", "HSH_Finalise"]),
     ("pktlength.c", &["PKL_CommandLength", "PKL_CommandPaddingLength", "PKL_ReplyLength"]),
+    (
+        "sys_null.c",
+        &[
+            "SYS_Null_Initialise",
+            "SYS_Null_Finalise",
+            "update_offset",
+            "read_frequency",
+            "set_frequency",
+            "accrue_offset",
+            "apply_step_offset",
+            "offset_convert",
+        ],
+    ),
     (
         "array.c",
         &[

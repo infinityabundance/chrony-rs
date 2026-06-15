@@ -46,6 +46,7 @@ pub mod regress;
 pub mod replay;
 pub mod report;
 pub mod sources;
+pub mod sys_null;
 pub mod trace;
 pub mod util;
 

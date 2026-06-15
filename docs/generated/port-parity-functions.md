@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 100 / 1373 C functions have a direct counterpart (7.3%).** The other 1273 are gaps.
+**Overall: 108 / 1373 C functions have a direct counterpart (7.9%).** The other 1265 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -30,6 +30,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `pktlength.c` | 3 | 3 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
+| `sys_null.c` | 8 | 8 | 0 | 100.0% |
 | `nameserv.c` | 4 | 1 | 3 | 25.0% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 9 | 67 | 11.8% |
@@ -86,7 +87,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_linux.c` | 14 | 0 | 14 | 0.0% |
 | `sys_macosx.c` | 0 | 0 | 0 | 0.0% |
 | `sys_netbsd.c` | 4 | 0 | 4 | 0.0% |
-| `sys_null.c` | 8 | 0 | 8 | 0.0% |
 | `sys_posix.c` | 0 | 0 | 0 | 0.0% |
 | `sys_solaris.c` | 3 | 0 | 3 | 0.0% |
 | `sys_timex.c` | 10 | 0 | 10 | 0.0% |
@@ -191,6 +191,17 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `find_median`
 - ✓ `find_ordered_entry_with_flags`
 - ✓ `n_runs_from_residuals`
+
+### `sys_null.c` — 8/8 (100.0%)
+
+- ✓ `SYS_Null_Finalise`
+- ✓ `SYS_Null_Initialise`
+- ✓ `accrue_offset`
+- ✓ `apply_step_offset`
+- ✓ `offset_convert`
+- ✓ `read_frequency`
+- ✓ `set_frequency`
+- ✓ `update_offset`
 
 ### `nameserv.c` — 1/4 (25.0%)
 
