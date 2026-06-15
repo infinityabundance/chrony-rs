@@ -40,9 +40,9 @@ tables, `unsafe` count, oracle fixture inventory) live in
 [`generated/status.md`](generated/status.md), produced by `cargo xtask gen` from
 the code — the single source of truth. [`negative-capabilities.md`](negative-capabilities.md)
 is **also generated**: its "implemented modules" list is derived from the port-parity
-matrix, so it can never claim an implemented module is absent. The three crate
-READMEs (`crates/*/README.md`) are generated too — the core crate's ported-unit list
-comes straight from the parity matrix.
+matrix, so it can never claim an implemented module is absent. The workspace root
+README and all four crate READMEs (`crates/*/README.md`) are generated too — the umbrella/core
+crate ported-unit lists come straight from the parity matrix.
 
 Two enforcement layers run in `cargo xtask check` (via the pre-commit hook
 `.githooks/pre-commit`, activate with `git config core.hooksPath .githooks`):

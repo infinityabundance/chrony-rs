@@ -279,6 +279,7 @@ pub fn root_readme(root: &Path) -> String {
         A lean Cargo workspace:\n\n\
         ```\n\
         crates/\n  \
+          chrony-rs        public umbrella crate (re-exports chrony-rs-core)\n  \
           chrony-rs-core   deterministic time-discipline brain (no host clock, no sockets)\n  \
           chronyd-rs       daemon/replay binary (lab & offline modes only)\n  \
           chronyc-rs       control client & output-parity tool\n\
@@ -298,7 +299,7 @@ pub fn root_readme(root: &Path) -> String {
         `cargo xtask gen` — including the\n\
         **[port-parity matrix](docs/generated/port-parity.md)** and a\n\
         **[per-function gap view](docs/generated/port-parity-functions.md)**. The\n\
-        [negative-capabilities ledger](docs/negative-capabilities.md), all three crate\n\
+        [negative-capabilities ledger](docs/negative-capabilities.md), all four crate\n\
         READMEs, **and this README** are generated too.\n\n\
         A pre-commit hook runs `cargo xtask check`, which rejects any commit where (1) a\n\
         generated doc is stale, or (2) a curated prose doc has drifted from a machine fact\n\
@@ -358,6 +359,44 @@ chronyd-rs --check-config examples/minimal.conf\n\
 chronyd-rs --replay <trace.json>\n\
 chronyc-rs render-tracking <fixture.json>\n\
 ```\n\n";
+
+/// Render `crates/chrony-rs/README.md` (the public umbrella crate).
+///
+/// Generated and gated like the other crate READMEs: the fully-ported unit count
+/// and `unsafe` count are derived from the parity matrix / live scan, so the
+/// umbrella crate's headline cannot drift from what is implemented.
+pub fn facade_readme(root: &Path) -> String {
+    let full = crate::parity::ported_modules().into_iter().filter(|m| m.full).count();
+    let unsafe_count = count_unsafe(root);
+    let mut s = String::new();
+    s.push_str(HEADER);
+    s.push_str(&format!(
+        "\n# chrony-rs\n\n\
+        The public umbrella crate for **chrony-rs** — a forensic Rust reconstruction of\n\
+        chrony {TARGET_CHRONY_VERSION}'s time-discipline behavior, verified by\n\
+        differential comparison against the real chrony C sources and by protocol/spec\n\
+        vectors (RFC, FIPS, NIST).\n\n\
+        This crate is the named entry point. It re-exports the deterministic, host-free\n\
+        core ([`chrony-rs-core`](../chrony-rs-core/README.md)) as `chrony_rs::core`. The\n\
+        daemon/replay and control-client are separate crates\n\
+        ([`chronyd-rs`](../chronyd-rs/README.md), [`chronyc-rs`](../chronyc-rs/README.md)).\n\n\
+        This file is **generated** (`cargo xtask gen`) and freshness-gated.\n\n\
+        ## What's inside\n\n\
+        - **{full}** chrony {TARGET_CHRONY_VERSION} translation units ported in full, each\n\
+        function court-backed against the real compiled C and/or protocol-spec vectors —\n\
+        see the [port-parity matrix](../../docs/generated/port-parity.md) and the core\n\
+        crate's [README](../chrony-rs-core/README.md).\n\
+        - **{unsafe_count}** `unsafe` blocks across the workspace (the crate is\n\
+        `#![forbid(unsafe_code)]`).\n\n\
+        ## What is NOT claimed\n\n\
+        `chrony-rs` is a forensic reconstruction, **not** a production NTP daemon: no real\n\
+        system-clock mutation, no live control socket, no production-replacement claim.\n\
+        The boundaries are enumerated in the generated\n\
+        [negative-capabilities ledger](../../docs/negative-capabilities.md) and the\n\
+        [workspace README](../../README.md). Targets chrony {TARGET_CHRONY_VERSION}.\n"
+    ));
+    s
+}
 
 /// Render `crates/chrony-rs-core/README.md`.
 ///
@@ -481,7 +520,12 @@ pub fn count_unsafe(root: &Path) -> usize {
     let crates = root.join("crates");
     let mut count = 0;
     visit_rs_files(&crates, &mut |content| {
-        count += content.matches("unsafe").count();
+        // `unsafe_code` is the lint identifier in `#![forbid(unsafe_code)]` — a
+        // *safety* assertion, the opposite of unsafe code — so it must not be
+        // counted. Strip it first, then count real `unsafe` occurrences. The scan
+        // still over-reports (it counts the word even in comments/strings), which
+        // is the conservative direction: it can only flag, never hide.
+        count += content.replace("unsafe_code", "").matches("unsafe").count();
     });
     // xtask itself and tools are excluded by construction (only crates/ scanned).
     count

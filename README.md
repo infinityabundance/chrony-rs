@@ -99,6 +99,7 @@ A lean Cargo workspace:
 
 ```
 crates/
+  chrony-rs        public umbrella crate (re-exports chrony-rs-core)
   chrony-rs-core   deterministic time-discipline brain (no host clock, no sockets)
   chronyd-rs       daemon/replay binary (lab & offline modes only)
   chronyc-rs       control client & output-parity tool
@@ -118,7 +119,7 @@ generated from the code into [`docs/generated/`](docs/generated/) by
 `cargo xtask gen` — including the
 **[port-parity matrix](docs/generated/port-parity.md)** and a
 **[per-function gap view](docs/generated/port-parity-functions.md)**. The
-[negative-capabilities ledger](docs/negative-capabilities.md), all three crate
+[negative-capabilities ledger](docs/negative-capabilities.md), all four crate
 READMEs, **and this README** are generated too.
 
 A pre-commit hook runs `cargo xtask check`, which rejects any commit where (1) a

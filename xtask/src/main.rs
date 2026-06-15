@@ -65,6 +65,7 @@ fn artifacts(root: &Path) -> Vec<(PathBuf, String)> {
             generate::negative_capabilities_md(root),
         ),
         (root.join("README.md"), generate::root_readme(root)),
+        (root.join("crates/chrony-rs/README.md"), generate::facade_readme(root)),
         (root.join("crates/chrony-rs-core/README.md"), generate::core_readme(root)),
         (root.join("crates/chronyd-rs/README.md"), generate::chronyd_readme(root)),
         (root.join("crates/chronyc-rs/README.md"), generate::chronyc_readme(root)),

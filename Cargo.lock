@@ -3,6 +3,13 @@
 version = 3
 
 [[package]]
+name = "chrony-rs"
+version = "0.1.0"
+dependencies = [
+ "chrony-rs-core",
+]
+
+[[package]]
 name = "chrony-rs-core"
 version = "0.1.0"
 dependencies = [

@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/chrony-rs",
     "crates/chrony-rs-core",
     "crates/chronyd-rs",
     "crates/chronyc-rs",
