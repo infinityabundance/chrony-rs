@@ -224,6 +224,141 @@ daemon does not, and is not claimed:
 
 ";
 
+/// Render the workspace root `README.md`.
+///
+/// Generated so the "What exists today" surface — the part that grew stale every
+/// time a file was ported — comes straight from the parity [`MAP`](crate::parity).
+/// The curated prose (doctrine, boundaries, architecture) lives here as constants;
+/// the fully-ported list and the version/directive numbers are derived.
+pub fn root_readme(root: &Path) -> String {
+    let full: Vec<_> = crate::parity::ported_modules().into_iter().filter(|m| m.full).collect();
+    let directives = config::known_directives().len();
+    let ver = TARGET_CHRONY_VERSION;
+
+    let mut s = String::new();
+    s.push_str(HEADER);
+    s.push_str(&format!(
+        "\n# chrony-rs\n\n\
+        `chrony-rs` is a **forensic Rust reconstruction of chrony's time-discipline\n\
+        behavior**. It is developed by differential comparison against the real chrony\n\
+        {ver} C sources and `chronyd`, deterministic trace replay, packet-level byte\n\
+        receipts, and explicit deployment-boundary documentation.\n\n\
+        This is **not** a clean-room \"inspired by chrony\" rewrite, not a toy NTP daemon,\n\
+        and not a production replacement. The C chrony implementation remains the primary\n\
+        behavioral oracle; independent NTP/protocol witnesses (RFC vectors, FIPS/NIST\n\
+        known-answer tests) are used only to classify where chrony policy differs from\n\
+        generic protocol truth.\n\n"
+    ));
+
+    s.push_str(&format!(
+        "## What exists today\n\n\
+        ### Fully ported chrony {ver} translation units ({})\n\n\
+        Every function in each unit has a court-backed counterpart — differential-tested\n\
+        against the **real compiled C** and/or protocol-spec vectors. This list is\n\
+        generated from the [port-parity matrix](docs/generated/port-parity.md); porting a\n\
+        file updates it automatically.\n\n",
+        full.len()
+    ));
+    for m in &full {
+        s.push_str(&format!("- **`{}`** — {}\n", m.c, m.note));
+    }
+
+    s.push_str(OTHER_SURFACES);
+
+    s.push_str(
+        "## What is intentionally NOT claimed\n\n\
+        `chrony-rs` does **not** discipline a real system clock, does not connect to a\n\
+        running daemon over the control socket, and makes **no production-replacement\n\
+        claim**. These are deliberate, documented boundaries — see\n\
+        [`docs/deployment-boundary.md`](docs/deployment-boundary.md) and the generated\n\
+        [`docs/negative-capabilities.md`](docs/negative-capabilities.md). Host-clock\n\
+        mutation is forbidden outside declared lab courts. Where behavior is unknown,\n\
+        environmental, or version-dependent, it is classified as such rather than\n\
+        approximated.\n\n\
+        ## Architecture\n\n\
+        A lean Cargo workspace:\n\n\
+        ```\n\
+        crates/\n  \
+          chrony-rs-core   deterministic time-discipline brain (no host clock, no sockets)\n  \
+          chronyd-rs       daemon/replay binary (lab & offline modes only)\n  \
+          chronyc-rs       control client & output-parity tool\n\
+        xtask              doc generation + freshness gating (cargo xtask gen|check)\n\
+        ```\n\n\
+        Host mutation (clock, sockets, privileges) is kept behind narrow trait/closure\n\
+        boundaries so the brain is testable without the real system clock — every ported\n\
+        unit above injects its clock/syscalls/randomness. Each crate has its own generated\n\
+        README. See [`docs/architecture.md`](docs/architecture.md).\n\n",
+    );
+
+    s.push_str(&format!(
+        "## Generated docs & freshness gate\n\n\
+        Machine-derivable facts (target chrony version, the {directives}-directive\n\
+        recognition set, source-option tables, `unsafe` count, oracle fixtures) are\n\
+        generated from the code into [`docs/generated/`](docs/generated/) by\n\
+        `cargo xtask gen` — including the\n\
+        **[port-parity matrix](docs/generated/port-parity.md)** and a\n\
+        **[per-function gap view](docs/generated/port-parity-functions.md)**. The\n\
+        [negative-capabilities ledger](docs/negative-capabilities.md), all three crate\n\
+        READMEs, **and this README** are generated too.\n\n\
+        A pre-commit hook runs `cargo xtask check`, which rejects any commit where (1) a\n\
+        generated doc is stale, or (2) a curated prose doc has drifted from a machine fact\n\
+        it restates. Nothing documented — generated *or* prose — can silently drift from\n\
+        the code. Activate the hook with:\n\n\
+        ```sh\n\
+        git config core.hooksPath .githooks\n\
+        ```\n\n\
+        ## Source archaeology\n\n\
+        The chrony {ver} C source is the structural oracle. Its directive dispatch\n\
+        (`conf.c`) and source-option tables (`cmdparse.c`) were extracted by Doxygen-style\n\
+        indexing and diffed against chrony-rs — see [`research/`](research/) and\n\
+        [`docs/source-archaeology.md`](docs/source-archaeology.md). That diff plus the\n\
+        live `chronyd -p` oracle is how the config surface reached 1:1: {directives}/{directives}\n\
+        directives recognized, exact diagnostics, and source-option validation matching\n\
+        chrony.\n\n\
+        ## Doctrine\n\n\
+        > Byte parity, behavior parity, operational-knowledge parity.\n\n\
+        Every admitted behavior must be backed by a court with reproducible evidence\n\
+        (`reports/`). Code ports are not transliterations; they are archaeological\n\
+        restorations with executable evidence. The verbose source comments are part of the\n\
+        deliverable: a future engineer should understand chrony *better* from this\n\
+        reconstruction than from the C alone.\n\n\
+        ## License\n\n\
+        GPL-2.0-only, matching chrony's licensing posture. See [`LICENSE`](LICENSE).\n"
+    ));
+
+    let _ = root;
+    s
+}
+
+/// Curated description of admitted surfaces that are not a single fully-ported `.c`
+/// file (partial ports, protocol algebra, output rendering, infrastructure).
+const OTHER_SURFACES: &str = "\
+\n### Other admitted surfaces\n\n\
+Capabilities backed by courts that are not a single fully-ported translation unit\n\
+(partial ports, protocol algebra, output rendering, infrastructure):\n\n\
+- **chrony config parser + `--check-config`** — oracle-witnessed accept/reject and\n\
+  diagnostics vs chrony 4.5; the full recognized-directive set is anchored (`conf.c`,\n\
+  partial).\n\
+- **`chronyc tracking`/`sources`/… output** — byte-stable, layouts live-witnessed vs\n\
+  chrony 4.5 (`client.c`, offline render).\n\
+- **NTP packet decode/encode + extension fields** — 48-byte header codec and RFC 7822\n\
+  framing (`ntp_ext.c` fully ported); byte-roundtrip courts.\n\
+- **NTP offset/delay measurement** — RFC 5905 §8 algebra, era-safe differences.\n\
+- **Source reachability + selection** — 8-bit reach register, selectability gate,\n\
+  falseticker intersection (algorithmic; not yet oracle-witnessed end to end).\n\
+- **`chronyd-rs --replay`** — deterministic replay through a simulated clock with a\n\
+  reproducible decision-log hash (chrony selection/discipline policy not yet applied).\n\
+- **Deterministic trace schema, SHA-256 receipts, simulated clock** — dependency-free\n\
+  infrastructure (FIPS-vectored hash; side-effect-free time base).\n\n\
+Run:\n\n\
+```sh\n\
+cargo build\n\
+cargo test                                    # deterministic; count shown in output\n\
+chronyd-rs --check-config examples/minimal.conf\n\
+chronyd-rs --replay <trace.json>\n\
+chronyc-rs render-tracking <fixture.json>\n\
+```\n\n";
+
 /// Render `crates/chrony-rs-core/README.md`.
 ///
 /// Generated so the crate's headline (which chrony translation units it ports, the

@@ -64,6 +64,7 @@ fn artifacts(root: &Path) -> Vec<(PathBuf, String)> {
             root.join("docs/negative-capabilities.md"),
             generate::negative_capabilities_md(root),
         ),
+        (root.join("README.md"), generate::root_readme(root)),
         (root.join("crates/chrony-rs-core/README.md"), generate::core_readme(root)),
         (root.join("crates/chronyd-rs/README.md"), generate::chronyd_readme(root)),
         (root.join("crates/chronyc-rs/README.md"), generate::chronyc_readme(root)),
@@ -119,7 +120,7 @@ fn asserted_facts(root: &Path) -> Vec<AssertedFact> {
     // research/ are deliberately NOT pinned: they are frozen snapshots of what was
     // witnessed and must keep stating the version they actually saw.)
     for doc in [
-        "README.md",
+        // (README.md is generated, so byte-gated, not pinned here.)
         "docs/README.md",
         "docs/chronyc-parity.md",
         "docs/compatibility.md",
