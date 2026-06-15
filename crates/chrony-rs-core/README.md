@@ -65,7 +65,7 @@ Behavior ported with at least one executable court, but not every function (see 
 matrix for the exact gap):
 
 - `conf.c` → `config/parser.rs`, `config/lexer.rs`, `config/diagnostics.rs`, `config/model.rs`, `config/mod.rs` — config file parser + 93-directive dispatch (CNF_*)
-- `ntp_core.c` → `ntp/measurements.rs`, `ntp/packet.rs`, `ntp/poll.rs` — NTP protocol engine: poll, process-response, offset/delay (NCR_*)
+- `ntp_core.c` → `ntp/measurements.rs`, `ntp/packet.rs`, `ntp/poll.rs`, `ntp/parse.rs` — NTP protocol engine: poll, process-response, offset/delay (NCR_*)
 - `client.c` → `report.rs`, `../chronyc-rs/src/main.rs` — chronyc CLI: command dispatch + report formatters
 - `main.c` → `../chronyd-rs/src/main.rs` — daemon entry, arg parsing, lifecycle
 - `util.c` → `util.rs`, `ntp/timestamp.rs`, `ntp/measurements.rs` — time/UTI/byte utilities (UTI_*)

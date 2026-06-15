@@ -18,6 +18,7 @@
 pub mod ext;
 mod measurements;
 mod packet;
+pub mod parse;
 pub mod poll;
 mod timestamp;
 

@@ -162,6 +162,9 @@ pub struct NtpPacketInfo {
     /// higher layers (e.g. NTS server processing); `ntp_ext` itself ignores it.
     pub mode: i32,
     pub ext_fields: i32,
+    /// Experimental extension-field flags (chrony `ext_field_flags`): bit 0 =
+    /// EXP_MONO_ROOT, bit 1 = EXP_NET_CORRECTION. Set by packet parsing.
+    pub ext_field_flags: i32,
     /// Authentication mode (chrony `auth.mode`, `NTP_AuthMode`): NONE=0,
     /// SYMMETRIC=1, MSSNTP=2, MSSNTP_EXT=3, NTS=4. Used by `ntp_auth`.
     pub auth_mode: i32,
