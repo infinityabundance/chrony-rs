@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 30 / 70 (20 full, 8 partial, 2 scaffold); **40** have none.
-- **Files fully ported:** 20 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 787 / 1373 C functions (57.3%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 31 / 70 (21 full, 8 partial, 2 scaffold); **39** have none.
+- **Files fully ported:** 21 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 797 / 1373 C functions (58.0%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 673 named functions + 99 closures across 49 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 691 named functions + 107 closures across 51 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -95,7 +95,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `sys_null.c` | 8 | 100.0% | null clock driver (the `-x` 'disabled control' driver) | `sys_null.rs` | ● full |
 | `sys_posix.c` | 0 | 0.0% | POSIX clock adapter | — | · none |
 | `sys_solaris.c` | 3 | 0.0% | Solaris clock adapter | — | · none |
-| `sys_timex.c` | 10 | 0.0% | timex clock adapter | — | · none |
+| `sys_timex.c` | 10 | 100.0% | adjtimex()/ntp_adjtime() clock driver | `sys_timex.rs` | ● full |
 | `tempcomp.c` | 5 | 100.0% | temperature compensation (TMC_*) | `tempcomp.rs` | ● full |
 | `util.c` | 76 | 13.2% | time/UTI/byte utilities (UTI_*) | `util.rs`<br>`ntp/timestamp.rs`<br>`ntp/measurements.rs` | ◑ partial |
 
@@ -126,6 +126,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`hash_intmd5.c`** — complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested _(≈8 Rust `fn` in mapped modules)_
 - **`hwclock.c`** — complete port of all 7 functions; composes the ported quantile delay filter + robust regression over Vec<f64> sample buffers; clean-offset model verified vs reference; cook/precision/abs-freq injected _(≈11 Rust `fn` in mapped modules)_
 - **`sys_generic.c`** — complete port of all 14 functions: the offset->frequency slew model (bounded rate/duration, excess-duration tracking, offset_convert, dispersion on frequency change), with base driver/raw clock/scheduler/step injected; differential-tested vs the REAL compiled sys_generic.c (set_frequency/accrue_offset/end-of-slew sequence) + an independent slew-drain check _(≈29 Rust `fn` in mapped modules)_
+- **`sys_timex.c`** — complete port of all 10 functions (Linux build): ppm<->kernel-freq scaling, sync-status/leap/TAI status bookkeeping over the struct timex ABI, composing the generic slew driver; the adjtimex syscall is injected; differential-tested vs the REAL compiled sys_timex.c (every submitted timex captured) + an independent scaling check _(≈13 Rust `fn` in mapped modules)_
 - **`sys_null.c`** — complete port of all 8 functions; the virtual-clock offset/frequency model (set_freq/accrue/offset_convert); raw time injected as seconds, driver-as-struct (no global LCL registration) _(≈10 Rust `fn` in mapped modules)_
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
 - **`nameserv.c`** — DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported _(≈3 Rust `fn` in mapped modules)_

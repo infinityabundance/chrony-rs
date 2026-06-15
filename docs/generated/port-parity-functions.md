@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 295 / 1373 C functions have a direct counterpart (21.5%).** The other 1078 are gaps.
+**Overall: 305 / 1373 C functions have a direct counterpart (22.2%).** The other 1068 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -40,6 +40,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sourcestats.c` | 32 | 32 | 0 | 100.0% |
 | `sys_generic.c` | 14 | 14 | 0 | 100.0% |
 | `sys_null.c` | 8 | 8 | 0 | 100.0% |
+| `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `nameserv.c` | 4 | 1 | 3 | 25.0% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
@@ -90,7 +91,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_netbsd.c` | 4 | 0 | 4 | 0.0% |
 | `sys_posix.c` | 0 | 0 | 0 | 0.0% |
 | `sys_solaris.c` | 3 | 0 | 3 | 0.0% |
-| `sys_timex.c` | 10 | 0 | 10 | 0.0% |
 
 ## Ported files — function-by-function (✓ ported · gap)
 
@@ -410,6 +410,19 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `read_frequency`
 - ✓ `set_frequency`
 - ✓ `update_offset`
+
+### `sys_timex.c` — 10/10 (100.0%)
+
+- ✓ `SYS_Timex_Adjust`
+- ✓ `SYS_Timex_Finalise`
+- ✓ `SYS_Timex_Initialise`
+- ✓ `SYS_Timex_InitialiseWithFunctions`
+- ✓ `convert_timex_frequency`
+- ✓ `initialise_timex`
+- ✓ `read_frequency`
+- ✓ `set_frequency`
+- ✓ `set_leap`
+- ✓ `set_sync_status`
 
 ### `tempcomp.c` — 5/5 (100.0%)
 

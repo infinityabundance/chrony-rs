@@ -56,6 +56,7 @@ pub mod sourcestats;
 pub mod sources;
 pub mod sys_generic;
 pub mod sys_null;
+pub mod sys_timex;
 pub mod tempcomp;
 pub mod trace;
 pub mod util;

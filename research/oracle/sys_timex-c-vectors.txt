@@ -1,0 +1,32 @@
+# Differential-oracle vectors: REAL chrony sys_timex.c (+ sys_generic.c), built
+# -DLINUX from /tmp/chrony-src commit 120dfb8. The adjtimex() syscall is replaced
+# by a recording stub modeling a kernel frequency register; CNF_GetRtcSync=1.
+# Each TMX line is a submitted struct timex, with only the fields the kernel reads
+# for the given modes shown (chrony leaves the others uninitialized). Mode bits:
+# OFFSET=0x1 FREQUENCY=0x2 MAXERROR=0x4 ESTERROR=0x8 STATUS=0x10 TIMECONST=0x20
+# TAI=0x80. Status bits: PLL=0x1 INS=0x10 DEL=0x20 UNSYNC=0x40. Consumer is Rust.
+# init
+TMX modes=0x11 freq=0 status=0x41 offset=0 esterror=0 maxerror=0 constant=0
+TMX modes=0x10 freq=0 status=0x40 offset=0 esterror=0 maxerror=0 constant=0
+TMX modes=0x0 freq=0 status=0x0 offset=0 esterror=0 maxerror=0 constant=0
+BASE base_freq=-0
+# set_frequency 50ppm
+TMX modes=0x2 freq=-3276800 status=0x0 offset=0 esterror=0 maxerror=0 constant=0
+# set_frequency -123.5ppm
+TMX modes=0x2 freq=8093696 status=0x0 offset=0 esterror=0 maxerror=0 constant=0
+# set_sync_status synced small errors
+TMX modes=0x1c freq=0 status=0x0 offset=0 esterror=1000 maxerror=5000 constant=0
+# set_sync_status synced large max_error (forces unsync)
+TMX modes=0x1c freq=0 status=0x40 offset=0 esterror=1000 maxerror=16000000 constant=0
+# set_sync_status unsynced
+TMX modes=0x1c freq=0 status=0x40 offset=0 esterror=16000000 maxerror=16000000 constant=0
+# set_leap insert tai=37
+TMX modes=0x0 freq=0 status=0x0 offset=0 esterror=0 maxerror=0 constant=0
+TMX modes=0x90 freq=0 status=0x50 offset=0 esterror=0 maxerror=0 constant=37
+# set_leap delete tai=37
+TMX modes=0x0 freq=0 status=0x0 offset=0 esterror=0 maxerror=0 constant=0
+TMX modes=0x90 freq=0 status=0x60 offset=0 esterror=0 maxerror=0 constant=37
+# set_leap none (reset)
+TMX modes=0x0 freq=0 status=0x0 offset=0 esterror=0 maxerror=0 constant=0
+TMX modes=0x90 freq=0 status=0x40 offset=0 esterror=0 maxerror=0 constant=37
+TMX modes=0x2 freq=8093696 status=0x0 offset=0 esterror=0 maxerror=0 constant=0
