@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 19 / 70 (7 full, 8 partial, 4 scaffold); **51** have none.
-- **Files fully ported:** 7 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 618 / 1373 C functions (45.0%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 20 / 70 (8 full, 8 partial, 4 scaffold); **50** have none.
+- **Files fully ported:** 8 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 628 / 1373 C functions (45.7%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 335 named functions + 57 closures across 33 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 352 named functions + 57 closures across 34 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -29,7 +29,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | chrony `.c` | C fns | parity % | role | chrony-rs counterpart | status |
 |---|---:|---:|---|---|---|
 | `addrfilt.c` | 16 | 100.0% | NTP/cmd access-control subnet trie (ADF_*) | `addrfilt.rs` | ● full |
-| `array.c` | 10 | 0.0% | generic dynamic array (ARR_*) | — | · none |
+| `array.c` | 10 | 100.0% | generic dynamic array (ARR_*) | `array.rs` | ● full |
 | `client.c` | 90 | 14.4% | chronyc CLI: command dispatch + report formatters | `report.rs`<br>`chronyc-rs/src/main.rs` | ◑ partial |
 | `clientlog.c` | 35 | 0.0% | client access log / rate limiting | — | · none |
 | `cmac_gnutls.c` | 7 | 0.0% | gnutls CMAC backend | — | · none |
@@ -116,6 +116,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`client.c`** — tracking/sources/sourcestats/activity/serverstats rendered (print_report+print_info_field engines, all print_* value helpers; all live-witnessed vs 4.5); 5 of ~40 process_cmd_* commands; no socket transport _(≈36 Rust `fn` in mapped modules)_
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
 - **`util.c`** — pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not _(≈37 Rust `fn` in mapped modules)_
+- **`array.c`** — complete port of all 10 functions over a flat Vec<u8> (slices where chrony returns pointers): exact capacity grow/shrink policy + order-preserving removal; no unsafe _(≈17 Rust `fn` in mapped modules)_
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_
 - **`hash_intmd5.c`** — complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested _(≈8 Rust `fn` in mapped modules)_
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
@@ -126,5 +127,5 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 A counterpart is not a claim of equivalence. It means some behavior from that C
 file is reconstructed and admitted by a court in `reports/`. Everything outside the
 admitted courts is unported. Where a file is subsumed by the Rust standard library
-(`array.c`, `memory.c`) or is upstream test scaffolding (`stubs.c`), that is noted
+(`memory.c`) or is upstream test scaffolding (`stubs.c`), that is noted
 rather than counted as coverage.

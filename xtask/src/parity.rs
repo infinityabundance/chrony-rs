@@ -142,7 +142,9 @@ const MAP: &[Row] = &[
     Row { c: "util.c", role: "time/UTI/byte utilities (UTI_*)",
         rust: &["util.rs", "ntp/timestamp.rs", "ntp/measurements.rs"], port: Port::Partial,
         note: "pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not" },
-    Row { c: "array.c", role: "generic dynamic array (ARR_*)", rust: &[], port: Port::None, note: "subsumed by std Vec; not a port target" },
+    Row { c: "array.c", role: "generic dynamic array (ARR_*)",
+        rust: &["array.rs"], port: Port::Full,
+        note: "complete port of all 10 functions over a flat Vec<u8> (slices where chrony returns pointers): exact capacity grow/shrink policy + order-preserving removal; no unsafe" },
     Row { c: "memory.c", role: "xmalloc/xrealloc wrappers", rust: &[], port: Port::None, note: "subsumed by std; not a port target" },
     Row { c: "logging.c", role: "logging subsystem (LOG_*)", rust: &[], port: Port::None,
         note: "project uses a structured trace schema, not a port of LOG_*" },
@@ -276,6 +278,21 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("nameserv.c", &["DNS_Name2IPAddress"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     ("hash_intmd5.c", &["HSH_GetHashId", "HSH_Hash", "HSH_Finalise"]),
+    (
+        "array.c",
+        &[
+            "ARR_CreateInstance",
+            "ARR_DestroyInstance",
+            "ARR_GetNewElement",
+            "ARR_GetElement",
+            "ARR_GetElements",
+            "ARR_AppendElement",
+            "ARR_RemoveElement",
+            "ARR_SetSize",
+            "ARR_GetSize",
+            "realloc_array",
+        ],
+    ),
     (
         "ntp_ext.c",
         &[
@@ -632,7 +649,7 @@ pub fn port_parity_md(root: &Path) -> String {
         "admitted courts is unported. Where a file is subsumed by the Rust standard library\n",
     );
     s.push_str(
-        "(`array.c`, `memory.c`) or is upstream test scaffolding (`stubs.c`), that is noted\n",
+        "(`memory.c`) or is upstream test scaffolding (`stubs.c`), that is noted\n",
     );
     s.push_str("rather than counted as coverage.\n");
 

@@ -31,6 +31,7 @@
 //! intentionally *not* admitted yet.
 
 pub mod addrfilt;
+pub mod array;
 pub mod clock;
 pub mod cmdparse;
 pub mod config;

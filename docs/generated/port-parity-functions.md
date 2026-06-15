@@ -15,13 +15,14 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 87 / 1373 C functions have a direct counterpart (6.3%).** The other 1286 are gaps.
+**Overall: 97 / 1373 C functions have a direct counterpart (7.1%).** The other 1276 are gaps.
 
 ## Per-file coverage (all 70 files)
 
 | chrony `.c` | C fns | ported | gap | parity % |
 |---|---:|---:|---:|---:|
 | `addrfilt.c` | 16 | 16 | 0 | 100.0% |
+| `array.c` | 10 | 10 | 0 | 100.0% |
 | `cmdparse.c` | 8 | 8 | 0 | 100.0% |
 | `hash_intmd5.c` | 3 | 3 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
@@ -35,7 +36,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sources.c` | 48 | 3 | 45 | 6.2% |
 | `ntp_core.c` | 69 | 2 | 67 | 2.9% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
-| `array.c` | 10 | 0 | 10 | 0.0% |
 | `clientlog.c` | 35 | 0 | 35 | 0.0% |
 | `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
 | `cmac_nettle.c` | 4 | 0 | 4 | 0.0% |
@@ -114,6 +114,19 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `set_subnet`
 - ✓ `set_subnet_`
 - ✓ `split_ip6`
+
+### `array.c` — 10/10 (100.0%)
+
+- ✓ `ARR_AppendElement`
+- ✓ `ARR_CreateInstance`
+- ✓ `ARR_DestroyInstance`
+- ✓ `ARR_GetElement`
+- ✓ `ARR_GetElements`
+- ✓ `ARR_GetNewElement`
+- ✓ `ARR_GetSize`
+- ✓ `ARR_RemoveElement`
+- ✓ `ARR_SetSize`
+- ✓ `realloc_array`
 
 ### `cmdparse.c` — 8/8 (100.0%)
 
