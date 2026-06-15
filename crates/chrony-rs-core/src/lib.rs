@@ -54,6 +54,7 @@ pub mod samplefilt;
 pub mod smooth;
 pub mod sourcestats;
 pub mod sources;
+pub mod sys_generic;
 pub mod sys_null;
 pub mod tempcomp;
 pub mod trace;

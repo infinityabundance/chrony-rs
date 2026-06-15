@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 281 / 1373 C functions have a direct counterpart (20.5%).** The other 1092 are gaps.
+**Overall: 295 / 1373 C functions have a direct counterpart (21.5%).** The other 1078 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -38,6 +38,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `samplefilt.c` | 18 | 18 | 0 | 100.0% |
 | `smooth.c` | 12 | 12 | 0 | 100.0% |
 | `sourcestats.c` | 32 | 32 | 0 | 100.0% |
+| `sys_generic.c` | 14 | 14 | 0 | 100.0% |
 | `sys_null.c` | 8 | 8 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `nameserv.c` | 4 | 1 | 3 | 25.0% |
@@ -84,7 +85,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `socket.c` | 61 | 0 | 61 | 0.0% |
 | `stubs.c` | 78 | 0 | 78 | 0.0% |
 | `sys.c` | 6 | 0 | 6 | 0.0% |
-| `sys_generic.c` | 14 | 0 | 14 | 0.0% |
 | `sys_linux.c` | 14 | 0 | 14 | 0.0% |
 | `sys_macosx.c` | 0 | 0 | 0 | 0.0% |
 | `sys_netbsd.c` | 4 | 0 | 4 | 0.0% |
@@ -382,6 +382,23 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `get_buf_index`
 - ✓ `get_runsbuf_index`
 - ✓ `prune_register`
+
+### `sys_generic.c` — 14/14 (100.0%)
+
+- ✓ `SYS_Generic_CompleteFreqDriver`
+- ✓ `SYS_Generic_Finalise`
+- ✓ `accrue_offset`
+- ✓ `apply_step_offset`
+- ✓ `clamp_freq`
+- ✓ `handle_end_of_slew`
+- ✓ `handle_step`
+- ✓ `offset_convert`
+- ✓ `read_frequency`
+- ✓ `set_frequency`
+- ✓ `set_sync_status`
+- ✓ `start_fastslew`
+- ✓ `stop_fastslew`
+- ✓ `update_slew`
 
 ### `sys_null.c` — 8/8 (100.0%)
 

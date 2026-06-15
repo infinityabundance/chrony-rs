@@ -29,6 +29,7 @@ where chrony policy differs from generic protocol truth.
 | NTP offset/delay measurement | RFC 5905 §8 algebra, era-safe differences (`ntp::Measurement`) |
 | Source reachability + selection | 8-bit reach register (exact); selectability gate; falseticker interval intersection driven by computed offsets (`sources/`, `tests/pipeline.rs`) — algorithmic, not yet oracle-witnessed |
 | SHA-256 receipts | dependency-free, FIPS-vectored (`hash.rs`) |
+| Generic software-slew clock discipline | **complete port of `sys_generic.c`** (all 14 functions): offset→frequency slew model (bounded rate/duration, `offset_convert`, dispersion); vs the REAL compiled sys_generic.c + an independent slew-drain check |
 | Simulated clock | side-effect-free time base, no host mutation (`clock.rs`) |
 | Source archaeology + ecology docs | scaffolded under `docs/` |
 

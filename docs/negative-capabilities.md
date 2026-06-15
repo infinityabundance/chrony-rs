@@ -34,6 +34,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `md5.c` — MD5 digest (RFC 1321 reference, NTP symmetric-key auth) _(port: full)_
 - `hash_intmd5.c` — internal MD5 hash backend (HSH_*) _(port: full)_
 - `hwclock.c` — hardware-clock tracking (HCL_*) _(port: full)_
+- `sys_generic.c` — generic software-slew clock-discipline driver _(port: full)_
 - `sys_null.c` — null clock driver (the `-x` 'disabled control' driver) _(port: full)_
 - `addrfilt.c` — NTP/cmd access-control subnet trie (ADF_*) _(port: full)_
 - `nameserv.c` — synchronous DNS resolution _(port: partial)_

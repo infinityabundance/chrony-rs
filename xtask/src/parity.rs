@@ -204,7 +204,9 @@ const MAP: &[Row] = &[
 
     // ---- OS clock adapters (declared negative capability) ----
     Row { c: "sys.c", role: "OS adapter dispatch", rust: &[], port: Port::None, note: "host-clock mutation is a declared boundary" },
-    Row { c: "sys_generic.c", role: "generic clock-driver adapter", rust: &[], port: Port::None, note: "" },
+    Row { c: "sys_generic.c", role: "generic software-slew clock-discipline driver",
+        rust: &["sys_generic.rs"], port: Port::Full,
+        note: "complete port of all 14 functions: the offset->frequency slew model (bounded rate/duration, excess-duration tracking, offset_convert, dispersion on frequency change), with base driver/raw clock/scheduler/step injected; differential-tested vs the REAL compiled sys_generic.c (set_frequency/accrue_offset/end-of-slew sequence) + an independent slew-drain check" },
     Row { c: "sys_linux.c", role: "Linux clock adapter (adjtimex)", rust: &[], port: Port::None, note: "" },
     Row { c: "sys_timex.c", role: "timex clock adapter", rust: &[], port: Port::None, note: "" },
     Row { c: "sys_null.c", role: "null clock driver (the `-x` 'disabled control' driver)",
@@ -423,6 +425,25 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "update_stages",
             "update_smoothing",
             "handle_slew",
+        ],
+    ),
+    (
+        "sys_generic.c",
+        &[
+            "SYS_Generic_CompleteFreqDriver",
+            "SYS_Generic_Finalise",
+            "handle_step",
+            "start_fastslew",
+            "stop_fastslew",
+            "clamp_freq",
+            "update_slew",
+            "handle_end_of_slew",
+            "read_frequency",
+            "set_frequency",
+            "accrue_offset",
+            "offset_convert",
+            "apply_step_offset",
+            "set_sync_status",
         ],
     ),
     (
