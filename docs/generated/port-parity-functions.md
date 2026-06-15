@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 137 / 1373 C functions have a direct counterpart (10.0%).** The other 1236 are gaps.
+**Overall: 144 / 1373 C functions have a direct counterpart (10.5%).** The other 1229 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -25,6 +25,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `array.c` | 10 | 10 | 0 | 100.0% |
 | `cmdparse.c` | 8 | 8 | 0 | 100.0% |
 | `hash_intmd5.c` | 3 | 3 | 0 | 100.0% |
+| `hwclock.c` | 7 | 7 | 0 | 100.0% |
 | `manual.c` | 11 | 11 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
 | `ntp_ext.c` | 6 | 6 | 0 | 100.0% |
@@ -49,7 +50,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `hash_nettle.c` | 3 | 0 | 3 | 0.0% |
 | `hash_nss.c` | 3 | 0 | 3 | 0.0% |
 | `hash_tomcrypt.c` | 3 | 0 | 3 | 0.0% |
-| `hwclock.c` | 7 | 0 | 7 | 0.0% |
 | `keys.c` | 17 | 0 | 17 | 0.0% |
 | `local.c` | 35 | 0 | 35 | 0.0% |
 | `logging.c` | 17 | 0 | 17 | 0.0% |
@@ -144,6 +144,16 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `HSH_Finalise`
 - ✓ `HSH_GetHashId`
 - ✓ `HSH_Hash`
+
+### `hwclock.c` — 7/7 (100.0%)
+
+- ✓ `HCL_AccumulateSample`
+- ✓ `HCL_CookTime`
+- ✓ `HCL_CreateInstance`
+- ✓ `HCL_DestroyInstance`
+- ✓ `HCL_NeedsNewSample`
+- ✓ `HCL_ProcessReadings`
+- ✓ `handle_slew`
 
 ### `manual.c` — 11/11 (100.0%)
 

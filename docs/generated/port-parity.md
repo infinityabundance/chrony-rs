@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 24 / 70 (13 full, 8 partial, 3 scaffold); **46** have none.
-- **Files fully ported:** 13 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 664 / 1373 C functions (48.4%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 25 / 70 (14 full, 8 partial, 3 scaffold); **45** have none.
+- **Files fully ported:** 14 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 671 / 1373 C functions (48.9%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 415 named functions + 61 closures across 39 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 426 named functions + 62 closures across 40 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -42,7 +42,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `hash_nettle.c` | 3 | 0.0% | nettle hash backend | — | · none |
 | `hash_nss.c` | 3 | 0.0% | NSS hash backend | — | · none |
 | `hash_tomcrypt.c` | 3 | 0.0% | tomcrypt hash backend | — | · none |
-| `hwclock.c` | 7 | 0.0% | HW clock frequency tracking | — | · none |
+| `hwclock.c` | 7 | 100.0% | hardware-clock tracking (HCL_*) | `hwclock.rs` | ● full |
 | `keys.c` | 17 | 0.0% | symmetric key store | — | · none |
 | `local.c` | 35 | 0.0% | local clock read/adjust abstraction (LCL_*) | `clock.rs` | ○ scaffold |
 | `logging.c` | 17 | 0.0% | logging subsystem (LOG_*) | — | · none |
@@ -121,6 +121,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`array.c`** — complete port of all 10 functions over a flat Vec<u8> (slices where chrony returns pointers): exact capacity grow/shrink policy + order-preserving removal; no unsafe _(≈17 Rust `fn` in mapped modules)_
 - **`md5.c`** — complete port of all 4 functions; byte-exact vs the official RFC 1321 §A.5 test vectors (dependency-free TU) _(≈10 Rust `fn` in mapped modules)_
 - **`hash_intmd5.c`** — complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested _(≈8 Rust `fn` in mapped modules)_
+- **`hwclock.c`** — complete port of all 7 functions; composes the ported quantile delay filter + robust regression over Vec<f64> sample buffers; clean-offset model verified vs reference; cook/precision/abs-freq injected _(≈11 Rust `fn` in mapped modules)_
 - **`sys_null.c`** — complete port of all 8 functions; the virtual-clock offset/frequency model (set_freq/accrue/offset_convert); raw time injected as seconds, driver-as-struct (no global LCL registration) _(≈10 Rust `fn` in mapped modules)_
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
 - **`nameserv.c`** — DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported _(≈3 Rust `fn` in mapped modules)_

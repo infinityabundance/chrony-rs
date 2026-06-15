@@ -192,7 +192,9 @@ const MAP: &[Row] = &[
     // ---- RTC / hwclock (none) ----
     Row { c: "rtc.c", role: "RTC abstraction", rust: &[], port: Port::None, note: "" },
     Row { c: "rtc_linux.c", role: "Linux RTC driver", rust: &[], port: Port::None, note: "" },
-    Row { c: "hwclock.c", role: "HW clock frequency tracking", rust: &[], port: Port::None, note: "" },
+    Row { c: "hwclock.c", role: "hardware-clock tracking (HCL_*)",
+        rust: &["hwclock.rs"], port: Port::Full,
+        note: "complete port of all 7 functions; composes the ported quantile delay filter + robust regression over Vec<f64> sample buffers; clean-offset model verified vs reference; cook/precision/abs-freq injected" },
 
     // ---- OS clock adapters (declared negative capability) ----
     Row { c: "sys.c", role: "OS adapter dispatch", rust: &[], port: Port::None, note: "host-clock mutation is a declared boundary" },
@@ -304,6 +306,18 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ("nameserv.c", &["DNS_Name2IPAddress"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     ("hash_intmd5.c", &["HSH_GetHashId", "HSH_Hash", "HSH_Finalise"]),
+    (
+        "hwclock.c",
+        &[
+            "HCL_CreateInstance",
+            "HCL_DestroyInstance",
+            "HCL_NeedsNewSample",
+            "HCL_ProcessReadings",
+            "HCL_AccumulateSample",
+            "HCL_CookTime",
+            "handle_slew",
+        ],
+    ),
     ("pktlength.c", &["PKL_CommandLength", "PKL_CommandPaddingLength", "PKL_ReplyLength"]),
     (
         "tempcomp.c",
