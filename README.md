@@ -17,7 +17,7 @@ generic protocol truth.
 
 ## What exists today
 
-### Fully ported chrony 4.5 translation units (27)
+### Fully ported chrony 4.5 translation units (28)
 
 Every function in each unit has a court-backed counterpart — differential-tested
 against the **real compiled C** and/or protocol-spec vectors. This list is
@@ -41,6 +41,7 @@ file updates it automatically.
 - **`hash_intmd5.c`** — complete port of all 3 functions; thin wrapper over the ported MD5 (RFC 1321 vectors), with the supported-algorithm gate and in1||in2 concat/truncation tested
 - **`cmac_nettle.c`** — complete port of all 4 functions: keyed AES-128/AES-256 CMAC instance, key-length table, truncating CMC_Hash; reuses the shared CMAC-128 from siv_nettle_int over a new FIPS-197 AES-256. Anchored by THREE oracles: RFC 4493 (AES-128-CMAC), NIST SP 800-38B (AES-256-CMAC), and the REAL compiled cmac_nettle.c over a vector-verified shim
 - **`nts_ntp_auth.c`** — complete port of all 4 functions: build/parse the NTS auth-and-EEF field (header, nonce+ciphertext layout, 4-byte padding, min-length/min-nonce padding) over the ported ntp_ext layer, with SIV injected; differential-tested vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip, deterministic toy SIV) + independent padding/round-trip checks
+- **`nts_ntp_client.c`** — complete port of all 17 functions: NTS-KE-driven cookie pool (ring buffer), per-request EFs (unique-id/cookie/placeholders) + authenticator under C2S, response verify/decrypt under S2C + cookie extraction, NTS-KE retry/backoff, and keys+cookies dump save/load; composes the ported ntp_ext + nts_ntp_auth + siv (real AES-SIV-CMAC), with the NTS-KE handshake / source-update / mono-clock / config injected. Differential-tested vs the REAL compiled nts_ntp_client.c (byte-identical request + check + report) + a cookie dump round-trip
 - **`nts_ntp_server.c`** — complete port of all 4 functions: parse NTS request EFs (unique-id/cookie/placeholder/auth), decode cookie -> session keys, key SIV with C2S + verify/decrypt the authenticator, prepare fresh cookies, and build the S2C-authenticated response; composes the ported ntp_ext + nts_ntp_auth + siv (real AES-SIV-CMAC), with the cookie codec injected. Differential-tested vs the REAL compiled nts_ntp_server.c (byte-identical response + tamper/missing-cookie rejection) + a full round-trip
 - **`siv_nettle.c`** — complete port of all 9 functions (no-GCM build): keyed AEAD instance, key/nonce/tag length table, input validation, encrypt/decrypt dispatch over the ported siv_nettle_int (AES-SIV-CMAC-256); GCM-SIV unsupported as that build is; also bridges nts_ntp_auth's SIV so the NTS auth EF round-trips over real AES-SIV. Differential-tested vs the REAL compiled siv_nettle.c (API + validation) — the crypto itself is triple-anchored in siv_nettle_int
 - **`siv_nettle_int.c`** — complete port of all 12 functions: CMAC-128 (RFC 4493), S2V, and SIV encrypt/decrypt; the AES-128 block cipher (nettle's) is reimplemented in dependency-free Rust (FIPS-197 KAT). Anchored by THREE oracles: FIPS-197 (AES), RFC 5297 A.1 (the official worked example), and the REAL compiled siv_nettle_int.c over a FIPS-197-verified shim AES (many-shape encrypt/decrypt vectors)

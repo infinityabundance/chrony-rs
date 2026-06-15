@@ -46,6 +46,7 @@ pub mod manual;
 pub mod md5;
 pub mod nameserv;
 pub mod nts_ntp_auth;
+pub mod nts_ntp_client;
 pub mod nts_ntp_server;
 pub mod ntp;
 pub mod pktlength;

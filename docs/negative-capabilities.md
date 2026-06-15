@@ -36,6 +36,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `hash_intmd5.c` — internal MD5 hash backend (HSH_*) _(port: full)_
 - `cmac_nettle.c` — AES-CMAC keyed-MAC instance API (CMC_*) _(port: full)_
 - `nts_ntp_auth.c` — NTS authenticator + encrypted-EEF extension field (NNA_*) _(port: full)_
+- `nts_ntp_client.c` — client-side NTS-NTP authentication (NNC_*) _(port: full)_
 - `nts_ntp_server.c` — server-side NTS-NTP authentication (NNS_*) _(port: full)_
 - `siv_nettle.c` — SIV AEAD instance API (SIV_*) _(port: full)_
 - `siv_nettle_int.c` — AES-SIV-CMAC-256 AEAD (RFC 5297) _(port: full)_
