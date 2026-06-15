@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 518 / 1373 C functions have a direct counterpart (37.7%).** The other 855 are gaps.
+**Overall: 527 / 1373 C functions have a direct counterpart (38.4%).** The other 846 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -56,7 +56,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
-| `sources.c` | 48 | 28 | 20 | 58.3% |
+| `sources.c` | 48 | 37 | 11 | 77.1% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
@@ -659,38 +659,38 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `slew_samples`
 - ✓ `valid_sample_time`
 
-### `sources.c` — 28/48 (58.3%)
+### `sources.c` — 37/48 (77.1%)
 
 - ✓ `SRC_AccumulateSample`
 - ✓ `SRC_ActiveSources`
 - ✓ `SRC_CreateNewInstance`
-- · `SRC_DestroyInstance`
+- ✓ `SRC_DestroyInstance`
 - · `SRC_DumpSources`
-- · `SRC_Finalise`
-- · `SRC_GetSelectReport`
+- ✓ `SRC_Finalise`
+- ✓ `SRC_GetSelectReport`
 - ✓ `SRC_GetSourcestats`
 - ✓ `SRC_GetType`
 - ✓ `SRC_Initialise`
 - ✓ `SRC_IsReachable`
 - ✓ `SRC_IsSyncPeer`
-- · `SRC_ModifySelectOptions`
+- ✓ `SRC_ModifySelectOptions`
 - ✓ `SRC_ReadNumberOfSources`
 - · `SRC_ReloadSources`
 - · `SRC_RemoveDumpFiles`
 - · `SRC_ReportSource`
 - · `SRC_ReportSourcestats`
-- · `SRC_ReselectSource`
+- ✓ `SRC_ReselectSource`
 - ✓ `SRC_ResetInstance`
 - ✓ `SRC_ResetReachability`
-- · `SRC_ResetSources`
+- ✓ `SRC_ResetSources`
 - ✓ `SRC_SelectSource`
 - ✓ `SRC_SetActive`
 - ✓ `SRC_SetRefid`
-- · `SRC_SetReselectDistance`
+- ✓ `SRC_SetReselectDistance`
 - ✓ `SRC_UnsetActive`
 - ✓ `SRC_UpdateReachability`
 - ✓ `SRC_UpdateStatus`
-- · `add_dispersion`
+- ✓ `add_dispersion`
 - ✓ `combine_sources`
 - ✓ `compare_sort_elements`
 - ✓ `find_source`
@@ -704,7 +704,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `mark_ok_sources`
 - ✓ `mark_source`
 - · `save_source`
-- · `slew_sources`
+- ✓ `slew_sources`
 - · `source_to_string`
 - ✓ `special_mode_end`
 - ✓ `unselect_selected_source`

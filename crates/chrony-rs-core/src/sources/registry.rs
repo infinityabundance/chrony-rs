@@ -106,6 +106,21 @@ pub enum SrcStatus {
     Selected,
 }
 
+/// chrony `RPT_SelectReport` (the `chronyc selectdata` per-source report).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SelectReport {
+    pub ref_id: u32,
+    pub state_char: char,
+    pub authentication: bool,
+    pub leap: NtpLeap,
+    pub conf_options: i32,
+    pub eff_options: i32,
+    pub last_sample_ago: u32,
+    pub score: f64,
+    pub lo_limit: f64,
+    pub hi_limit: f64,
+}
+
 /// chrony `struct SelectInfo` — the per-source data the selection pass fills.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct SelectInfo {
@@ -1096,6 +1111,135 @@ impl SourceRegistry {
             (has_ip && s.type_ == SrcType::Ntp && s.has_ip && s.ref_id == ip_key)
                 || (!has_ip && s.type_ == SrcType::Refclock && ref_id == s.ref_id)
         })
+    }
+
+    // ---- Stage 4: lifecycle, slew/dispersion handlers, reports, accessors ----
+
+    /// chrony `SRC_Finalise`.
+    pub fn finalise(&mut self) {
+        self.sources.clear();
+        self.selected_source_index = INVALID_SOURCE;
+    }
+
+    /// chrony `SRC_DestroyInstance`: remove a source, reindex, and fix up the selected
+    /// index (re-selecting if the reference or a falseticker contributor was removed).
+    pub fn destroy_instance(&mut self, host: &mut dyn SourcesHost, index: usize) {
+        if self.last_updated_inst == index as i32 {
+            self.last_updated_inst = INVALID_SOURCE;
+        }
+        self.sources.remove(index);
+        for (i, s) in self.sources.iter_mut().enumerate() {
+            s.index = i;
+        }
+        let dead = index as i32;
+        if self.selected_source_index > dead {
+            self.selected_source_index -= 1;
+        } else if self.selected_source_index == dead {
+            self.unselect_selected_source(false);
+        }
+        self.select_source(host, None);
+    }
+
+    /// chrony `SRC_ReselectSource`: force re-selection of the best source.
+    pub fn reselect_source(&mut self, host: &mut dyn SourcesHost) {
+        self.selected_source_index = INVALID_SOURCE;
+        self.select_source(host, None);
+    }
+
+    /// chrony `SRC_SetReselectDistance`.
+    pub fn set_reselect_distance(&mut self, distance: f64) {
+        self.cfg.reselect_distance = distance;
+    }
+
+    /// chrony `SRC_ResetSources`.
+    pub fn reset_sources(&mut self, host: &mut dyn SourcesHost) {
+        for i in 0..self.sources.len() {
+            self.reset_instance(host, i);
+        }
+    }
+
+    /// chrony `SRC_ModifySelectOptions`: change a source's configured options.
+    /// Returns whether the source was found.
+    pub fn modify_select_options(
+        &mut self,
+        index: usize,
+        options: i32,
+        mask: i32,
+        mode: AuthSelectMode,
+    ) -> bool {
+        if index >= self.sources.len() {
+            return false;
+        }
+        if self.sources[index].conf_sel_options & mask == options {
+            return true;
+        }
+        self.sources[index].conf_sel_options =
+            (self.sources[index].conf_sel_options & !mask) | options;
+        self.update_sel_options(mode);
+        true
+    }
+
+    /// chrony `slew_sources`: adjust every source's statistics for a clock change
+    /// (composing the ported `sourcestats`). `unknown_step` resets instead of slewing.
+    pub fn slew_sources(
+        &mut self,
+        host: &mut dyn SourcesHost,
+        cooked: f64,
+        dfreq: f64,
+        doffset: f64,
+        unknown_step: bool,
+    ) {
+        for s in &mut self.sources {
+            if unknown_step {
+                s.stats.reset();
+            } else {
+                s.stats.slew_samples(cooked, dfreq, doffset);
+            }
+        }
+        if unknown_step {
+            self.select_source(host, None);
+        }
+    }
+
+    /// chrony `add_dispersion`: add an indeterminate dispersion to every source.
+    pub fn add_dispersion(&mut self, dispersion: f64) {
+        for s in &mut self.sources {
+            s.stats.add_dispersion(dispersion);
+        }
+    }
+
+    /// chrony `SRC_GetSelectReport`: the per-source selection report.
+    pub fn get_select_report(&self, index: usize) -> Option<SelectReport> {
+        let s = self.sources.get(index)?;
+        Some(SelectReport {
+            ref_id: s.ref_id,
+            state_char: super::combine::get_status_char(s.status),
+            authentication: s.authenticated,
+            leap: s.leap,
+            conf_options: s.conf_sel_options,
+            eff_options: s.sel_options,
+            // chrony assigns the double last_sample_ago to a uint32 field (truncation).
+            last_sample_ago: s.sel_info.last_sample_ago as u32,
+            score: s.sel_score,
+            lo_limit: s.sel_info.lo_limit,
+            hi_limit: s.sel_info.hi_limit,
+        })
+    }
+
+    /// chrony `SRC_ReportSource`'s `report->state` mapping (the `RPT_*` source state).
+    pub fn report_state(&self, index: usize) -> i32 {
+        match self.sources[index].status {
+            SrcStatus::Falseticker => 1,
+            SrcStatus::Jittery => 2,
+            SrcStatus::WaitsSources
+            | SrcStatus::Nonpreferred
+            | SrcStatus::WaitsUpdate
+            | SrcStatus::Distant
+            | SrcStatus::Outlier => 3,
+            SrcStatus::Unselected => 4,
+            SrcStatus::Selected => 5,
+            _ => 0,
+        }
     }
 }
 

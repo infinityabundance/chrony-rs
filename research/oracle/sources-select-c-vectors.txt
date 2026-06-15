@@ -1,5 +1,7 @@
 # Differential-oracle vectors: REAL chrony SRC_SelectSource pipeline (single call).
 # report state 0=NONSEL 1=FALSE 3=SELECTABLE 4=UNSEL 5=SEL. Consumer Rust; NO Python.
 SELECT2 setref=1 combined=2 off=0.00039999999999999996 stateA=5 stateB=4
+GETSEL0 state=* auth=0 leap=0 conf=0 eff=0 ago=4 score=1 lo=-0.002 hi=0.002
+GETSEL1 state=+ auth=0 leap=0 conf=0 eff=0 ago=5 score=1 lo=-0.0030000000000000001 hi=0.001
 FALSE setref=1 combined=2 stateA=5 stateB=4 stateC=1
 NOMAJORITY setref=0 stateA=1 stateB=1
