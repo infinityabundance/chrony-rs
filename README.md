@@ -21,6 +21,7 @@ where chrony policy differs from generic protocol truth.
 | Client access log + response rate limiter | **complete port of `clientlog.c`** (all 35 functions): per-client hash table, per-service token-bucket limiter w/ probabilistic leak, log2 rate estimate, interleaved-mode RX→TX timestamp map; vs the REAL compiled clientlog.c (5-scenario differential fixture) + an independent token-bucket invariant |
 | Streaming quantile estimator | **complete port of `quantiles.c`** (all 8 functions); structural (convergence-tested; inherently non-deterministic so not byte-witnessed) |
 | NTP packet decode/encode (48-byte header) | byte-roundtrip courts `CHRONY.PACKET.1–.13` (subset admitted) |
+| NTS auth + encrypted-EEF extension field | **complete port of `nts_ntp_auth.c`** (all 4 functions): NTS auth-and-EEF field build/parse + padding, SIV injected; vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip) + independent checks |
 | NTP timestamp / short fixed-point types | bit-exact roundtrip |
 | chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; **oracle-witnessed against chrony 4.5** — 8/8 accept/reject agreement (incl. Ubuntu default) + exact phrasing for 5 error classes; 82-directive set oracle-anchored |
 | `chronyc tracking` / `sources` output layout | byte-stable courts `CHRONYC.1`/`.2`; `sources` header+legend **live-witnessed vs chrony 4.5**, rows byte-derived from `client.c` (offline render) |

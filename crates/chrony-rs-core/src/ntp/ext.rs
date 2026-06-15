@@ -145,6 +145,11 @@ impl NtpPacketBuf {
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
     }
+    /// Mutable view of the full packet buffer. Used by higher NTP layers (e.g. NTS
+    /// authentication) that write field bodies returned by [`add_blank_field`].
+    pub fn bytes_mut(&mut self) -> &mut [u8] {
+        &mut self.bytes
+    }
 }
 
 /// Subset of chrony's `NTP_PacketInfo` that `ntp_ext.c` reads/writes.

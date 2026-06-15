@@ -181,7 +181,9 @@ const MAP: &[Row] = &[
     Row { c: "nts_ke_client.c", role: "NTS-KE client", rust: &[], port: Port::None, note: "" },
     Row { c: "nts_ke_server.c", role: "NTS-KE server", rust: &[], port: Port::None, note: "" },
     Row { c: "nts_ke_session.c", role: "NTS-KE TLS session", rust: &[], port: Port::None, note: "" },
-    Row { c: "nts_ntp_auth.c", role: "NTS NTPv4 auth", rust: &[], port: Port::None, note: "" },
+    Row { c: "nts_ntp_auth.c", role: "NTS authenticator + encrypted-EEF extension field (NNA_*)",
+        rust: &["nts_ntp_auth.rs"], port: Port::Full,
+        note: "complete port of all 4 functions: build/parse the NTS auth-and-EEF field (header, nonce+ciphertext layout, 4-byte padding, min-length/min-nonce padding) over the ported ntp_ext layer, with SIV injected; differential-tested vs the REAL compiled nts_ntp_auth.c (identical packet bytes + round-trip, deterministic toy SIV) + independent padding/round-trip checks" },
     Row { c: "nts_ntp_client.c", role: "NTS NTP client", rust: &[], port: Port::None, note: "" },
     Row { c: "nts_ntp_server.c", role: "NTS NTP server", rust: &[], port: Port::None, note: "" },
     Row { c: "siv_gnutls.c", role: "SIV-AEAD (gnutls)", rust: &[], port: Port::None, note: "" },
@@ -490,6 +492,10 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "ARR_GetSize",
             "realloc_array",
         ],
+    ),
+    (
+        "nts_ntp_auth.c",
+        &["NNA_GenerateAuthEF", "NNA_DecryptAuthEF", "get_padding_length", "get_padded_length"],
     ),
     (
         "ntp_ext.c",

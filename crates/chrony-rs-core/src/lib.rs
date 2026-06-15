@@ -44,6 +44,7 @@ pub mod local;
 pub mod manual;
 pub mod md5;
 pub mod nameserv;
+pub mod nts_ntp_auth;
 pub mod ntp;
 pub mod pktlength;
 pub mod quantiles;
