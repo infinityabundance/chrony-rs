@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 35 / 70 (25 full, 8 partial, 2 scaffold); **35** have none.
-- **Files fully ported:** 25 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Files with any chrony-rs counterpart:** 35 / 70 (26 full, 8 partial, 1 scaffold); **35** have none.
+- **Files fully ported:** 26 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 826 / 1373 C functions (60.2%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 778 named functions + 130 closures across 59 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 819 named functions + 150 closures across 61 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -78,7 +78,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `rtc.c` | 9 | 0.0% | RTC abstraction | — | · none |
 | `rtc_linux.c` | 26 | 0.0% | Linux RTC driver | — | · none |
 | `samplefilt.c` | 18 | 100.0% | per-source NTP sample filtering (SPF_*) | `samplefilt.rs` | ● full |
-| `sched.c` | 22 | 0.0% | timer/event scheduler (SCH_*) | `replay.rs` | ○ scaffold |
+| `sched.c` | 22 | 100.0% | timer/event scheduler (SCH_*) | `sched.rs` | ● full |
 | `siv_gnutls.c` | 12 | 0.0% | SIV-AEAD (gnutls) | — | · none |
 | `siv_nettle.c` | 9 | 100.0% | SIV AEAD instance API (SIV_*) | `siv_nettle.rs` | ● full |
 | `siv_nettle_int.c` | 12 | 100.0% | AES-SIV-CMAC-256 AEAD (RFC 5297) | `siv_nettle_int.rs` | ● full |
@@ -116,7 +116,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`local.c`** — complete port of all 35 functions; composes the ported sys_null driver (ClockDriver trait) + optional smooth hooks; raw clock/config injected, handlers id-registered (closures); discipline/temp-comp/precision/handler tests _(≈54 Rust `fn` in mapped modules)_
 - **`smooth.c`** — complete port of all 12 functions; the 3-stage bounded-freq/wander trajectory (update_stages/get_smoothing) verified vs a reference impl; time as seconds, config/skew injected, struct-as-handler _(≈17 Rust `fn` in mapped modules)_
 - **`tempcomp.c`** — complete port of all 5 functions; quadratic + point-table interpolation (points stored in the ported array::Array); temp injected, comp returned, points/coefs as data _(≈11 Rust `fn` in mapped modules)_
-- **`sched.c`** — deterministic replay loop is a stand-in, not the SCH_ timer wheel _(≈13 Rust `fn` in mapped modules)_
+- **`sched.c`** — complete port of all 22 functions: the sorted timeout queue (add/by-delay/in-class with class separation + randomness, removal, dispatch), file-handler registry + select-driven main loop, clock-step queue shift, and last-event/monotonic time tracking; clock/select/randomness injected; differential-tested vs the REAL compiled sched.c (SCH_MainLoop dispatch order + fire times, incl. ties/spacing/random/step) + an independent file-handler test _(≈34 Rust `fn` in mapped modules)_
 - **`client.c`** — tracking/sources/sourcestats/activity/serverstats rendered (print_report+print_info_field engines, all print_* value helpers; all live-witnessed vs 4.5); 5 of ~40 process_cmd_* commands; no socket transport _(≈36 Rust `fn` in mapped modules)_
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
 - **`util.c`** — pure primitives ported: NTP short/64 + era algebra, log2->seconds, hex codec, refid<->string; broad UTI_* surface (files, sockets, randomness) not _(≈39 Rust `fn` in mapped modules)_

@@ -53,6 +53,7 @@ pub mod regress;
 pub mod replay;
 pub mod report;
 pub mod samplefilt;
+pub mod sched;
 pub mod siv_nettle;
 pub mod siv_nettle_int;
 pub mod smooth;

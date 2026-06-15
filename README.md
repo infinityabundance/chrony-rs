@@ -28,6 +28,7 @@ where chrony policy differs from generic protocol truth.
 | NTP timestamp / short fixed-point types | bit-exact roundtrip |
 | chrony config parser + `--check-config` | `CHRONY.CONFIG` subset; **oracle-witnessed against chrony 4.5** — 8/8 accept/reject agreement (incl. Ubuntu default) + exact phrasing for 5 error classes; 82-directive set oracle-anchored |
 | `chronyc tracking` / `sources` output layout | byte-stable courts `CHRONYC.1`/`.2`; `sources` header+legend **live-witnessed vs chrony 4.5**, rows byte-derived from `client.c` (offline render) |
+| Timer/event scheduler | **complete port of `sched.c`** (all 22 functions): sorted timeout queue (class separation + randomness), file-handler registry + select-driven main loop, clock-step shift; clock/`select` injected; vs the REAL compiled sched.c (dispatch order + fire times) + an independent fd-handler test |
 | Deterministic trace schema (`chrony-rs-trace-v1`) | parse + structural validation |
 | `chronyd-rs --replay` | **deterministic replay** through a simulated clock; reproducible decision-log hash + pinned-hash regression check (chrony selection/discipline policy not yet applied) |
 | NTP offset/delay measurement | RFC 5905 §8 algebra, era-safe differences (`ntp::Measurement`) |

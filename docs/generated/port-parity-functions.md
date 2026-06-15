@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 334 / 1373 C functions have a direct counterpart (24.3%).** The other 1039 are gaps.
+**Overall: 356 / 1373 C functions have a direct counterpart (25.9%).** The other 1017 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -38,6 +38,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
 | `samplefilt.c` | 18 | 18 | 0 | 100.0% |
+| `sched.c` | 22 | 22 | 0 | 100.0% |
 | `siv_nettle.c` | 9 | 9 | 0 | 100.0% |
 | `siv_nettle_int.c` | 12 | 12 | 0 | 100.0% |
 | `smooth.c` | 12 | 12 | 0 | 100.0% |
@@ -81,7 +82,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `reference.c` | 45 | 0 | 45 | 0.0% |
 | `rtc.c` | 9 | 0 | 9 | 0.0% |
 | `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
-| `sched.c` | 22 | 0 | 22 | 0.0% |
 | `siv_gnutls.c` | 12 | 0 | 12 | 0.0% |
 | `socket.c` | 61 | 0 | 61 | 0.0% |
 | `stubs.c` | 78 | 0 | 78 | 0.0% |
@@ -346,6 +346,31 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `drop_samples`
 - ✓ `get_first_last`
 - ✓ `select_samples`
+
+### `sched.c` — 22/22 (100.0%)
+
+- ✓ `SCH_AddFileHandler`
+- ✓ `SCH_AddTimeout`
+- ✓ `SCH_AddTimeoutByDelay`
+- ✓ `SCH_AddTimeoutInClass`
+- ✓ `SCH_Finalise`
+- ✓ `SCH_GetLastEventMonoTime`
+- ✓ `SCH_GetLastEventTime`
+- ✓ `SCH_Initialise`
+- ✓ `SCH_MainLoop`
+- ✓ `SCH_QuitProgram`
+- ✓ `SCH_RemoveFileHandler`
+- ✓ `SCH_RemoveTimeout`
+- ✓ `SCH_SetFileHandlerEvent`
+- ✓ `allocate_tqe`
+- ✓ `check_current_time`
+- ✓ `dispatch_filehandlers`
+- ✓ `dispatch_timeouts`
+- ✓ `fill_fd_sets`
+- ✓ `get_new_tqe_id`
+- ✓ `handle_slew`
+- ✓ `release_tqe`
+- ✓ `update_monotonic_time`
 
 ### `siv_nettle.c` — 9/9 (100.0%)
 

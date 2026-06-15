@@ -132,7 +132,8 @@ const MAP: &[Row] = &[
         rust: &["tempcomp.rs"], port: Port::Full,
         note: "complete port of all 5 functions; quadratic + point-table interpolation (points stored in the ported array::Array); temp injected, comp returned, points/coefs as data" },
     Row { c: "sched.c", role: "timer/event scheduler (SCH_*)",
-        rust: &["replay.rs"], port: Port::Scaffold, note: "deterministic replay loop is a stand-in, not the SCH_ timer wheel" },
+        rust: &["sched.rs"], port: Port::Full,
+        note: "complete port of all 22 functions: the sorted timeout queue (add/by-delay/in-class with class separation + randomness, removal, dispatch), file-handler registry + select-driven main loop, clock-step queue shift, and last-event/monotonic time tracking; clock/select/randomness injected; differential-tested vs the REAL compiled sched.c (SCH_MainLoop dispatch order + fire times, incl. ties/spacing/random/step) + an independent file-handler test" },
 
     // ---- control client / protocol ----
     Row { c: "client.c", role: "chronyc CLI: command dispatch + report formatters",
@@ -506,6 +507,33 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     (
         "cmac_nettle.c",
         &["CMC_GetKeyLength", "CMC_CreateInstance", "CMC_Hash", "CMC_DestroyInstance"],
+    ),
+    (
+        "sched.c",
+        &[
+            "SCH_Initialise",
+            "SCH_Finalise",
+            "SCH_AddFileHandler",
+            "SCH_RemoveFileHandler",
+            "SCH_SetFileHandlerEvent",
+            "SCH_GetLastEventTime",
+            "SCH_GetLastEventMonoTime",
+            "allocate_tqe",
+            "release_tqe",
+            "get_new_tqe_id",
+            "SCH_AddTimeout",
+            "SCH_AddTimeoutByDelay",
+            "SCH_AddTimeoutInClass",
+            "SCH_RemoveTimeout",
+            "dispatch_timeouts",
+            "dispatch_filehandlers",
+            "handle_slew",
+            "fill_fd_sets",
+            "check_current_time",
+            "update_monotonic_time",
+            "SCH_MainLoop",
+            "SCH_QuitProgram",
+        ],
     ),
     (
         "siv_nettle.c",

@@ -15,7 +15,7 @@ below come from the port-parity matrix, so they cannot disagree with what is
 actually ported. See the [full matrix](../../docs/generated/port-parity.md) and the
 [per-function gap view](../../docs/generated/port-parity-functions.md).
 
-## Fully ported chrony translation units (25)
+## Fully ported chrony translation units (26)
 
 Every function in these units has a court-backed counterpart (differential tests
 against the real compiled C and/or protocol-spec vectors):
@@ -30,6 +30,7 @@ against the real compiled C and/or protocol-spec vectors):
 - `local.c` → `local.rs` — local clock hub: read/cook time, discipline, handlers (LCL_*)
 - `smooth.c` → `smooth.rs` — served-time smoothing (SMT_*)
 - `tempcomp.c` → `tempcomp.rs` — temperature compensation (TMC_*)
+- `sched.c` → `sched.rs` — timer/event scheduler (SCH_*)
 - `array.c` → `array.rs` — generic dynamic array (ARR_*)
 - `keys.c` → `keys.rs` — symmetric key store (KEY_*)
 - `md5.c` → `md5.rs` — MD5 digest (RFC 1321 reference, NTP symmetric-key auth)

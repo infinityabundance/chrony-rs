@@ -1,0 +1,21 @@
+# Differential-oracle vectors: REAL chrony sched.c timer queue, compiled from
+# /tmp/chrony-src commit 120dfb8. A controllable clock + a stubbed select() that
+# advances the clock to each deadline (min 1us per call, mirroring forward-moving
+# real time) drive SCH_MainLoop deterministically. Base time = 1000.0s; randomness
+# is an LCG seeded 0x1234567890abcdef (replicated in Rust).
+# Scenario 0: SCH_AddTimeout (incl. a base+1 tie: 1 then 11), a removed base+5 timer,
+#   AddTimeoutByDelay(2.0)=tag 2, AddTimeoutInClass NtpClient 100 (+0.5) and 101
+#   (pushed to +1.5 by separation 1.0), AddTimeoutInClass NtpPeer 200 (randomness).
+# Scenario 1: timers at base+2 (20) and base+4 (40), then handle_slew step doffset=1.0
+#   shifts them to base+1 and base+3. FIRE tag=<arg> t=<raw seconds>. Consumer: Rust.
+SCENARIO 0
+FIRE tag=100 t=1000.500000000
+FIRE tag=1 t=1001.000000000
+FIRE tag=11 t=1001.000000000
+FIRE tag=200 t=1001.291788999
+FIRE tag=101 t=1001.500000999
+FIRE tag=2 t=1002.000000999
+FIRE tag=3 t=1003.000000999
+SCENARIO 1
+FIRE tag=20 t=1001.000000000
+FIRE tag=40 t=1003.000000000

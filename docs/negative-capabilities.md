@@ -26,6 +26,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `local.c` — local clock hub: read/cook time, discipline, handlers (LCL_*) _(port: full)_
 - `smooth.c` — served-time smoothing (SMT_*) _(port: full)_
 - `tempcomp.c` — temperature compensation (TMC_*) _(port: full)_
+- `sched.c` — timer/event scheduler (SCH_*) _(port: full)_
 - `client.c` — chronyc CLI: command dispatch + report formatters _(port: partial)_
 - `main.c` — daemon entry, arg parsing, lifecycle _(port: partial)_
 - `util.c` — time/UTI/byte utilities (UTI_*) _(port: partial)_
