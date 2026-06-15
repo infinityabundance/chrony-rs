@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 21 / 70 (10 full, 8 partial, 3 scaffold); **49** have none.
-- **Files fully ported:** 10 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
-- **Loose upper bound on function coverage:** files with a counterpart contain 636 / 1373 C functions (46.3%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
+- **Files with any chrony-rs counterpart:** 22 / 70 (11 full, 8 partial, 3 scaffold); **48** have none.
+- **Files fully ported:** 11 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Loose upper bound on function coverage:** files with a counterpart contain 648 / 1373 C functions (47.2%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 369 named functions + 57 closures across 36 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 386 named functions + 57 closures across 37 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -82,7 +82,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `siv_gnutls.c` | 12 | 0.0% | SIV-AEAD (gnutls) | — | · none |
 | `siv_nettle.c` | 9 | 0.0% | SIV-AEAD (nettle) | — | · none |
 | `siv_nettle_int.c` | 12 | 0.0% | SIV-AEAD internals | — | · none |
-| `smooth.c` | 12 | 0.0% | served-time smoothing | — | · none |
+| `smooth.c` | 12 | 100.0% | served-time smoothing (SMT_*) | `smooth.rs` | ● full |
 | `socket.c` | 61 | 0.0% | socket abstraction layer | — | · none |
 | `sources.c` | 48 | 6.2% | source reachability + selection (SRC_*) | `sources/source.rs`<br>`sources/reachability.rs`<br>`sources/selection.rs` | ◑ partial |
 | `sourcestats.c` | 32 | 0.0% | per-source regression statistics (SST_*) | — | · none |
@@ -112,6 +112,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`quantiles.c`** — complete port of all 8 functions (QNT_DestroyInstance = Drop); structural — deterministic parts tested exactly, convergence statistically; chrony seeds random() non-deterministically so it is not byte-witnessable _(≈14 Rust `fn` in mapped modules)_
 - **`reference.c`** — tracking report shape rendered (report.rs); drift/discipline state machine not ported _(≈42 Rust `fn` in mapped modules)_
 - **`local.c`** — side-effect-free simulated clock; no real read/adjust _(≈12 Rust `fn` in mapped modules)_
+- **`smooth.c`** — complete port of all 12 functions; the 3-stage bounded-freq/wander trajectory (update_stages/get_smoothing) verified vs a reference impl; time as seconds, config/skew injected, struct-as-handler _(≈17 Rust `fn` in mapped modules)_
 - **`sched.c`** — deterministic replay loop is a stand-in, not the SCH_ timer wheel _(≈13 Rust `fn` in mapped modules)_
 - **`client.c`** — tracking/sources/sourcestats/activity/serverstats rendered (print_report+print_info_field engines, all print_* value helpers; all live-witnessed vs 4.5); 5 of ~40 process_cmd_* commands; no socket transport _(≈36 Rust `fn` in mapped modules)_
 - **`main.c`** — --check-config and --replay only; no scheduler/privdrop/daemonize _(≈3 Rust `fn` in mapped modules)_
