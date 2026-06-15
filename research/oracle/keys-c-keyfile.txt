@@ -1,0 +1,9 @@
+1 MD5 ASCII:mysecretkey
+2 MD5 HEX:0a0b0c0d0e0f1011
+3 mypassword
+10 SHA256 ASCII:shouldberejected
+11 AES128 HEX:000102030405060708090a0b0c0d0e0f
+12 BOGUS ASCII:whatever
+20 MD5 ASCII:short
+30 MD5 ASCII:thiskeyislongenough
+31 MD5 HEX:00112233445566778899aabbccddeeff

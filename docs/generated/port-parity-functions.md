@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 264 / 1373 C functions have a direct counterpart (19.2%).** The other 1109 are gaps.
+**Overall: 281 / 1373 C functions have a direct counterpart (20.5%).** The other 1092 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -27,6 +27,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `cmdparse.c` | 8 | 8 | 0 | 100.0% |
 | `hash_intmd5.c` | 3 | 3 | 0 | 100.0% |
 | `hwclock.c` | 7 | 7 | 0 | 100.0% |
+| `keys.c` | 17 | 17 | 0 | 100.0% |
 | `local.c` | 35 | 35 | 0 | 100.0% |
 | `manual.c` | 11 | 11 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
@@ -53,7 +54,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `hash_nettle.c` | 3 | 0 | 3 | 0.0% |
 | `hash_nss.c` | 3 | 0 | 3 | 0.0% |
 | `hash_tomcrypt.c` | 3 | 0 | 3 | 0.0% |
-| `keys.c` | 17 | 0 | 17 | 0.0% |
 | `logging.c` | 17 | 0 | 17 | 0.0% |
 | `memory.c` | 6 | 0 | 6 | 0.0% |
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
@@ -192,6 +192,26 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `HCL_NeedsNewSample`
 - ✓ `HCL_ProcessReadings`
 - ✓ `handle_slew`
+
+### `keys.c` — 17/17 (100.0%)
+
+- ✓ `KEY_CheckAuth`
+- ✓ `KEY_CheckKeyLength`
+- ✓ `KEY_Finalise`
+- ✓ `KEY_GenerateAuth`
+- ✓ `KEY_GetAuthLength`
+- ✓ `KEY_GetKeyInfo`
+- ✓ `KEY_Initialise`
+- ✓ `KEY_KeyKnown`
+- ✓ `KEY_Reload`
+- ✓ `check_auth`
+- ✓ `compare_keys_by_id`
+- ✓ `decode_key`
+- ✓ `free_keys`
+- ✓ `generate_auth`
+- ✓ `get_key`
+- ✓ `get_key_by_id`
+- ✓ `lookup_key`
 
 ### `local.c` — 35/35 (100.0%)
 

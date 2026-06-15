@@ -30,6 +30,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `main.c` — daemon entry, arg parsing, lifecycle _(port: partial)_
 - `util.c` — time/UTI/byte utilities (UTI_*) _(port: partial)_
 - `array.c` — generic dynamic array (ARR_*) _(port: full)_
+- `keys.c` — symmetric key store (KEY_*) _(port: full)_
 - `md5.c` — MD5 digest (RFC 1321 reference, NTP symmetric-key auth) _(port: full)_
 - `hash_intmd5.c` — internal MD5 hash backend (HSH_*) _(port: full)_
 - `hwclock.c` — hardware-clock tracking (HCL_*) _(port: full)_
