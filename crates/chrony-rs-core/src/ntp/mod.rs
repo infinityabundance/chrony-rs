@@ -18,6 +18,7 @@
 pub mod ext;
 mod measurements;
 mod packet;
+pub mod poll;
 mod timestamp;
 
 pub use measurements::{ts_diff_seconds, Measurement};

@@ -85,8 +85,8 @@ const MAP: &[Row] = &[
 
     // ---- NTP protocol ----
     Row { c: "ntp_core.c", role: "NTP protocol engine: poll, process-response, offset/delay (NCR_*)",
-        rust: &["ntp/measurements.rs", "ntp/packet.rs"], port: Port::Partial,
-        note: "RFC 5905 §8 offset/delay algebra + 48-byte header codec; poll state machine not ported" },
+        rust: &["ntp/measurements.rs", "ntp/packet.rs", "ntp/poll.rs"], port: Port::Partial,
+        note: "STAGED port of the protocol engine (chrony's largest TU, 69 fns/~3300 lines). RFC 5905 §8 offset/delay algebra + 48-byte header codec (measurements.rs/packet.rs). Stage 1 (ntp/poll.rs): the pure poll-interval + delay-sanity arithmetic -- get_separation, get_poll_adj, adjust_poll (poll/score with minpoll/maxpoll clamp + non-LAN floor), check_delay_ratio, check_delay_dev_ratio. Differential-tested vs the REAL compiled ntp_core.c by #include-ing the TU into the C generator (the static functions + NCR_Instance_Record struct reached directly, the ~130-symbol external surface stubbed, UTI_Log2ToDouble real, SST/SRC inputs controlled) and matching every value. REMAINING: packet parse/validity, NCR_ProcessResponse (offset/delay/dispersion + tests), transmit, lifecycle, access/report" },
     Row { c: "ntp_io.c", role: "NTP socket send/recv path",
         rust: &["ntp/packet.rs"], port: Port::Scaffold, note: "packet bytes only; no socket IO" },
     Row { c: "pktlength.c", role: "cmdmon request/reply length tables (PKL_*)",
@@ -364,7 +364,19 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "log_selection_source",
         ],
     ),
-    ("ntp_core.c", &["parse_packet", "process_response"]),
+    (
+        "ntp_core.c",
+        &[
+            "parse_packet",
+            "process_response",
+            // Stage 1: poll-interval + delay-sanity arithmetic.
+            "get_separation",
+            "get_poll_adj",
+            "adjust_poll",
+            "check_delay_ratio",
+            "check_delay_dev_ratio",
+        ],
+    ),
     (
         "util.c",
         &[

@@ -20,7 +20,7 @@ method, provenance, and how the doxygen runs were produced on both sides.
 - **Files fully ported:** 38 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 926 / 1373 C functions (67.4%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 1378 named functions + 275 closures across 87 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 1391 named functions + 280 closures across 89 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -53,7 +53,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `nameserv.c` | 4 | 100.0% | synchronous DNS resolution | `nameserv.rs` | ● full |
 | `nameserv_async.c` | 0 | 0.0% | async DNS resolution | — | · none |
 | `ntp_auth.c` | 17 | 100.0% | NTP authentication (MAC/NTS dispatch) (NAU_*) | `ntp_auth.rs` | ● full |
-| `ntp_core.c` | 69 | 2.9% | NTP protocol engine: poll, process-response, offset/delay (NCR_*) | `ntp/measurements.rs`<br>`ntp/packet.rs` | ◑ partial |
+| `ntp_core.c` | 69 | 10.1% | NTP protocol engine: poll, process-response, offset/delay (NCR_*) | `ntp/measurements.rs`<br>`ntp/packet.rs`<br>`ntp/poll.rs` | ◑ partial |
 | `ntp_ext.c` | 6 | 100.0% | NTP extension-field (RFC 7822) framing (NEF_*) | `ntp/ext.rs` | ● full |
 | `ntp_io.c` | 19 | 0.0% | NTP socket send/recv path | `ntp/packet.rs` | ○ scaffold |
 | `ntp_io_linux.c` | 16 | 0.0% | Linux HW/kernel RX timestamping | — | · none |
@@ -103,7 +103,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 
 - **`conf.c`** — directive recognition (93/93), comment rules, diagnostics witnessed vs 4.5; per-directive value semantics partial _(≈33 Rust `fn` in mapped modules)_
 - **`cmdparse.c`** — all 8: source options + word split/normalize/refid/key/local + allow-deny (incl. DNS hostname via nameserv; drives addrfilt end-to-end vs `chronyc accheck`) _(≈37 Rust `fn` in mapped modules)_
-- **`ntp_core.c`** — RFC 5905 §8 offset/delay algebra + 48-byte header codec; poll state machine not ported _(≈23 Rust `fn` in mapped modules)_
+- **`ntp_core.c`** — STAGED port of the protocol engine (chrony's largest TU, 69 fns/~3300 lines). RFC 5905 §8 offset/delay algebra + 48-byte header codec (measurements.rs/packet.rs). Stage 1 (ntp/poll.rs): the pure poll-interval + delay-sanity arithmetic -- get_separation, get_poll_adj, adjust_poll (poll/score with minpoll/maxpoll clamp + non-LAN floor), check_delay_ratio, check_delay_dev_ratio. Differential-tested vs the REAL compiled ntp_core.c by #include-ing the TU into the C generator (the static functions + NCR_Instance_Record struct reached directly, the ~130-symbol external surface stubbed, UTI_Log2ToDouble real, SST/SRC inputs controlled) and matching every value. REMAINING: packet parse/validity, NCR_ProcessResponse (offset/delay/dispersion + tests), transmit, lifecycle, access/report _(≈30 Rust `fn` in mapped modules)_
 - **`ntp_io.c`** — packet bytes only; no socket IO _(≈14 Rust `fn` in mapped modules)_
 - **`pktlength.c`** — complete port of all 3 functions; per-command length/padding + per-reply length tables extracted exactly from candm.h offsets (compiled probe), not guessed _(≈7 Rust `fn` in mapped modules)_
 - **`ntp_ext.c`** — complete port of all 6 functions; TLV format/parse + packet add/parse with alignment, NTPv4, MAC-length and bounds checks; set/parse roundtrip tested _(≈18 Rust `fn` in mapped modules)_
