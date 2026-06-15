@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/chrony-rs",
     "crates/chrony-rs-core",
     "crates/chronyd-rs",
     "crates/chronyc-rs",
@@ -8,7 +9,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 rust-version = "1.74"
 license = "GPL-2.0-only"
