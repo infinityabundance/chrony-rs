@@ -17,7 +17,7 @@ generic protocol truth.
 
 ## What exists today
 
-### Fully ported chrony 4.5 translation units (36)
+### Fully ported chrony 4.5 translation units (37)
 
 Every function in each unit has a court-backed counterpart — differential-tested
 against the **real compiled C** and/or protocol-spec vectors. This list is
@@ -58,6 +58,7 @@ file updates it automatically.
 - **`sys_timex.c`** — complete port of all 10 functions (Linux build): ppm<->kernel-freq scaling, sync-status/leap/TAI status bookkeeping over the struct timex ABI, composing the generic slew driver; the adjtimex syscall is injected; differential-tested vs the REAL compiled sys_timex.c (every submitted timex captured) + an independent scaling check
 - **`sys_null.c`** — complete port of all 8 functions; the virtual-clock offset/frequency model (set_freq/accrue/offset_convert); raw time injected as seconds, driver-as-struct (no global LCL registration)
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5
+- **`nameserv.c`** — complete port of all 4 functions: DNS_Name2IPAddress (the IP-literal shortcut + family filtering + IPv4 host-order extraction + IPv6 scope-id skip + result-array fill + Success/TryAgain/Failure status mapping), DNS_IPAddress2Name (reverse with IP-string fallback + snprintf truncation check), DNS_SetAddressFamily, DNS_Reload; the getaddrinfo/getnameinfo/res_init resolver and the util IP literal-parse/format are the injected Resolver boundary. Differential-tested vs the REAL compiled nameserv.c with getaddrinfo overridden to a crafted addrinfo list (family filter / v4 extraction / v6 scope skip / max_addrs / status, byte-identical); literal shortcut + reverse fallback unit-tested. A separate name_to_ip convenience keeps the live system-resolver path used by cmdparse (witnessed vs `chronyc accheck`)
 - **`clientlog.c`** — complete port of all 35 functions: per-client hash table with oldest-record eviction, per-service token-bucket rate limiter with probabilistic leak, log2 request-rate estimate (incl. NTP timeout-rate inversion), and the interleaved-mode RX->TX timestamp map; differential-tested vs the REAL compiled clientlog.c (165-line vector fixture, injected reproducible RNG) + an independent token-bucket invariant
 - **`manual.c`** — complete port of all 11 functions; sample store + robust-regression slew/frequency estimate (uses the verified regress); time as seconds, REF correction returned not applied, struct-as-handler
 

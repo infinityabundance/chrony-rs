@@ -16,11 +16,11 @@ method, provenance, and how the doxygen runs were produced on both sides.
 ## Headline completeness
 
 - **C translation units:** 70 `.c` files, 1373 functions (doxygen).
-- **Files with any chrony-rs counterpart:** 44 / 70 (36 full, 7 partial, 1 scaffold); **26** have none.
-- **Files fully ported:** 36 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
+- **Files with any chrony-rs counterpart:** 44 / 70 (37 full, 6 partial, 1 scaffold); **26** have none.
+- **Files fully ported:** 37 / 70 — every function in the unit has a court-backed counterpart (dependency-free TUs first). chrony-rs remains an early-stage forensic reconstruction; this number is stated, not hidden.
 - **Loose upper bound on function coverage:** files with a counterpart contain 926 / 1373 C functions (67.4%). This is an *upper bound only* — a file marked partial ports a fraction of its functions, so true coverage is well below this. chrony-rs ports behavior under court, not functions 1:1.
 
-- **chrony-rs native inventory (`syn` AST):** 1237 named functions + 240 closures across 82 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
+- **chrony-rs native inventory (`syn` AST):** 1259 named functions + 247 closures across 83 `.rs` files. Extracted from the real AST, not doxygen — see the limitation notice in `docs/port-parity.md`.
 
 Legend: ● full = every function ported under court · ◑ partial = some behavior ported with an executable court · ○ scaffold = type/simulated stand-in only · · none = no counterpart.
 
@@ -50,7 +50,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 | `manual.c` | 11 | 100.0% | manual time input / settime (MNL_*) | `manual.rs` | ● full |
 | `md5.c` | 4 | 100.0% | MD5 digest (RFC 1321 reference, NTP symmetric-key auth) | `md5.rs` | ● full |
 | `memory.c` | 6 | 0.0% | xmalloc/xrealloc wrappers | — | · none |
-| `nameserv.c` | 4 | 25.0% | synchronous DNS resolution | `nameserv.rs` | ◑ partial |
+| `nameserv.c` | 4 | 100.0% | synchronous DNS resolution | `nameserv.rs` | ● full |
 | `nameserv_async.c` | 0 | 0.0% | async DNS resolution | — | · none |
 | `ntp_auth.c` | 17 | 100.0% | NTP authentication (MAC/NTS dispatch) (NAU_*) | `ntp_auth.rs` | ● full |
 | `ntp_core.c` | 69 | 2.9% | NTP protocol engine: poll, process-response, offset/delay (NCR_*) | `ntp/measurements.rs`<br>`ntp/packet.rs` | ◑ partial |
@@ -142,7 +142,7 @@ Legend: ● full = every function ported under court · ◑ partial = some behav
 - **`sys_timex.c`** — complete port of all 10 functions (Linux build): ppm<->kernel-freq scaling, sync-status/leap/TAI status bookkeeping over the struct timex ABI, composing the generic slew driver; the adjtimex syscall is injected; differential-tested vs the REAL compiled sys_timex.c (every submitted timex captured) + an independent scaling check _(≈13 Rust `fn` in mapped modules)_
 - **`sys_null.c`** — complete port of all 8 functions; the virtual-clock offset/frequency model (set_freq/accrue/offset_convert); raw time injected as seconds, driver-as-struct (no global LCL registration) _(≈10 Rust `fn` in mapped modules)_
 - **`addrfilt.c`** — complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5 _(≈27 Rust `fn` in mapped modules)_
-- **`nameserv.c`** — DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported _(≈3 Rust `fn` in mapped modules)_
+- **`nameserv.c`** — complete port of all 4 functions: DNS_Name2IPAddress (the IP-literal shortcut + family filtering + IPv4 host-order extraction + IPv6 scope-id skip + result-array fill + Success/TryAgain/Failure status mapping), DNS_IPAddress2Name (reverse with IP-string fallback + snprintf truncation check), DNS_SetAddressFamily, DNS_Reload; the getaddrinfo/getnameinfo/res_init resolver and the util IP literal-parse/format are the injected Resolver boundary. Differential-tested vs the REAL compiled nameserv.c with getaddrinfo overridden to a crafted addrinfo list (family filter / v4 extraction / v6 scope skip / max_addrs / status, byte-identical); literal shortcut + reverse fallback unit-tested. A separate name_to_ip convenience keeps the live system-resolver path used by cmdparse (witnessed vs `chronyc accheck`) _(≈12 Rust `fn` in mapped modules)_
 - **`clientlog.c`** — complete port of all 35 functions: per-client hash table with oldest-record eviction, per-service token-bucket rate limiter with probabilistic leak, log2 request-rate estimate (incl. NTP timeout-rate inversion), and the interleaved-mode RX->TX timestamp map; differential-tested vs the REAL compiled clientlog.c (165-line vector fixture, injected reproducible RNG) + an independent token-bucket invariant _(≈48 Rust `fn` in mapped modules)_
 - **`manual.c`** — complete port of all 11 functions; sample store + robust-regression slew/frequency estimate (uses the verified regress); time as seconds, REF correction returned not applied, struct-as-handler _(≈16 Rust `fn` in mapped modules)_
 

@@ -251,8 +251,8 @@ const MAP: &[Row] = &[
     Row { c: "addrfilt.c", role: "NTP/cmd access-control subnet trie (ADF_*)",
         rust: &["addrfilt.rs"], port: Port::Full,
         note: "complete port of all 16 functions (ADF_DestroyTable = Drop); decisions live-witnessed vs `chronyc accheck` on chrony 4.5" },
-    Row { c: "nameserv.c", role: "synchronous DNS resolution", rust: &["nameserv.rs"], port: Port::Partial,
-        note: "DNS_Name2IPAddress (first address) ported via the system resolver — the one networked entry point; reverse lookup / family-set / reload not ported" },
+    Row { c: "nameserv.c", role: "synchronous DNS resolution", rust: &["nameserv.rs"], port: Port::Full,
+        note: "complete port of all 4 functions: DNS_Name2IPAddress (the IP-literal shortcut + family filtering + IPv4 host-order extraction + IPv6 scope-id skip + result-array fill + Success/TryAgain/Failure status mapping), DNS_IPAddress2Name (reverse with IP-string fallback + snprintf truncation check), DNS_SetAddressFamily, DNS_Reload; the getaddrinfo/getnameinfo/res_init resolver and the util IP literal-parse/format are the injected Resolver boundary. Differential-tested vs the REAL compiled nameserv.c with getaddrinfo overridden to a crafted addrinfo list (family filter / v4 extraction / v6 scope skip / max_addrs / status, byte-identical); literal shortcut + reverse fallback unit-tested. A separate name_to_ip convenience keeps the live system-resolver path used by cmdparse (witnessed vs `chronyc accheck`)" },
     Row { c: "nameserv_async.c", role: "async DNS resolution", rust: &[], port: Port::None, note: "not in Linux preprocessing (0 fns)" },
     Row { c: "clientlog.c", role: "client access log / rate limiting",
         rust: &["clientlog.rs"], port: Port::Full,
@@ -342,7 +342,6 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
         ],
     ),
     ("main.c", &["main"]),
-    ("nameserv.c", &["DNS_Name2IPAddress"]),
     ("md5.c", &["MD5Init", "MD5Update", "MD5Final", "Transform"]),
     (
         "keys.c",
@@ -617,6 +616,10 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
         // registration (the host's); read_sample carries the ported sample logic.
         "refclock_sock.c",
         &["read_sample"],
+    ),
+    (
+        "nameserv.c",
+        &["DNS_Name2IPAddress", "DNS_IPAddress2Name", "DNS_SetAddressFamily", "DNS_Reload"],
     ),
     (
         "reference.c",

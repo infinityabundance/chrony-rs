@@ -15,7 +15,7 @@ below come from the port-parity matrix, so they cannot disagree with what is
 actually ported. See the [full matrix](../../docs/generated/port-parity.md) and the
 [per-function gap view](../../docs/generated/port-parity-functions.md).
 
-## Fully ported chrony translation units (36)
+## Fully ported chrony translation units (37)
 
 Every function in these units has a court-backed counterpart (differential tests
 against the real compiled C and/or protocol-spec vectors):
@@ -54,10 +54,11 @@ against the real compiled C and/or protocol-spec vectors):
 - `sys_timex.c` → `sys_timex.rs` — adjtimex()/ntp_adjtime() clock driver
 - `sys_null.c` → `sys_null.rs` — null clock driver (the `-x` 'disabled control' driver)
 - `addrfilt.c` → `addrfilt.rs` — NTP/cmd access-control subnet trie (ADF_*)
+- `nameserv.c` → `nameserv.rs` — synchronous DNS resolution
 - `clientlog.c` → `clientlog.rs` — client access log / rate limiting
 - `manual.c` → `manual.rs` — manual time input / settime (MNL_*)
 
-## Partially ported (7)
+## Partially ported (6)
 
 Behavior ported with at least one executable court, but not every function (see the
 matrix for the exact gap):
@@ -68,7 +69,6 @@ matrix for the exact gap):
 - `client.c` → `report.rs`, `../chronyc-rs/src/main.rs` — chronyc CLI: command dispatch + report formatters
 - `main.c` → `../chronyd-rs/src/main.rs` — daemon entry, arg parsing, lifecycle
 - `util.c` → `util.rs`, `ntp/timestamp.rs`, `ntp/measurements.rs` — time/UTI/byte utilities (UTI_*)
-- `nameserv.c` → `nameserv.rs` — synchronous DNS resolution
 
 ## Invariants
 

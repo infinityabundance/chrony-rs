@@ -52,7 +52,7 @@ These chrony translation units have real, court-backed counterparts in `chrony-r
 - `sys_timex.c` — adjtimex()/ntp_adjtime() clock driver _(port: full)_
 - `sys_null.c` — null clock driver (the `-x` 'disabled control' driver) _(port: full)_
 - `addrfilt.c` — NTP/cmd access-control subnet trie (ADF_*) _(port: full)_
-- `nameserv.c` — synchronous DNS resolution _(port: partial)_
+- `nameserv.c` — synchronous DNS resolution _(port: full)_
 - `clientlog.c` — client access log / rate limiting _(port: full)_
 - `manual.c` — manual time input / settime (MNL_*) _(port: full)_
 
