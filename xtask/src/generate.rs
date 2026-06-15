@@ -94,6 +94,136 @@ fn render_fixture_list(root: &Path) -> String {
     out
 }
 
+/// Render `docs/negative-capabilities.md`.
+///
+/// The ledger is **generated** so it cannot drift from the code: the list of
+/// modules that *do* exist comes straight from the parity [`MAP`](crate::parity)
+/// (Full + Partial), and the `unsafe` count is the live scan. The curated prose
+/// below states only what is genuinely *not* admitted as daemon behavior — and
+/// because the "implemented" list is machine-derived, prose can never again claim
+/// an implemented module is absent without the freshness gate rejecting it.
+pub fn negative_capabilities_md(root: &Path) -> String {
+    let mut s = String::new();
+    s.push_str(HEADER);
+    s.push_str(
+        "\n# Negative capabilities\n\n\
+        The things `chrony-rs` deliberately does **not** do yet. Each entry is a \
+        promise that the absence is intentional and fails *closed* (errors or is \
+        simply absent), never silently approximated.\n\n\
+        This file is **generated** (`cargo xtask gen`) and freshness-gated: the \
+        list of modules that *do* exist is derived from the port-parity matrix, so \
+        it cannot contradict what has actually been ported. Removing something from \
+        the \"not yet admitted\" lists below requires the corresponding court and \
+        evidence to exist first.\n\n",
+    );
+
+    // --- Generated: modules that exist offline, derived from the parity MAP. ---
+    s.push_str(
+        "## Implemented as isolated, court-backed modules (offline — NOT daemon-admitted)\n\n\
+        These chrony translation units have real, court-backed counterparts in \
+        `chrony-rs-core`, exercised by unit/differential tests **in isolation**. \
+        They are *not* wired into a running discipline loop and their behavior is \
+        *not* yet compared end-to-end against a live `chronyd`. Presence here is a \
+        statement about ported algorithms, not about daemon behavior. See the \
+        [port-parity matrix](generated/port-parity.md) for per-function detail and \
+        the courts behind each.\n\n",
+    );
+    for m in crate::parity::ported_modules() {
+        let tag = if m.full { "full" } else { "partial" };
+        s.push_str(&format!("- `{}` — {} _(port: {})_\n", m.c, m.role, tag));
+    }
+    s.push('\n');
+
+    // --- Curated: what is genuinely not admitted yet. ---
+    s.push_str(NEGATIVE_CLAIMS);
+
+    // --- Generated: the unsafe ledger. ---
+    s.push_str(&format!(
+        "## Unsafe\n\n\
+        - **No `unsafe` code.** The current count is {}\u{a0}(see \
+        `security-boundary.md`). This is recorded even though it is zero, so a \
+        future addition is conspicuous and gated.\n",
+        count_unsafe(root)
+    ));
+
+    s
+}
+
+/// Curated negative claims: behavior genuinely **not** admitted yet. These are the
+/// statements the doctrine forbids overclaiming on; the "implemented" list above is
+/// generated separately so the two halves cannot contradict each other.
+const NEGATIVE_CLAIMS: &str = "\
+## Not yet admitted as daemon behavior
+
+The modules above exist in isolation. The *integration* that would make them a
+daemon does not, and is not claimed:
+
+- **No live poll T1/T4 capture.** The daemon-side recording of our transmit (T1)
+  and receive (T4) timestamps for a live poll/response is not wired up, so the
+  measurement stage is not fed by real exchanges.
+- **No source-selection oracle replay.** Selection runs on *computed* offsets in
+  an integration test only; it is not driven from a captured `chronyd` trace nor
+  compared against the daemon's chosen source.
+- **No full discipline state machine.** The offset/frequency/skew/step/slew
+  *algorithms* exist as modules (`local`, `sys_null`, `smooth`, `tempcomp`,
+  `sourcestats`, `regress`), but the closed loop that drives a clock from live
+  measurements is not assembled or admitted.
+- **No end-to-end chronyd parity.** No court asserts that a full poll→select→
+  discipline→report cycle matches real `chronyd` over a captured trace.
+- **No drift/dump/state file *daemon I/O*.** `sourcestats` can serialize/restore
+  its sample register (tested), but the daemon-level drift/dump/state file
+  lifecycle (paths, atomic writes, load-on-start) is not wired up.
+
+## Daemon / clock
+
+- **No real system-clock mutation.** No `step`/`slew` of a live clock exists; the
+  ported discipline math returns corrections instead of applying them.
+- **No `--lab-daemon` mode.** Deferred behind explicit lab guards.
+- **No NTP server/responder.** Client-shaped packet handling only; the
+  `clientlog` rate limiter is ported in isolation but no socket serves time.
+
+## Control
+
+- **No live control-socket transport.** `chronyc-rs tracking|sources|sourcestats|
+  activity|serverstats` against a running daemon is not implemented; the binary
+  exits non-zero with an explanation. Only offline rendering works.
+- **No control protocol encode/decode.** The Unix/UDP control wire format is not
+  yet modeled (the `pktlength` length tables are ported, but not the transport).
+
+## NTP wire
+
+- **No authentication (MAC/key-id) verification.** Bytes are preserved, not
+  checked (MD5 is ported and vectored, but not wired into packet verification).
+- **No NTS.** No handshake, cookies, records, or key material.
+- **Extension fields framed, not interpreted.** `ntp_ext` parses/formats the TLV
+  framing, but the semantics of specific extension fields are not acted on.
+
+## Config
+
+- **Recognized \u{2260} modeled.** All 93 chrony 4.5 directives are *recognized*
+  and `server`/`pool`/`peer` *options* are validated 1:1, but only a subset of
+  directives is given typed *semantics*. Unmodeled directives are preserved, not
+  executed.
+- **No `include`/`confdir` expansion.** Recognized as keywords, not followed.
+- **No exact diagnostic-text parity** beyond what `config-atlas.md` admits.
+
+## Replay
+
+- **Replay executes, but applies no chrony policy.** `--replay` drives a validated
+  trace through a deterministic simulated clock and emits a reproducible
+  decision-log hash; it does not implement chrony's selection/filtering/discipline,
+  and the `selected_source` it reports is a transparent placeholder.
+- **No oracle comparison.** Expectation checking is the runner's own decision-log
+  hash (self-consistency), never an assertion of parity with real `chronyd`.
+
+## OS / platform
+
+- **No OS clock adapters.** No `adjtimex`/`clock_adjtime`/BSD/macOS/illumos code.
+- **No privilege/capability handling, chroot, or sandbox.**
+- **No refclock or RTC hardware support.**
+
+";
+
 /// Count `unsafe` occurrences across crate sources. A scan, not a parse: any
 /// occurrence (even in a comment) counts, which is the conservative direction —
 /// it can only over-report, never hide an `unsafe` block.

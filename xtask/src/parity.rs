@@ -532,6 +532,44 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
     ),
 ];
 
+/// A module that exists in chrony-rs (Full or Partial), surfaced for the
+/// generated negative-capabilities ledger so the "implemented" list there is
+/// derived from the same single source of truth as the parity matrix.
+pub(crate) struct PortedModule {
+    /// chrony source basename.
+    pub c: &'static str,
+    /// One-line role.
+    pub role: &'static str,
+    /// True for [`Port::Full`], false for [`Port::Partial`].
+    pub full: bool,
+}
+
+/// The Full and Partial rows of [`MAP`], in catalog order. Drives the generated
+/// "implemented as isolated modules" section of `docs/negative-capabilities.md`,
+/// so porting a new file updates that ledger automatically and the freshness gate
+/// catches any prose that claims an implemented module is absent.
+pub(crate) fn ported_modules() -> Vec<PortedModule> {
+    MAP.iter()
+        .filter(|r| matches!(r.port, Port::Full | Port::Partial))
+        .map(|r| PortedModule { c: r.c, role: r.role, full: r.port == Port::Full })
+        .collect()
+}
+
+/// The machine-derivable headline facts that prose docs restate and that must not
+/// be allowed to drift. Computed from the same sources the parity matrix uses.
+pub(crate) struct CanonicalFacts {
+    /// Number of chrony `.c` files in the doxygen inventory.
+    pub c_files: usize,
+    /// Total chrony C functions in the inventory.
+    pub c_functions: usize,
+}
+
+/// Compute the canonical facts from the committed inventory.
+pub(crate) fn canonical_facts(root: &Path) -> CanonicalFacts {
+    let (_prov, inv) = load_c_inventory(root);
+    CanonicalFacts { c_files: inv.len(), c_functions: inv.values().sum() }
+}
+
 /// Look up the curated ported-function list for a file (empty if none).
 fn ported_fns(file: &str) -> &'static [&'static str] {
     PORTED_FNS

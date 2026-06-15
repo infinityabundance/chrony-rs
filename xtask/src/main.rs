@@ -60,6 +60,10 @@ fn artifacts(root: &Path) -> Vec<(PathBuf, String)> {
             root.join("docs/generated/port-parity-functions.md"),
             parity::port_parity_functions_md(root),
         ),
+        (
+            root.join("docs/negative-capabilities.md"),
+            generate::negative_capabilities_md(root),
+        ),
     ]
 }
 
@@ -81,6 +85,69 @@ fn gen() -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// A machine-derived fact that a *curated* (non-generated) doc restates, and the
+/// distinctive phrase that doc must therefore contain. This is how prose docs are
+/// freshness-gated without being fully generated: the fact comes from the code, and
+/// the gate fails closed if its canonical home stops stating the current value.
+struct AssertedFact {
+    /// Doc path, relative to repo root.
+    doc: &'static str,
+    /// Human label for the failure message.
+    label: String,
+    /// Exact substring the doc must contain (built from the code-derived value).
+    needle: String,
+}
+
+/// The curated map of headline facts → their canonical home docs. Every fact here
+/// is derived from code/inventory, so a doc that drifts away from the live value
+/// fails `cargo xtask check`. New drift-prone claims should be added here (or the
+/// doc made fully generated) rather than left ungated.
+fn asserted_facts(root: &Path) -> Vec<AssertedFact> {
+    let ver = chrony_rs_core::TARGET_CHRONY_VERSION;
+    let directives = chrony_rs_core::config::known_directives().len();
+    let facts = parity::canonical_facts(root);
+    let unsafe_count = generate::count_unsafe(root);
+
+    let mut v = vec![
+        // unsafe ledger (previously a bespoke check).
+        AssertedFact {
+            doc: "docs/security-boundary.md",
+            label: format!("unsafe count ({unsafe_count})"),
+            needle: format!("count: {unsafe_count}"),
+        },
+        // chrony version: pinned in every doc that names the target oracle.
+        AssertedFact {
+            doc: "docs/version-lineage.md",
+            label: format!("target chrony version ({ver})"),
+            needle: format!("chrony {ver}"),
+        },
+        AssertedFact {
+            doc: "docs/oracle.md",
+            label: format!("target chrony version ({ver})"),
+            needle: format!("chrony {ver}"),
+        },
+        AssertedFact {
+            doc: "docs/compatibility.md",
+            label: format!("target chrony version ({ver})"),
+            needle: format!("chrony {ver}"),
+        },
+        // recognized directive set size.
+        AssertedFact {
+            doc: "docs/config-atlas.md",
+            label: format!("recognized directive count ({directives})"),
+            needle: format!("{directives} entries"),
+        },
+        // chrony source inventory totals.
+        AssertedFact {
+            doc: "docs/port-parity.md",
+            label: format!("inventory size ({} files / {} fns)", facts.c_files, facts.c_functions),
+            needle: format!("{} `.c` files / {} functions", facts.c_files, facts.c_functions),
+        },
+    ];
+    v.sort_by(|a, b| a.doc.cmp(b.doc));
+    v
+}
+
 fn check() -> ExitCode {
     let root = repo_root();
     let mut stale = Vec::new();
@@ -91,24 +158,32 @@ fn check() -> ExitCode {
         }
     }
 
-    // Also verify the documented `unsafe` count is accurate: a hard invariant of
-    // the security boundary that prose alone could silently break.
-    let actual_unsafe = generate::count_unsafe(&root);
-    let security = std::fs::read_to_string(root.join("docs/security-boundary.md")).unwrap_or_default();
-    let unsafe_claim_ok = security.contains(&format!("count: {actual_unsafe}"));
+    // Verify every curated doc still states the live value of the machine fact it
+    // restates — the prose-doc analogue of the generated-doc freshness diff.
+    let mut wrong_facts = Vec::new();
+    for fact in asserted_facts(&root) {
+        let text = std::fs::read_to_string(root.join(fact.doc)).unwrap_or_default();
+        if !text.contains(&fact.needle) {
+            wrong_facts.push(fact);
+        }
+    }
 
-    if stale.is_empty() && unsafe_claim_ok {
-        println!("xtask check: generated docs are up to date; unsafe ledger accurate ({actual_unsafe}).");
+    if stale.is_empty() && wrong_facts.is_empty() {
+        println!(
+            "xtask check: generated docs up to date; {} pinned doc facts accurate.",
+            asserted_facts(&root).len()
+        );
         return ExitCode::SUCCESS;
     }
     for p in &stale {
         eprintln!("xtask check: STALE generated doc: {}", p.display());
     }
-    if !unsafe_claim_ok {
+    for f in &wrong_facts {
         eprintln!(
-            "xtask check: docs/security-boundary.md does not state the actual unsafe count ({actual_unsafe})"
+            "xtask check: {} does not state the live {} (expected to contain {:?})",
+            f.doc, f.label, f.needle
         );
     }
-    eprintln!("\nRun `cargo xtask gen` and commit the result.");
+    eprintln!("\nRun `cargo xtask gen` and/or update the doc so it states the current value.");
     ExitCode::FAILURE
 }

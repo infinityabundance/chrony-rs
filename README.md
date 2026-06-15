@@ -35,7 +35,7 @@ Run:
 
 ```sh
 cargo build
-cargo test                                    # 198 tests, deterministic
+cargo test                                    # deterministic; count shown in output
 chronyd-rs --check-config examples/minimal.conf
 chronyd-rs --replay <trace.json>
 chronyc-rs render-tracking <fixture.json>
@@ -73,7 +73,7 @@ so the brain is testable without the real system clock. See
 
 ## Generated docs & freshness gate
 
-Machine-derivable facts (target chrony version, the 93-directive recognition set,
+Machine-derivable facts (target chrony version, the recognized-directive set,
 source-option tables, `unsafe` count, oracle fixtures) are generated from the code
 into [`docs/generated/`](docs/generated/) by `cargo xtask gen`. This includes the
 **[port-parity matrix](docs/generated/port-parity.md)** — a 1:1 completeness catalog
@@ -81,10 +81,16 @@ of every chrony 4.5 `.c` file (doxygen inventory) against its chrony-rs counterp
 (`syn` AST inventory), plus a
 **[per-function gap view](docs/generated/port-parity-functions.md)** giving each
 file's ported-vs-gap functions and percentage; method in
-[`docs/port-parity.md`](docs/port-parity.md). A
-pre-commit hook runs `cargo xtask check` and rejects any commit whose generated docs
-are stale — nothing documented can silently drift from the code. Activate the hook
-with:
+[`docs/port-parity.md`](docs/port-parity.md). The
+**[negative-capabilities ledger](docs/negative-capabilities.md)** is generated too —
+its "implemented modules" list is derived from the parity matrix, so it can never
+claim a ported module is absent.
+
+A pre-commit hook runs `cargo xtask check`, which rejects any commit where (1) a
+generated doc is stale, or (2) a curated prose doc has drifted from a machine fact
+it restates (the chrony version, directive count, source-inventory totals, and
+`unsafe` count are each pinned to their canonical doc). Nothing documented —
+generated *or* prose — can silently drift from the code. Activate the hook with:
 
 ```sh
 git config core.hooksPath .githooks

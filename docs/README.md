@@ -35,10 +35,24 @@ a stale doc, so they are listed but not stubbed.
 
 ## Freshness gate
 
-Machine-derivable facts (target version, the 93-directive set, source-option
+Machine-derivable facts (target version, the recognized-directive set, source-option
 tables, `unsafe` count, oracle fixture inventory) live in
 [`generated/status.md`](generated/status.md), produced by `cargo xtask gen` from
-the code — the single source of truth. The pre-commit hook (`.githooks/pre-commit`,
-activate with `git config core.hooksPath .githooks`) runs `cargo xtask check` and
-**refuses any commit whose generated docs are stale** or whose documented `unsafe`
-count is wrong. This is the "no stale generated docs" doctrine, enforced.
+the code — the single source of truth. [`negative-capabilities.md`](negative-capabilities.md)
+is **also generated**: its "implemented modules" list is derived from the port-parity
+matrix, so it can never claim an implemented module is absent.
+
+Two enforcement layers run in `cargo xtask check` (via the pre-commit hook
+`.githooks/pre-commit`, activate with `git config core.hooksPath .githooks`):
+
+1. **Generated-doc freshness** — a byte diff refuses any commit whose
+   `docs/generated/*` or `docs/negative-capabilities.md` is stale.
+2. **Pinned doc facts** — curated (non-generated) docs that *restate* a
+   machine fact are checked to still contain its live value: the target chrony
+   version (`version-lineage.md`, `oracle.md`, `compatibility.md`), the recognized
+   directive count (`config-atlas.md`), the chrony source inventory totals
+   (`port-parity.md`), and the `unsafe` count (`security-boundary.md`). A doc that
+   drifts from the code fails the gate. New drift-prone claims must be added to
+   this set (or the doc made generated) rather than left ungated.
+
+This is the "no stale docs, generated *or* prose" doctrine, enforced.
