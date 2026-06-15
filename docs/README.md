@@ -47,12 +47,17 @@ Two enforcement layers run in `cargo xtask check` (via the pre-commit hook
 
 1. **Generated-doc freshness** — a byte diff refuses any commit whose
    `docs/generated/*` or `docs/negative-capabilities.md` is stale.
-2. **Pinned doc facts** — curated (non-generated) docs that *restate* a
-   machine fact are checked to still contain its live value: the target chrony
-   version (`version-lineage.md`, `oracle.md`, `compatibility.md`), the recognized
-   directive count (`config-atlas.md`), the chrony source inventory totals
-   (`port-parity.md`), and the `unsafe` count (`security-boundary.md`). A doc that
-   drifts from the code fails the gate. New drift-prone claims must be added to
-   this set (or the doc made generated) rather than left ungated.
+2. **Pinned doc facts** — every *living* doc that restates a machine fact is
+   checked to still contain its live value: the target chrony version, the
+   recognized directive count, the chrony source inventory totals, and the
+   `unsafe` count, each pinned in **all** the docs that mention them
+   (`asserted_facts()` in `xtask/src/main.rs`). A doc that drifts from the code
+   fails the gate. New drift-prone claims must be added to this set (or the doc
+   made generated) rather than left ungated.
+
+Evidence receipts under [`../reports/`](../reports/) and
+[`../research/`](../research/) are deliberately **not** pinned: they are frozen
+snapshots of what was witnessed at a specific version/commit and must keep stating
+the values they actually recorded, even after the live target moves on.
 
 This is the "no stale docs, generated *or* prose" doctrine, enforced.

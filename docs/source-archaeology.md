@@ -27,7 +27,7 @@ recognition/option tables were made exact:
 Extracted tables and provenance: `research/source-archaeology/`.
 
 The same doxygen index, run over the **whole** C tree, yields the per-file function
-inventory (70 `.c` files, 1373 functions) committed at
+inventory (70 `.c` files / 1373 functions) committed at
 `research/doxygen/chrony-4.5-c-inventory.tsv`. That inventory is the denominator for
 the **port-parity matrix** (`docs/port-parity.md` →
 `docs/generated/port-parity.md`), which catalogs every C translation unit against

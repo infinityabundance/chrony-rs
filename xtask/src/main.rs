@@ -107,44 +107,65 @@ fn asserted_facts(root: &Path) -> Vec<AssertedFact> {
     let directives = chrony_rs_core::config::known_directives().len();
     let facts = parity::canonical_facts(root);
     let unsafe_count = generate::count_unsafe(root);
+    let inventory = format!("{} `.c` files / {} functions", facts.c_files, facts.c_functions);
 
-    let mut v = vec![
-        // unsafe ledger (previously a bespoke check).
-        AssertedFact {
-            doc: "docs/security-boundary.md",
-            label: format!("unsafe count ({unsafe_count})"),
-            needle: format!("count: {unsafe_count}"),
-        },
-        // chrony version: pinned in every doc that names the target oracle.
-        AssertedFact {
-            doc: "docs/version-lineage.md",
+    let mut v = Vec::new();
+
+    // Target chrony version — pinned in EVERY living doc that names the oracle, so
+    // a version bump must touch all of them. (Evidence receipts under reports/ and
+    // research/ are deliberately NOT pinned: they are frozen snapshots of what was
+    // witnessed and must keep stating the version they actually saw.)
+    for doc in [
+        "README.md",
+        "docs/README.md",
+        "docs/chronyc-parity.md",
+        "docs/compatibility.md",
+        "docs/config-atlas.md",
+        "docs/deployment-boundary.md",
+        "docs/distro-defaults.md",
+        "docs/oracle.md",
+        "docs/port-parity.md",
+        "docs/source-archaeology.md",
+        "docs/version-lineage.md",
+    ] {
+        v.push(AssertedFact {
+            doc,
             label: format!("target chrony version ({ver})"),
             needle: format!("chrony {ver}"),
-        },
-        AssertedFact {
-            doc: "docs/oracle.md",
-            label: format!("target chrony version ({ver})"),
-            needle: format!("chrony {ver}"),
-        },
-        AssertedFact {
-            doc: "docs/compatibility.md",
-            label: format!("target chrony version ({ver})"),
-            needle: format!("chrony {ver}"),
-        },
-        // recognized directive set size.
-        AssertedFact {
-            doc: "docs/config-atlas.md",
+        });
+    }
+
+    // Recognized directive-set size, in each living doc that restates it.
+    for doc in ["docs/config-atlas.md", "docs/oracle.md", "docs/source-archaeology.md"] {
+        v.push(AssertedFact {
+            doc,
             label: format!("recognized directive count ({directives})"),
             needle: format!("{directives} entries"),
-        },
-        // chrony source inventory totals.
-        AssertedFact {
-            doc: "docs/port-parity.md",
+        });
+    }
+    v.push(AssertedFact {
+        doc: "docs/compatibility.md",
+        label: format!("recognized directive count ({directives})"),
+        needle: format!("{directives} `KNOWN_DIRECTIVES`"),
+    });
+
+    // chrony source inventory totals.
+    for doc in ["docs/port-parity.md", "docs/source-archaeology.md"] {
+        v.push(AssertedFact {
+            doc,
             label: format!("inventory size ({} files / {} fns)", facts.c_files, facts.c_functions),
-            needle: format!("{} `.c` files / {} functions", facts.c_files, facts.c_functions),
-        },
-    ];
-    v.sort_by(|a, b| a.doc.cmp(b.doc));
+            needle: inventory.clone(),
+        });
+    }
+
+    // unsafe ledger.
+    v.push(AssertedFact {
+        doc: "docs/security-boundary.md",
+        label: format!("unsafe count ({unsafe_count})"),
+        needle: format!("count: {unsafe_count}"),
+    });
+
+    v.sort_by(|a, b| a.doc.cmp(b.doc).then(a.needle.cmp(&b.needle)));
     v
 }
 
