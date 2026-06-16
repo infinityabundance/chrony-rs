@@ -15,6 +15,7 @@
 //! we own the wire format here and witness it against both chronyd captures and
 //! independent RFC fixtures.
 
+pub mod exp_ef;
 pub mod ext;
 mod measurements;
 mod packet;

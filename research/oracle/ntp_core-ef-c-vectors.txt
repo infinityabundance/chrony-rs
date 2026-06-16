@@ -1,0 +1,9 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c EF builders.
+# Consumer Rust (ntp/exp_ef.rs); NO Python.
+MR_CLIENT ret=1 type=0xf323 flags=1 blen=24 body=f5bedd9a0000000000000000000000000000000000000000
+MR_SERVER ret=1 type=0xf323 flags=1 blen=24 body=f5bedd9a0028f5c30051eb86fae012804041893712345678
+MR_SERVER_NORX ret=1 type=0xf323 flags=1 blen=24 body=f5bedd9a00cccccd0199999a00000000000000009abcdef0
+NC_DISABLED ret=1 no_field flags=0
+NC_CLIENT ret=1 type=0xf324 flags=2 blen=24 body=07ac2ceb0000000000000000000000000000000000000000
+NC_SERVER ret=1 type=0xf324 flags=2 blen=24 body=07ac2ceb00000000032617c1000000000000000000000000
+NC_SERVER_NOCORR ret=1 type=0xf324 flags=2 blen=24 body=07ac2ceb0000000000000000000000000000000000000000
