@@ -153,6 +153,83 @@ pub struct CorrectedSample {
     pub peer_delay: f64,
 }
 
+/// chrony `MAX_INTERLEAVED_L2L_RATIO`.
+const MAX_INTERLEAVED_L2L_RATIO: f64 = 0.1;
+
+/// chrony `NCR_ProcessResponse` sample arithmetic for the **interleaved** client path.
+///
+/// Interleaved mode differs from the basic path only in *which* timestamps and root
+/// values feed the sample: when a previous local transmit timestamp is available and
+/// using it makes the local-to-local interval significantly shorter (the
+/// `MAX_INTERLEAVED_L2L_RATIO` test), chrony prefers the previous transmit and the
+/// source's last receive timestamp (with the remote root delay/dispersion); otherwise it
+/// uses the current exchange (with `MAX` of the packet and remote roots). The local
+/// receive timestamp is always the instance's stored `local_rx`. The selected timestamps
+/// then flow through [`compute_response_sample`].
+///
+/// `prev_local_tx_is_zero` is chrony's `UTI_IsZeroTimespec(&prev_local_tx)`. (The
+/// monotonic-root correction is assumed absent here, matching the basic-path scope.)
+#[allow(clippy::too_many_arguments)]
+pub fn compute_interleaved_response_sample(
+    message_receive: NtpTimestamp,
+    message_transmit: NtpTimestamp,
+    remote_ntp_rx: NtpTimestamp,
+    prev_local_tx: Timespec,
+    prev_local_tx_err: f64,
+    prev_local_tx_is_zero: bool,
+    local_tx: Timespec,
+    local_tx_err: f64,
+    local_rx: Timespec,
+    local_rx_err: f64,
+    message_precision: i32,
+    sys_precision: f64,
+    source_freq_lo: f64,
+    source_freq_hi: f64,
+    offset_correction: f64,
+    pkt_root_delay: f64,
+    pkt_root_dispersion: f64,
+    remote_root_delay: f64,
+    remote_root_dispersion: f64,
+) -> ResponseSample {
+    // Prefer the previous local TX / remote RX timestamps when they make the measured
+    // local interval significantly shorter (improves the delay accuracy).
+    let prefer_prev = !prev_local_tx_is_zero
+        && MAX_INTERLEAVED_L2L_RATIO * local_tx.diff_to_double(local_rx)
+            > local_rx.diff_to_double(prev_local_tx);
+
+    let (remote_receive, local_transmit, local_transmit_err, root_delay, root_dispersion) =
+        if prefer_prev {
+            (remote_ntp_rx, prev_local_tx, prev_local_tx_err, remote_root_delay, remote_root_dispersion)
+        } else {
+            (
+                message_receive,
+                local_tx,
+                local_tx_err,
+                pkt_root_delay.max(remote_root_delay),
+                pkt_root_dispersion.max(remote_root_dispersion),
+            )
+        };
+
+    compute_response_sample(
+        remote_receive,
+        message_transmit,
+        local_transmit,
+        local_transmit_err,
+        local_rx,
+        local_rx_err,
+        message_precision,
+        sys_precision,
+        source_freq_lo,
+        source_freq_hi,
+        offset_correction,
+        root_delay,
+        root_dispersion,
+        0.0,
+        0.0,
+        0.0,
+    )
+}
+
 /// chrony `apply_net_correction`: adjust `offset`/`peer_delay` using the PTP
 /// transparent-clock corrections carried in the RX and TX timestamps. `rx_net_correction`
 /// / `tx_net_correction` are the accumulated transparent-clock residence times,

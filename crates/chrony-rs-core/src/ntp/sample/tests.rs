@@ -22,6 +22,13 @@
 //! sample fields plus the sample time. **Oracle #2 (independent): RFC 5905 §8.** For a
 //! zero-correction exchange the offset and delay are recomputed from the four timestamps
 //! by the textbook formula.
+//!
+//! ## Stage 7 (`compute_interleaved_response_sample`)
+//!
+//! The interleaved timestamp selection is driven in the real `process_response`
+//! (`/tmp/ncor/gensc.c` `run_il`, `inst.interleaved = 1`) across both sub-branches
+//! (prefer-previous-TX and use-current-exchange) and the captured samples matched by
+//! [`matches_real_c_interleaved_sample_vectors`].
 
 use super::*;
 use crate::sys_generic::Timespec;
@@ -105,7 +112,7 @@ fn ts64(sec: u32, frac: u32) -> NtpTimestamp {
 #[test]
 fn matches_real_c_response_sample_vectors() {
     let vectors = include_str!("../../../../../research/oracle/ntp_core-sample-c-vectors.txt");
-    for l in vectors.lines().map(str::trim).filter(|l| !l.starts_with('#') && !l.is_empty()) {
+    for l in vectors.lines().map(str::trim).filter(|l| l.starts_with("RS_")) {
         let tag = l.split_whitespace().next().unwrap();
         let s = compute_response_sample(
             ts64(fieldi(l, "rr_sec"), fieldi(l, "rr_frac")),
@@ -124,6 +131,42 @@ fn matches_real_c_response_sample_vectors() {
             0.0,
             0.0,
             0.0,
+        );
+        close(s.offset, field(l, "offset"), &format!("{tag} offset"));
+        close(s.peer_delay, field(l, "peer_delay"), &format!("{tag} peer_delay"));
+        close(s.peer_dispersion, field(l, "peer_disp"), &format!("{tag} peer_disp"));
+        close(s.root_delay, field(l, "root_delay"), &format!("{tag} root_delay"));
+        close(s.root_dispersion, field(l, "root_disp"), &format!("{tag} root_disp"));
+        assert_eq!(s.time.tv_sec, fieldi::<i64>(l, "time_sec"), "{tag} time_sec");
+        assert_eq!(s.time.tv_nsec, fieldi::<i64>(l, "time_nsec"), "{tag} time_nsec");
+    }
+}
+
+#[test]
+fn matches_real_c_interleaved_sample_vectors() {
+    let vectors = include_str!("../../../../../research/oracle/ntp_core-sample-c-vectors.txt");
+    for l in vectors.lines().map(str::trim).filter(|l| l.starts_with("IL_")) {
+        let tag = l.split_whitespace().next().unwrap();
+        let s = compute_interleaved_response_sample(
+            ts64(fieldi(l, "mr_sec"), fieldi(l, "mr_frac")),
+            ts64(fieldi(l, "rt_sec"), fieldi(l, "rt_frac")),
+            ts64(fieldi(l, "rrx_sec"), fieldi(l, "rrx_frac")),
+            Timespec::new(fieldi(l, "plt_sec"), fieldi(l, "plt_nsec")),
+            field(l, "plt_err"),
+            fieldi::<i32>(l, "plt_zero") != 0,
+            Timespec::new(fieldi(l, "ltx_sec"), fieldi(l, "ltx_nsec")),
+            field(l, "ltx_err"),
+            Timespec::new(fieldi(l, "lrx_sec"), fieldi(l, "lrx_nsec")),
+            field(l, "lrx_err"),
+            fieldi(l, "prec"),
+            field(l, "sysq"),
+            field(l, "flo"),
+            field(l, "fhi"),
+            field(l, "offc"),
+            field(l, "pkt_rd"),
+            field(l, "pkt_rdsp"),
+            field(l, "rem_rd"),
+            field(l, "rem_rdsp"),
         );
         close(s.offset, field(l, "offset"), &format!("{tag} offset"));
         close(s.peer_delay, field(l, "peer_delay"), &format!("{tag} peer_delay"));
