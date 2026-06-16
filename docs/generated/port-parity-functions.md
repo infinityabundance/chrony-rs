@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 558 / 1373 C functions have a direct counterpart (40.6%).** The other 815 are gaps.
+**Overall: 560 / 1373 C functions have a direct counterpart (40.8%).** The other 813 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -58,8 +58,8 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
+| `ntp_core.c` | 69 | 24 | 45 | 34.8% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
-| `ntp_core.c` | 69 | 22 | 47 | 31.9% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
@@ -725,18 +725,12 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `stop_helper`
 - · `submit_request`
 
-### `refclock_sock.c` — 1/3 (33.3%)
+### `ntp_core.c` — 24/69 (34.8%)
 
-- ✓ `read_sample`
-- · `sock_finalise`
-- · `sock_initialise`
-
-### `ntp_core.c` — 22/69 (31.9%)
-
-- · `NCR_AddAccessRestriction`
+- ✓ `NCR_AddAccessRestriction`
 - · `NCR_AddBroadcastDestination`
 - · `NCR_ChangeRemoteAddress`
-- · `NCR_CheckAccessRestriction`
+- ✓ `NCR_CheckAccessRestriction`
 - · `NCR_CreateInstance`
 - · `NCR_DestroyInstance`
 - · `NCR_DumpAuthData`
@@ -802,6 +796,12 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `transmit_timeout`
 - · `update_tx_timestamp`
 - · `zero_local_timestamp`
+
+### `refclock_sock.c` — 1/3 (33.3%)
+
+- ✓ `read_sample`
+- · `sock_finalise`
+- · `sock_initialise`
 
 ### `client.c` — 13/90 (14.4%)
 
