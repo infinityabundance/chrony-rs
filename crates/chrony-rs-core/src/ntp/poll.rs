@@ -48,6 +48,20 @@ pub const MAX_POLL: i32 = 24;
 /// chrony `MIN_NONLAN_POLL`.
 pub const MIN_NONLAN_POLL: i32 = 0;
 
+/// chrony `NTP_Mode` values used here.
+pub const MODE_ACTIVE: i32 = 1;
+pub const MODE_CLIENT: i32 = 3;
+/// chrony `OperatingMode` values.
+pub const MD_OFFLINE: i32 = 0;
+pub const MD_ONLINE: i32 = 1;
+pub const MD_BURST_WAS_OFFLINE: i32 = 2;
+pub const MD_BURST_WAS_ONLINE: i32 = 3;
+/// chrony transmit-timing constants.
+const WARM_UP_DELAY: f64 = 2.0;
+const PEER_SAMPLING_ADJ: f64 = 1.1;
+const MAX_BURST_INTERVAL: f64 = 2.0;
+const MAX_BURST_POLL_RATIO: f64 = 0.25;
+
 fn clamp(lo: f64, x: f64, hi: f64) -> f64 {
     if x < lo {
         lo
@@ -173,6 +187,82 @@ pub fn check_delay_dev_ratio(
         return true;
     }
     false
+}
+
+/// chrony `get_transmit_poll`: the poll interval to use for the next transmission. In
+/// symmetric active mode, if the peer is reachable, use the shorter of the local and
+/// remote poll (not below `minpoll`).
+pub fn get_transmit_poll(
+    local_poll: i32,
+    mode: i32,
+    remote_poll: i32,
+    minpoll: i32,
+    reachable: bool,
+) -> i32 {
+    let mut poll = local_poll;
+    if mode == MODE_ACTIVE && poll > remote_poll && reachable {
+        poll = remote_poll.max(minpoll);
+    }
+    poll
+}
+
+/// chrony `get_transmit_delay`: the delay until the next transmission. `last_tx` is the
+/// time since the last transmission (chrony computes it as `now - local_tx.ts` when
+/// `!on_tx` and the tx timestamp is set, else 0).
+#[allow(clippy::too_many_arguments)]
+pub fn get_transmit_delay(
+    on_tx: bool,
+    local_tx_zero: bool,
+    now_minus_local_tx: f64,
+    local_poll: i32,
+    mode: i32,
+    remote_poll: i32,
+    minpoll: i32,
+    reachable: bool,
+    opmode: i32,
+    presend_done: bool,
+    remote_stratum: i32,
+    our_stratum: i32,
+) -> f64 {
+    let last_tx = if !on_tx && !local_tx_zero { now_minus_local_tx } else { 0.0 };
+
+    let poll_to_use = get_transmit_poll(local_poll, mode, remote_poll, minpoll, reachable);
+    let mut delay_time = log2_to_double(poll_to_use);
+
+    match opmode {
+        MD_ONLINE => match mode {
+            MODE_CLIENT => {
+                if presend_done {
+                    delay_time = WARM_UP_DELAY;
+                }
+            }
+            MODE_ACTIVE => {
+                // Wait a bit for a higher-stratum peer / interleave with an equal peer.
+                let stratum_diff = remote_stratum - our_stratum;
+                if (stratum_diff > 0 && last_tx * PEER_SAMPLING_ADJ < delay_time)
+                    || (!on_tx
+                        && stratum_diff == 0
+                        && last_tx / delay_time > PEER_SAMPLING_ADJ - 0.5)
+                {
+                    delay_time *= PEER_SAMPLING_ADJ;
+                }
+            }
+            _ => {}
+        },
+        MD_BURST_WAS_ONLINE | MD_BURST_WAS_OFFLINE => {
+            delay_time = MAX_BURST_INTERVAL.min(MAX_BURST_POLL_RATIO * delay_time);
+        }
+        // MD_OFFLINE is asserted unreachable in chrony.
+        _ => {}
+    }
+
+    if last_tx > 0.0 {
+        delay_time -= last_tx;
+    }
+    if delay_time < 0.0 {
+        delay_time = 0.0;
+    }
+    delay_time
 }
 
 #[cfg(test)]

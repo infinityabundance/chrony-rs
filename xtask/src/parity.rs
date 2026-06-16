@@ -86,7 +86,7 @@ const MAP: &[Row] = &[
     // ---- NTP protocol ----
     Row { c: "ntp_core.c", role: "NTP protocol engine: poll, process-response, offset/delay (NCR_*)",
         rust: &["ntp/measurements.rs", "ntp/packet.rs", "ntp/poll.rs", "ntp/parse.rs"], port: Port::Partial,
-        note: "STAGED port of the protocol engine (chrony's largest TU, 69 fns/~3300 lines). RFC 5905 §8 offset/delay algebra + 48-byte header codec (measurements.rs/packet.rs). Stage 1 (ntp/poll.rs): the pure poll-interval + delay-sanity arithmetic -- get_separation, get_poll_adj, adjust_poll (poll/score with minpoll/maxpoll clamp + non-LAN floor), check_delay_ratio, check_delay_dev_ratio. Differential-tested vs the REAL compiled ntp_core.c by #include-ing the TU into the C generator (the static functions + NCR_Instance_Record struct reached directly, the ~130-symbol external surface stubbed, UTI_Log2ToDouble real, SST/SRC inputs controlled) and matching every value. Stage 2 (ntp/parse.rs): parse_packet (length/version validation, NTPv3 MAC + MS-SNTP detection, crypto-NAK, NTPv4 extension fields with NTS + experimental-EF detection, trailing MAC) composing the ported NEF extension-field parser, plus is_zero_data/is_exp_ef -- differential-tested vs the real ntp_core.c (#include harness + real ntp_ext.c) over crafted plain/v3-MAC/MS-SNTP/crypto-NAK/NTS-EF packets, matching every NTP_PacketInfo field. REMAINING: NCR_ProcessResponse (offset/delay/dispersion + tests), transmit, lifecycle, access/report" },
+        note: "STAGED port of the protocol engine (chrony's largest TU, 69 fns/~3300 lines). RFC 5905 §8 offset/delay algebra + 48-byte header codec (measurements.rs/packet.rs). Stage 1 (ntp/poll.rs): the pure poll-interval + delay-sanity arithmetic -- get_separation, get_poll_adj, adjust_poll (poll/score with minpoll/maxpoll clamp + non-LAN floor), check_delay_ratio, check_delay_dev_ratio. Differential-tested vs the REAL compiled ntp_core.c by #include-ing the TU into the C generator (the static functions + NCR_Instance_Record struct reached directly, the ~130-symbol external surface stubbed, UTI_Log2ToDouble real, SST/SRC inputs controlled) and matching every value. Stage 2 (ntp/parse.rs): parse_packet (length/version validation, NTPv3 MAC + MS-SNTP detection, crypto-NAK, NTPv4 extension fields with NTS + experimental-EF detection, trailing MAC) composing the ported NEF extension-field parser, plus is_zero_data/is_exp_ef -- differential-tested vs the real ntp_core.c (#include harness + real ntp_ext.c) over crafted plain/v3-MAC/MS-SNTP/crypto-NAK/NTS-EF packets, matching every NTP_PacketInfo field. Stage 3 (ntp/poll.rs): the transmit timing -- get_transmit_poll (symmetric local/remote poll selection) and get_transmit_delay (online/presend/burst/peer-sampling delay), differential-tested vs the real ntp_core.c via the #include harness. REMAINING: NCR_ProcessResponse (offset/delay/dispersion + tests), transmit_packet build, lifecycle, access/report" },
     Row { c: "ntp_io.c", role: "NTP socket send/recv path",
         rust: &["ntp/packet.rs"], port: Port::Scaffold, note: "packet bytes only; no socket IO" },
     Row { c: "pktlength.c", role: "cmdmon request/reply length tables (PKL_*)",
@@ -374,6 +374,9 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "adjust_poll",
             "check_delay_ratio",
             "check_delay_dev_ratio",
+            // Stage 3: transmit timing.
+            "get_transmit_poll",
+            "get_transmit_delay",
             // Stage 2: packet parse/validity.
             "parse_packet",
             "is_zero_data",

@@ -109,3 +109,42 @@ fn delay_dev_ratio_offset_error_escape() {
     // Now a big offset error: |1.0| - 0.05 > 0 -> accept.
     assert!(check_delay_dev_ratio(1.0, 1.0, 0.1, Some(d), 0.0), "offset error escape -> accept");
 }
+
+#[test]
+fn matches_real_c_transmit_timing_vectors() {
+    let vectors = include_str!("../../../../../research/oracle/ntp_core-tx-c-vectors.txt");
+    let find = |p: &str| vectors.lines().map(str::trim).find(|l| l.starts_with(p)).unwrap();
+    let pi = |l: &str| field(l, "poll").parse::<i32>().unwrap();
+    let pd = |l: &str| field(l, "delay").parse::<f64>().unwrap();
+
+    // ---- get_transmit_poll ----
+    assert_eq!(get_transmit_poll(6, MODE_CLIENT, 4, 2, true), pi(find("TXPOLL_CLIENT")), "client");
+    assert_eq!(get_transmit_poll(6, MODE_ACTIVE, 4, 2, true), pi(find("TXPOLL_ACTIVE")), "active");
+    assert_eq!(get_transmit_poll(6, MODE_ACTIVE, 1, 2, true), pi(find("TXPOLL_ACTIVE2")), "active2");
+
+    // ---- get_transmit_delay ----
+    // ONLINE client, local_tx zero, no presend -> 2^6.
+    close(
+        get_transmit_delay(false, true, 0.0, 6, MODE_CLIENT, 0, 2, true, MD_ONLINE, false, 0, 0),
+        pd(find("TXDELAY_ONLINE")),
+        "online",
+    );
+    // ONLINE client, presend, last_tx = 1s -> WARM_UP_DELAY - 1.
+    close(
+        get_transmit_delay(false, false, 1.0, 6, MODE_CLIENT, 0, 2, true, MD_ONLINE, true, 0, 0),
+        pd(find("TXDELAY_PRESEND")),
+        "presend",
+    );
+    // BURST online -> min(2.0, 0.25 * 2^6).
+    close(
+        get_transmit_delay(false, true, 0.0, 6, MODE_CLIENT, 0, 2, true, MD_BURST_WAS_ONLINE, false, 0, 0),
+        pd(find("TXDELAY_BURST")),
+        "burst",
+    );
+    // ACTIVE, remote stratum 3 > our 1, last_tx 1s, poll 6 -> 2^6 * 1.1 - 1.
+    close(
+        get_transmit_delay(false, false, 1.0, 6, MODE_ACTIVE, 6, 2, true, MD_ONLINE, false, 3, 1),
+        pd(find("TXDELAY_ACTIVE")),
+        "active",
+    );
+}

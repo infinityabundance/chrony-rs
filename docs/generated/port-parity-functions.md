@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 545 / 1373 C functions have a direct counterpart (39.7%).** The other 828 are gaps.
+**Overall: 547 / 1373 C functions have a direct counterpart (39.8%).** The other 826 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -59,9 +59,9 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
+| `ntp_core.c` | 69 | 11 | 58 | 15.9% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
-| `ntp_core.c` | 69 | 9 | 60 | 13.0% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
 | `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
@@ -731,6 +731,78 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `sock_finalise`
 - · `sock_initialise`
 
+### `ntp_core.c` — 11/69 (15.9%)
+
+- · `NCR_AddAccessRestriction`
+- · `NCR_AddBroadcastDestination`
+- · `NCR_ChangeRemoteAddress`
+- · `NCR_CheckAccessRestriction`
+- · `NCR_CreateInstance`
+- · `NCR_DestroyInstance`
+- · `NCR_DumpAuthData`
+- · `NCR_Finalise`
+- · `NCR_GetAuthReport`
+- · `NCR_GetLocalRefid`
+- · `NCR_GetNTPReport`
+- · `NCR_GetRemoteAddress`
+- · `NCR_IncrementActivityCounters`
+- · `NCR_Initialise`
+- · `NCR_InitiateSampleBurst`
+- · `NCR_IsSyncPeer`
+- · `NCR_ModifyMaxdelay`
+- · `NCR_ModifyMaxdelaydevratio`
+- · `NCR_ModifyMaxdelayratio`
+- · `NCR_ModifyMaxpoll`
+- · `NCR_ModifyMinpoll`
+- · `NCR_ModifyMinstratum`
+- · `NCR_ModifyPolltarget`
+- · `NCR_ProcessRxKnown`
+- · `NCR_ProcessRxUnknown`
+- · `NCR_ProcessTxKnown`
+- · `NCR_ProcessTxUnknown`
+- · `NCR_ReportSource`
+- · `NCR_ResetInstance`
+- · `NCR_ResetPoll`
+- · `NCR_SetConnectivity`
+- · `NCR_SlewTimes`
+- · `NCR_StartInstance`
+- · `add_ef_mono_root`
+- · `add_ef_net_correction`
+- ✓ `adjust_poll`
+- · `apply_net_correction`
+- · `broadcast_timeout`
+- ✓ `check_delay_dev_ratio`
+- · `check_delay_quant`
+- ✓ `check_delay_ratio`
+- · `check_sync_loop`
+- · `close_client_socket`
+- · `do_size_checks`
+- · `do_time_checks`
+- ✓ `get_poll_adj`
+- ✓ `get_separation`
+- ✓ `get_transmit_delay`
+- ✓ `get_transmit_poll`
+- · `handle_slew`
+- · `has_saved_response`
+- ✓ `is_exp_ef`
+- ✓ `is_zero_data`
+- ✓ `parse_packet`
+- ✓ `process_response`
+- · `process_sample`
+- · `process_saved_response`
+- · `receive_timeout`
+- · `reset_report`
+- · `restart_timeout`
+- · `save_response`
+- · `saved_response_timeout`
+- · `set_connectivity`
+- · `start_initial_timeout`
+- · `take_offline`
+- · `transmit_packet`
+- · `transmit_timeout`
+- · `update_tx_timestamp`
+- · `zero_local_timestamp`
+
 ### `client.c` — 13/90 (14.4%)
 
 - · `LOG_Message`
@@ -902,78 +974,6 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_ZeroTimespec`
 - · `create_dir`
 - · `join_path`
-
-### `ntp_core.c` — 9/69 (13.0%)
-
-- · `NCR_AddAccessRestriction`
-- · `NCR_AddBroadcastDestination`
-- · `NCR_ChangeRemoteAddress`
-- · `NCR_CheckAccessRestriction`
-- · `NCR_CreateInstance`
-- · `NCR_DestroyInstance`
-- · `NCR_DumpAuthData`
-- · `NCR_Finalise`
-- · `NCR_GetAuthReport`
-- · `NCR_GetLocalRefid`
-- · `NCR_GetNTPReport`
-- · `NCR_GetRemoteAddress`
-- · `NCR_IncrementActivityCounters`
-- · `NCR_Initialise`
-- · `NCR_InitiateSampleBurst`
-- · `NCR_IsSyncPeer`
-- · `NCR_ModifyMaxdelay`
-- · `NCR_ModifyMaxdelaydevratio`
-- · `NCR_ModifyMaxdelayratio`
-- · `NCR_ModifyMaxpoll`
-- · `NCR_ModifyMinpoll`
-- · `NCR_ModifyMinstratum`
-- · `NCR_ModifyPolltarget`
-- · `NCR_ProcessRxKnown`
-- · `NCR_ProcessRxUnknown`
-- · `NCR_ProcessTxKnown`
-- · `NCR_ProcessTxUnknown`
-- · `NCR_ReportSource`
-- · `NCR_ResetInstance`
-- · `NCR_ResetPoll`
-- · `NCR_SetConnectivity`
-- · `NCR_SlewTimes`
-- · `NCR_StartInstance`
-- · `add_ef_mono_root`
-- · `add_ef_net_correction`
-- ✓ `adjust_poll`
-- · `apply_net_correction`
-- · `broadcast_timeout`
-- ✓ `check_delay_dev_ratio`
-- · `check_delay_quant`
-- ✓ `check_delay_ratio`
-- · `check_sync_loop`
-- · `close_client_socket`
-- · `do_size_checks`
-- · `do_time_checks`
-- ✓ `get_poll_adj`
-- ✓ `get_separation`
-- · `get_transmit_delay`
-- · `get_transmit_poll`
-- · `handle_slew`
-- · `has_saved_response`
-- ✓ `is_exp_ef`
-- ✓ `is_zero_data`
-- ✓ `parse_packet`
-- ✓ `process_response`
-- · `process_sample`
-- · `process_saved_response`
-- · `receive_timeout`
-- · `reset_report`
-- · `restart_timeout`
-- · `save_response`
-- · `saved_response_timeout`
-- · `set_connectivity`
-- · `start_initial_timeout`
-- · `take_offline`
-- · `transmit_packet`
-- · `transmit_timeout`
-- · `update_tx_timestamp`
-- · `zero_local_timestamp`
 
 ### `main.c` — 1/16 (6.2%)
 
