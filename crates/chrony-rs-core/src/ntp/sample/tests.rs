@@ -110,6 +110,37 @@ fn ts64(sec: u32, frac: u32) -> NtpTimestamp {
 }
 
 #[test]
+fn interleaved_zero_prev_selects_current_exchange() {
+    // With a zero prev_local_tx the L2L ratio test cannot prefer the previous transmit,
+    // so chrony falls to the current-exchange sub-branch. The real process_response then
+    // rejects this first interleaved response in test A (it would reuse the basic-mode
+    // timestamps) and accumulates no sample, so it cannot be captured via SRC_Accumulate
+    // -- but the timestamp SELECTION still executes. Court that branch here against the
+    // equivalent current-exchange computation (itself courted by the RS_ vectors).
+    let mr = ts64(2_000_000_000 + 0x83aa_7e80, 644_245_094);
+    let rt = ts64(2_000_000_000 + 0x83aa_7e80, 687_194_767);
+    let rrx = ts64(1_999_999_999 + 0x83aa_7e80, 3_435_973_836);
+    let ltx = Timespec::new(2_000_000_000, 100_000_000);
+    let lrx = Timespec::new(2_000_000_000, 220_000_000);
+    let (pkt_rd, pkt_rdsp, rem_rd, rem_rdsp) = (0.01, 0.02, 0.05, 0.005);
+
+    let il = compute_interleaved_response_sample(
+        mr, rt, rrx,
+        Timespec::new(0, 0), 0.0, true, // prev_local_tx zero
+        ltx, 1e-6, lrx, 2e-6,
+        -20, 1e-9, -1e-6, 1e-6, 0.0,
+        pkt_rd, pkt_rdsp, rem_rd, rem_rdsp,
+    );
+    // Current-exchange sub-branch: remote_receive = message receive, local_transmit =
+    // local_tx, roots = MAX(packet, remote).
+    let cur = compute_response_sample(
+        mr, rt, ltx, 1e-6, lrx, 2e-6, -20, 1e-9, -1e-6, 1e-6, 0.0,
+        pkt_rd.max(rem_rd), pkt_rdsp.max(rem_rdsp), 0.0, 0.0, 0.0,
+    );
+    assert_eq!(il, cur, "zero-prev interleaved selects the current exchange");
+}
+
+#[test]
 fn matches_real_c_response_sample_vectors() {
     let vectors = include_str!("../../../../../research/oracle/ntp_core-sample-c-vectors.txt");
     for l in vectors.lines().map(str::trim).filter(|l| l.starts_with("RS_")) {
