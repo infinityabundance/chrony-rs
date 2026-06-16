@@ -21,6 +21,7 @@ mod packet;
 pub mod parse;
 pub mod poll;
 pub mod sample;
+pub mod sync;
 mod timestamp;
 
 pub use measurements::{ts_diff_seconds, Measurement};

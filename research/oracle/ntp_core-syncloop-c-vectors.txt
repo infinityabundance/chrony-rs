@@ -1,0 +1,9 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c check_sync_loop (test D).
+# Consumer Rust (ntp/sync.rs); NO Python.
+CSL_NOSOCK socket=0 refmode=0 stratum=2 msg_refid=167772161 local_refid=3232235521 our_stratum=2 our_refid=167772161 msg_rd=656 our_rd=656 msg_ts=9228685950782013568 our_ts=9228685950782013568 ret=1
+CSL_NOTNORMAL socket=1 refmode=1 stratum=2 msg_refid=167772161 local_refid=3232235521 our_stratum=2 our_refid=167772161 msg_rd=656 our_rd=656 msg_ts=9228685950782013568 our_ts=9228685950782013568 ret=1
+CSL_SYNCED_TO_US socket=1 refmode=0 stratum=3 msg_refid=3232235521 local_refid=3232235521 our_stratum=2 our_refid=167772161 msg_rd=0 our_rd=656 msg_ts=0 our_ts=9228685950782013568 ret=0
+CSL_IS_ME socket=1 refmode=0 stratum=2 msg_refid=167772161 local_refid=3232235521 our_stratum=2 our_refid=167772161 msg_rd=656 our_rd=656 msg_ts=9228685950782013568 our_ts=9228685950782013568 ret=0
+CSL_DIFF_TS socket=1 refmode=0 stratum=2 msg_refid=167772161 local_refid=3232235521 our_stratum=2 our_refid=167772161 msg_rd=656 our_rd=656 msg_ts=9228685950782013569 our_ts=9228685950782013568 ret=1
+CSL_ZERO_TS socket=1 refmode=0 stratum=2 msg_refid=167772161 local_refid=3232235521 our_stratum=2 our_refid=167772161 msg_rd=656 our_rd=656 msg_ts=0 our_ts=9228685950782013568 ret=1
+CSL_OTHER socket=1 refmode=0 stratum=1 msg_refid=287454020 local_refid=3232235521 our_stratum=2 our_refid=167772161 msg_rd=0 our_rd=656 msg_ts=0 our_ts=9228685950782013568 ret=1
