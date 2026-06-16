@@ -19,6 +19,7 @@ pub mod exp_ef;
 pub mod ext;
 mod measurements;
 mod packet;
+pub mod params;
 pub mod parse;
 pub mod poll;
 pub mod sample;

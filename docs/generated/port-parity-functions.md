@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 551 / 1373 C functions have a direct counterpart (40.1%).** The other 822 are gaps.
+**Overall: 558 / 1373 C functions have a direct counterpart (40.6%).** The other 815 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -59,7 +59,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
-| `ntp_core.c` | 69 | 15 | 54 | 21.7% |
+| `ntp_core.c` | 69 | 22 | 47 | 31.9% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
@@ -731,7 +731,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `sock_finalise`
 - · `sock_initialise`
 
-### `ntp_core.c` — 15/69 (21.7%)
+### `ntp_core.c` — 22/69 (31.9%)
 
 - · `NCR_AddAccessRestriction`
 - · `NCR_AddBroadcastDestination`
@@ -749,13 +749,13 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `NCR_Initialise`
 - · `NCR_InitiateSampleBurst`
 - · `NCR_IsSyncPeer`
-- · `NCR_ModifyMaxdelay`
-- · `NCR_ModifyMaxdelaydevratio`
-- · `NCR_ModifyMaxdelayratio`
-- · `NCR_ModifyMaxpoll`
-- · `NCR_ModifyMinpoll`
-- · `NCR_ModifyMinstratum`
-- · `NCR_ModifyPolltarget`
+- ✓ `NCR_ModifyMaxdelay`
+- ✓ `NCR_ModifyMaxdelaydevratio`
+- ✓ `NCR_ModifyMaxdelayratio`
+- ✓ `NCR_ModifyMaxpoll`
+- ✓ `NCR_ModifyMinpoll`
+- ✓ `NCR_ModifyMinstratum`
+- ✓ `NCR_ModifyPolltarget`
 - · `NCR_ProcessRxKnown`
 - · `NCR_ProcessRxUnknown`
 - · `NCR_ProcessTxKnown`
