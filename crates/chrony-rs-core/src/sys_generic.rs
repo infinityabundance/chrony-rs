@@ -93,12 +93,12 @@ impl Timespec {
     }
 
     /// chrony `UTI_DiffTimespecsToDouble(self, b)` = `self - b` in seconds.
-    fn diff_to_double(self, b: Timespec) -> f64 {
+    pub(crate) fn diff_to_double(self, b: Timespec) -> f64 {
         (self.tv_sec as f64 - b.tv_sec as f64) + 1.0e-9 * (self.tv_nsec - b.tv_nsec) as f64
     }
 
     /// chrony `UTI_AddDoubleToTimespec(self, increment)` with `(long)` truncation.
-    fn add_double(self, increment: f64) -> Timespec {
+    pub(crate) fn add_double(self, increment: f64) -> Timespec {
         let int_part = increment as i64;
         let mut end = Timespec {
             tv_sec: self.tv_sec + int_part,
@@ -106,6 +106,13 @@ impl Timespec {
         };
         end.normalise();
         end
+    }
+
+    /// chrony `UTI_AverageDiffTimespecs(earlier=self, later)`: returns
+    /// `(average, diff)` where `diff = later - self` and `average = self + diff/2`.
+    pub(crate) fn average_diff(self, later: Timespec) -> (Timespec, f64) {
+        let diff = later.diff_to_double(self);
+        (self.add_double(diff / 2.0), diff)
     }
 }
 

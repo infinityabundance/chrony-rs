@@ -14,9 +14,136 @@
 //! harness (the static `apply_net_correction` reached directly): samples with
 //! present/absent/insane corrections are run and the corrected offset + peer delay
 //! captured (`research/oracle/ntp_core-netcorr-c-vectors.txt`). See the tests.
+//!
+//! # Stage 6: the response-sample computation
+//!
+//! [`compute_response_sample`] is the offset/delay/dispersion arithmetic at the heart of
+//! `NCR_ProcessResponse`: from the four timestamps of an NTP exchange (server receive +
+//! transmit, our transmit + receive) it derives the clock offset, the round-trip peer
+//! delay, the peer dispersion (precision + skew × measurement span), and the root
+//! delay/dispersion, then folds in [`apply_net_correction`]. **Scope of this stage: the
+//! basic (non-interleaved) client path.** The interleaved and monotonic-root timestamp
+//! selection variants are a later stage.
+//!
+//! It is differential-tested by reaching the **real compiled `process_response`** (with
+//! `saved=1` to bypass authentication, and the validity tests configured to pass) and
+//! capturing the sample chrony hands to `SRC_AccumulateSample`
+//! (`research/oracle/ntp_core-sample-c-vectors.txt`).
+
+use crate::ntp::timestamp::NtpTimestamp;
+use crate::sys_generic::Timespec;
 
 /// chrony `MAX_NET_CORRECTION_FREQ`.
 const MAX_NET_CORRECTION_FREQ: f64 = 100.0e-6;
+
+/// Seconds from the NTP epoch (1900) to the Unix epoch (1970): chrony `JAN_1970`.
+const JAN_1970: i64 = 0x83aa_7e80;
+/// chrony `NSEC_PER_NTP64` = `1e9 / 2^32`: scales an NTP 32-bit fraction to nanoseconds.
+const NSEC_PER_NTP64: f64 = 4.294_967_296;
+
+/// chrony `UTI_Ntp64ToTimespec` (default build: no era split, 64-bit `time_t`). The
+/// nanosecond field is truncated toward zero exactly as the C `(long)` cast.
+fn ntp64_to_timespec(ts: NtpTimestamp) -> Timespec {
+    if ts.to_bits() == 0 {
+        return Timespec::new(0, 0);
+    }
+    Timespec::new(
+        ts.seconds() as i64 - JAN_1970,
+        (ts.fraction() as f64 / NSEC_PER_NTP64) as i64,
+    )
+}
+
+/// The sample [`compute_response_sample`] produces, matching chrony's `NTP_Sample`
+/// (the subset computed from a response). `time` is the local epoch midway through the
+/// measurement.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ResponseSample {
+    pub offset: f64,
+    pub peer_delay: f64,
+    pub peer_dispersion: f64,
+    pub root_delay: f64,
+    pub root_dispersion: f64,
+    pub time: Timespec,
+}
+
+/// chrony `NCR_ProcessResponse` sample arithmetic (basic, non-interleaved client path).
+///
+/// `remote_receive` / `remote_transmit` are the server's receive/transmit timestamps
+/// from the response; `local_transmit` / `local_receive` are our transmit/receive
+/// timestamps with their error bounds. `message_precision` is the server's advertised
+/// precision (signed log2 seconds); `sys_precision` is our system precision as a quantum
+/// (`LCL_GetSysPrecisionAsQuantum`). `source_freq_lo`/`hi` bound the estimated frequency
+/// (their half-range is the skew); `offset_correction` is the configured correction;
+/// `root_delay`/`root_dispersion` are the packet's (already converted to seconds). The
+/// `*_net_correction` / `rx_duration` inputs feed [`apply_net_correction`] (zero on the
+/// basic path).
+#[allow(clippy::too_many_arguments)]
+pub fn compute_response_sample(
+    remote_receive: NtpTimestamp,
+    remote_transmit: NtpTimestamp,
+    local_transmit: Timespec,
+    local_transmit_err: f64,
+    local_receive: Timespec,
+    local_receive_err: f64,
+    message_precision: i32,
+    sys_precision: f64,
+    source_freq_lo: f64,
+    source_freq_hi: f64,
+    offset_correction: f64,
+    root_delay: f64,
+    root_dispersion: f64,
+    rx_net_correction: f64,
+    rx_rx_duration: f64,
+    tx_net_correction: f64,
+) -> ResponseSample {
+    let remote_receive = ntp64_to_timespec(remote_receive);
+    let remote_transmit = ntp64_to_timespec(remote_transmit);
+
+    // Intervals between the remote and local timestamp pairs.
+    let (remote_average, remote_interval) = remote_receive.average_diff(remote_transmit);
+    let (local_average, local_interval) = local_transmit.average_diff(local_receive);
+
+    let precision = sys_precision + crate::util::log2_to_double(message_precision);
+
+    // Round-trip peer delay, floored at the clock precision.
+    let mut peer_delay = (local_interval - remote_interval).abs();
+    if peer_delay < precision {
+        peer_delay = precision;
+    }
+
+    // Offset (NTP sign: negative if we are fast of the source), plus configured correction.
+    let offset = remote_average.diff_to_double(local_average) + offset_correction;
+
+    // The sample's time is midway through our measurement period.
+    let time = local_average;
+
+    let skew = (source_freq_hi - source_freq_lo) / 2.0;
+    let peer_dispersion =
+        precision.max(local_transmit_err.max(local_receive_err)) + skew * local_interval.abs();
+
+    // Root delay/dispersion include the peer values; they are NOT touched by the net
+    // correction (chrony keeps the estimated maximum error).
+    let sample_root_delay = root_delay + peer_delay;
+    let sample_root_dispersion = root_dispersion + peer_dispersion;
+
+    let corrected = apply_net_correction(
+        offset,
+        peer_delay,
+        rx_net_correction,
+        rx_rx_duration,
+        tx_net_correction,
+        precision,
+    );
+
+    ResponseSample {
+        offset: corrected.offset,
+        peer_delay: corrected.peer_delay,
+        peer_dispersion,
+        root_delay: sample_root_delay,
+        root_dispersion: sample_root_dispersion,
+        time,
+    }
+}
 
 /// The outcome of [`apply_net_correction`]: the (possibly) adjusted offset + peer
 /// delay. When no correction applies, the inputs are returned unchanged.
