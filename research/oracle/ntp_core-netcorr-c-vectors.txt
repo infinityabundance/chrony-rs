@@ -1,0 +1,8 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c apply_net_correction.
+# Consumer Rust (ntp/sample.rs); NO Python.
+NC_NONE_RX offset=0.001 peer_delay=0.02
+NC_NONE_TX offset=0.001 peer_delay=0.02
+NC_INSANE offset=0.001 peer_delay=0.02
+NC_APPLY_SYM offset=0.001 peer_delay=0.002001799999999998
+NC_APPLY_ASYM offset=0.005000000000000001 peer_delay=0.022002799999999999
+NC_CLAMP offset=0 peer_delay=0.001
