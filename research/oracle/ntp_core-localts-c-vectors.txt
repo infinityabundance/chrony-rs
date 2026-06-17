@@ -1,0 +1,11 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c local-timestamp helpers.
+# Consumer Rust (ntp/local_ts.rs); NO Python.
+UTX_OK ts_sec=2000000000 ts_nsec=100050000 err=1.9999999999999999e-07 source=2 rx_duration=6.0000000000000002e-06 net_correction=2.0000000000000002e-05
+UTX_ZERO_TX ts_sec=0 ts_nsec=0 err=9.9999999999999995e-07 source=2 rx_duration=5.0000000000000004e-06 net_correction=1.0000000000000001e-05
+UTX_RX_MISMATCH ts_sec=2000000000 ts_nsec=100000000 err=9.9999999999999995e-07 source=2 rx_duration=5.0000000000000004e-06 net_correction=1.0000000000000001e-05
+UTX_TX_MISMATCH ts_sec=2000000000 ts_nsec=100000000 err=9.9999999999999995e-07 source=2 rx_duration=5.0000000000000004e-06 net_correction=1.0000000000000001e-05
+UTX_NEG_DELAY ts_sec=2000000000 ts_nsec=100000000 err=9.9999999999999995e-07 source=2 rx_duration=5.0000000000000004e-06 net_correction=1.0000000000000001e-05
+UTX_BIG_DELAY ts_sec=2000000000 ts_nsec=100000000 err=9.9999999999999995e-07 source=2 rx_duration=5.0000000000000004e-06 net_correction=1.0000000000000001e-05
+UTX_NULL_RX_OK ts_sec=2000000000 ts_nsec=100050000 err=1.9999999999999999e-07 source=2 rx_duration=6.0000000000000002e-06 net_correction=2.0000000000000002e-05
+UTX_NULL_TX_OK ts_sec=2000000000 ts_nsec=100050000 err=1.9999999999999999e-07 source=2 rx_duration=6.0000000000000002e-06 net_correction=2.0000000000000002e-05
+ZLT ts_sec=0 ts_nsec=0 err=0 source=0 rx_duration=0 net_correction=0

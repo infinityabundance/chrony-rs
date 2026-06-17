@@ -18,6 +18,7 @@
 pub mod access;
 pub mod exp_ef;
 pub mod ext;
+pub mod local_ts;
 mod measurements;
 mod packet;
 pub mod params;
