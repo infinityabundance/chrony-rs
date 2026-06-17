@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 562 / 1373 C functions have a direct counterpart (40.9%).** The other 811 are gaps.
+**Overall: 565 / 1373 C functions have a direct counterpart (41.2%).** The other 808 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -57,8 +57,8 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
+| `ntp_core.c` | 69 | 29 | 40 | 42.0% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
-| `ntp_core.c` | 69 | 26 | 43 | 37.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
@@ -710,22 +710,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `slew_samples`
 - ✓ `valid_sample_time`
 
-### `privops.c` — 5/12 (41.7%)
-
-- ✓ `PRV_Finalise`
-- ✓ `PRV_Initialise`
-- · `PRV_StartHelper`
-- ✓ `have_helper`
-- ✓ `helper_main`
-- · `receive_from_daemon`
-- · `receive_response`
-- ✓ `res_fatal`
-- · `send_request`
-- · `send_response`
-- · `stop_helper`
-- · `submit_request`
-
-### `ntp_core.c` — 26/69 (37.7%)
+### `ntp_core.c` — 29/69 (42.0%)
 
 - ✓ `NCR_AddAccessRestriction`
 - · `NCR_AddBroadcastDestination`
@@ -739,7 +724,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `NCR_GetLocalRefid`
 - · `NCR_GetNTPReport`
 - · `NCR_GetRemoteAddress`
-- · `NCR_IncrementActivityCounters`
+- ✓ `NCR_IncrementActivityCounters`
 - · `NCR_Initialise`
 - · `NCR_InitiateSampleBurst`
 - · `NCR_IsSyncPeer`
@@ -757,7 +742,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `NCR_ReportSource`
 - · `NCR_ResetInstance`
 - · `NCR_ResetPoll`
-- · `NCR_SetConnectivity`
+- ✓ `NCR_SetConnectivity`
 - · `NCR_SlewTimes`
 - · `NCR_StartInstance`
 - ✓ `add_ef_mono_root`
@@ -789,13 +774,28 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `restart_timeout`
 - · `save_response`
 - · `saved_response_timeout`
-- · `set_connectivity`
+- ✓ `set_connectivity`
 - · `start_initial_timeout`
 - · `take_offline`
 - · `transmit_packet`
 - · `transmit_timeout`
 - ✓ `update_tx_timestamp`
 - ✓ `zero_local_timestamp`
+
+### `privops.c` — 5/12 (41.7%)
+
+- ✓ `PRV_Finalise`
+- ✓ `PRV_Initialise`
+- · `PRV_StartHelper`
+- ✓ `have_helper`
+- ✓ `helper_main`
+- · `receive_from_daemon`
+- · `receive_response`
+- ✓ `res_fatal`
+- · `send_request`
+- · `send_response`
+- · `stop_helper`
+- · `submit_request`
 
 ### `refclock_sock.c` — 1/3 (33.3%)
 
