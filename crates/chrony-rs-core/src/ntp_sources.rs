@@ -83,6 +83,9 @@ pub enum IpKey {
     V6([u8; 16]),
     /// chrony `IPADDR_ID` (an unresolved-source placeholder id).
     Id(u32),
+    /// chrony `IPADDR_UNSPEC` / any unaccepted family — never stored; the table and
+    /// `add_source` reject it.
+    Unspec,
 }
 
 impl IpKey {
@@ -93,13 +96,23 @@ impl IpKey {
             IpKey::V4(v) => v.to_le_bytes().to_vec(),
             IpKey::V6(b) => b.to_vec(),
             IpKey::Id(v) => v.to_le_bytes().to_vec(),
+            IpKey::Unspec => Vec::new(),
         }
+    }
+
+    /// Whether this is an address family chrony's table accepts (INET4/INET6/ID).
+    fn is_valid_family(&self) -> bool {
+        !matches!(self, IpKey::Unspec)
     }
 }
 
 /// chrony `UTI_IPToHash`: `hash = seed; for b in addr_bytes { hash = 71*hash + b }; hash +
-/// seed` (all `u32` wrapping). `seed` is the process-random seed (host boundary).
+/// seed` (all `u32` wrapping). `seed` is the process-random seed (host boundary). An
+/// invalid family hashes to 0 (chrony's `default` case).
 pub fn ip_to_hash(seed: u32, ip: IpKey) -> u32 {
+    if !ip.is_valid_family() {
+        return 0;
+    }
     let mut hash = seed;
     for b in ip.hash_bytes() {
         hash = hash.wrapping_mul(71).wrapping_add(b as u32);
@@ -125,27 +138,44 @@ pub enum Find2 {
     Both,
 }
 
+/// chrony `MAX_SOURCES`.
+pub const MAX_SOURCES: u32 = 65536;
+
 /// chrony's open-addressing source table: a power-of-two array of optional records,
-/// probed quadratically by the seeded IP hash.
+/// probed quadratically by the seeded IP hash. `n_sources` is the logical source count
+/// (chrony's `n_sources`) that drives growth — distinct from the slot count.
 #[derive(Clone, Debug)]
 pub struct SourceTable {
     seed: u32,
     slots: Vec<Option<RemoteAddr>>,
+    n_sources: u32,
 }
 
 impl SourceTable {
     /// Create a table with `size` slots (chrony's size is always a power of two).
     pub fn with_size(seed: u32, size: usize) -> Self {
-        SourceTable { seed, slots: vec![None; size] }
+        SourceTable { seed, slots: vec![None; size], n_sources: 0 }
+    }
+
+    /// A freshly-initialised table (chrony `NSR_Initialise`: a 1-slot table, no sources).
+    pub fn new(seed: u32) -> Self {
+        SourceTable::with_size(seed, 1)
+    }
+
+    /// The logical source count (`n_sources`).
+    pub fn n_sources(&self) -> u32 {
+        self.n_sources
     }
 
     /// chrony `find_slot`: locate the slot matching `ip`. Returns `(matched, slot)`; when
     /// not matched, `slot` is the first empty slot found on the probe sequence (or 0 if
     /// the family is invalid or the probe gave up).
     pub fn find_slot(&self, ip: IpKey) -> (bool, usize) {
+        // chrony rejects families other than INET4/INET6/ID up front (returns slot 0).
+        if !ip.is_valid_family() {
+            return (false, 0);
+        }
         let size = self.slots.len();
-        // chrony rejects families other than INET4/INET6/ID up front.
-        // (All IpKey variants are valid; an invalid family never reaches here.)
         let hash = ip_to_hash(self.seed, ip) as usize;
         let mut slot = 0;
         for i in 0..size / 2 {
@@ -208,6 +238,54 @@ impl SourceTable {
             debug_assert_eq!(r, Find2::NoMatch, "rehash: address unexpectedly present");
             self.slots[slot] = Some(rec);
         }
+    }
+
+    /// chrony `add_source`: validate and insert a source keyed by `addr`. `has_name` is
+    /// whether a source name was given; `ip_is_real` is `UTI_IsIPReal` (host/util). The
+    /// checks run in chrony's order — already-present, name-required-for-unreal-address,
+    /// too-many-sources, invalid-family — then the table grows if needed and the record is
+    /// placed. The `NCR_Instance`/socket/pool/start side effects are host-boundary and not
+    /// modeled here.
+    pub fn add_source(&mut self, addr: RemoteAddr, has_name: bool, ip_is_real: bool) -> NsrStatus {
+        if self.find_slot2(addr).0 != Find2::NoMatch {
+            return NsrStatus::AlreadyInUse;
+        }
+        if !has_name && !ip_is_real {
+            return NsrStatus::InvalidName;
+        }
+        if self.n_sources >= MAX_SOURCES {
+            return NsrStatus::TooManySources;
+        }
+        if !addr.ip.is_valid_family() {
+            return NsrStatus::InvalidAf;
+        }
+
+        self.n_sources += 1;
+        if !check_hashtable_size(self.n_sources, self.slots.len() as u32) {
+            self.rehash(self.n_sources);
+        }
+        let (r, slot) = self.find_slot2(addr);
+        debug_assert_eq!(r, Find2::NoMatch, "add_source: address unexpectedly present");
+        self.slots[slot] = Some(addr);
+        NsrStatus::Success
+    }
+
+    /// chrony `NSR_Modify*` dispatch: look up the source by `address`; the closure applies
+    /// the per-source change (the already-ported `NCR_Modify*`). Returns `true` if the
+    /// source was found (chrony's `1`), `false` if not (`0`).
+    pub fn modify_source<F: FnOnce(RemoteAddr)>(&self, address: IpKey, apply: F) -> bool {
+        let (found, slot) = self.find_slot(address);
+        if !found {
+            return false;
+        }
+        apply(self.slots[slot].unwrap());
+        true
+    }
+
+    /// Test/setup helper: set the logical source count (chrony's `n_sources`).
+    #[cfg(test)]
+    fn set_n_sources(&mut self, n: u32) {
+        self.n_sources = n;
     }
 }
 

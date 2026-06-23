@@ -1,0 +1,22 @@
+# Differential-oracle vectors: REAL chrony ntp_sources.c add_source.
+# Consumer Rust (ntp_sources.rs add_source); NO Python. seed=0x01010101
+ADD_OK status=0 nsources=1 size=2 slot=1
+ADD_FIRST status=0 nsources=1 size=2 slot=1
+ADD_DUP status=2 nsources=1 size=2 slot=1
+ADD_INVALIDNAME status=5 nsources=0 size=1 slot=-1
+ADD_INVALIDAF status=4 nsources=0 size=1 slot=-1
+ADD_TOOMANY status=3 nsources=65536 size=1 slot=-1
+ADD_G0 status=0 nsources=1 size=2 slot=1
+ADD_G1 status=0 nsources=2 size=4 slot=2
+ADD_G2 status=0 nsources=3 size=8 slot=1
+ADD_G3 status=0 nsources=4 size=8 slot=0
+ADD_G4 status=0 nsources=5 size=16 slot=15
+MODIFY_PRESENT ret=1
+MODIFY_ABSENT ret=0
+MOD_minpoll p=1 x=0
+MOD_maxpoll p=1 x=0
+MOD_maxdelay p=1 x=0
+MOD_maxdelayratio p=1 x=0
+MOD_maxdelaydevratio p=1 x=0
+MOD_minstratum p=1 x=0
+MOD_polltarget p=1 x=0

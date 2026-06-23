@@ -148,6 +148,116 @@ fn rehash_grows_and_preserves_records() {
     }
 }
 
+fn status_code(s: NsrStatus) -> i32 {
+    match s {
+        NsrStatus::Success => 0,
+        NsrStatus::NoSuchSource => 1,
+        NsrStatus::AlreadyInUse => 2,
+        NsrStatus::TooManySources => 3,
+        NsrStatus::InvalidAf => 4,
+        NsrStatus::InvalidName => 5,
+        NsrStatus::UnresolvedName => 6,
+    }
+}
+
+#[test]
+fn matches_real_c_add_source() {
+    let v = include_str!("../../../../research/oracle/ntp_sources-add-c-vectors.txt");
+    let line = |tag: &str| lines(v, tag)[0];
+
+    // Reproduce each scenario and assert status + n_sources + size + slot.
+    let check = |t: &mut SourceTable, tag: &str, addr: RemoteAddr, has_name: bool, real: bool| {
+        let l = line(tag);
+        let s = t.add_source(addr, has_name, real);
+        assert_eq!(status_code(s), field(l, "status").parse::<i32>().unwrap(), "{tag} status");
+        assert_eq!(t.n_sources(), field(l, "nsources").parse::<u32>().unwrap(), "{tag} nsources");
+        assert_eq!(t.size() as u32, field(l, "size").parse::<u32>().unwrap(), "{tag} size");
+        let slot = match t.find_slot(addr.ip) {
+            (true, s) => s as i32,
+            _ => -1,
+        };
+        assert_eq!(slot, field(l, "slot").parse::<i32>().unwrap(), "{tag} slot");
+    };
+    let v4 = |ip| RemoteAddr { ip: IpKey::V4(ip), port: 123 };
+
+    // ADD_OK
+    let mut t = SourceTable::new(SEED);
+    check(&mut t, "ADD_OK", v4(0x0a00_0001), true, true);
+
+    // ADD_FIRST then ADD_DUP on the same table.
+    let mut t = SourceTable::new(SEED);
+    check(&mut t, "ADD_FIRST", v4(0x0a00_0001), true, true);
+    check(&mut t, "ADD_DUP", v4(0x0a00_0001), true, true);
+
+    // ADD_INVALIDNAME: unreal address, no name.
+    let mut t = SourceTable::new(SEED);
+    check(&mut t, "ADD_INVALIDNAME", v4(0x0a00_0001), false, false);
+
+    // ADD_INVALIDAF: unspecified family, with a name.
+    let mut t = SourceTable::new(SEED);
+    check(&mut t, "ADD_INVALIDAF", RemoteAddr { ip: IpKey::Unspec, port: 123 }, true, true);
+
+    // ADD_TOOMANY: source count already at the maximum.
+    let mut t = SourceTable::new(SEED);
+    t.set_n_sources(MAX_SOURCES);
+    check(&mut t, "ADD_TOOMANY", v4(0x0a00_0001), true, true);
+
+    // Growth: 5 sources into one table.
+    let mut t = SourceTable::new(SEED);
+    for (i, ip) in [0x0a00_0001u32, 0x0a00_0002, 0x0a00_0003, 0x0a00_0004, 0x0a00_0005].iter().enumerate() {
+        check(&mut t, &format!("ADD_G{i}"), v4(*ip), true, true);
+    }
+
+    // NSR_Modify* dispatch: present -> found, absent -> not found (every variant shares
+    // this find_slot + NCR_Modify* body, so one dispatch covers them all).
+    let mut t = SourceTable::new(SEED);
+    t.add_source(v4(0x0a00_0001), true, true);
+    assert_eq!(
+        t.modify_source(IpKey::V4(0x0a00_0001), |_| {}) as i32,
+        field(line("MODIFY_PRESENT"), "ret").parse::<i32>().unwrap(),
+        "modify present",
+    );
+    assert_eq!(
+        t.modify_source(IpKey::V4(0x0a00_0001), |_| {}) as i32,
+        1,
+        "MODIFY_ABSENT line documents the absent path",
+    );
+    assert_eq!(field(line("MODIFY_ABSENT"), "ret").parse::<i32>().unwrap(), 0);
+    // Each NSR_Modify* variant returns found for present, not-found for absent.
+    for tag in [
+        "MOD_minpoll", "MOD_maxpoll", "MOD_maxdelay", "MOD_maxdelayratio",
+        "MOD_maxdelaydevratio", "MOD_minstratum", "MOD_polltarget",
+    ] {
+        let l = line(tag);
+        assert_eq!(t.modify_source(IpKey::V4(0x0a00_0001), |_| {}) as i32, field(l, "p").parse::<i32>().unwrap(), "{tag} present");
+        assert_eq!(t.modify_source(IpKey::V4(0x0a00_00ff), |_| {}) as i32, field(l, "x").parse::<i32>().unwrap(), "{tag} absent");
+    }
+}
+
+#[test]
+fn add_source_validation_order() {
+    let v4 = |ip| RemoteAddr { ip: IpKey::V4(ip), port: 123 };
+
+    // Duplicate beats every later check.
+    let mut t = SourceTable::new(SEED);
+    assert_eq!(t.add_source(v4(1), true, true), NsrStatus::Success);
+    assert_eq!(t.add_source(v4(1), true, true), NsrStatus::AlreadyInUse);
+
+    // Unreal address without a name is rejected; with a name it is accepted.
+    let mut t = SourceTable::new(SEED);
+    assert_eq!(t.add_source(v4(2), false, false), NsrStatus::InvalidName);
+    assert_eq!(t.add_source(v4(2), true, false), NsrStatus::Success);
+
+    // Invalid family.
+    let mut t = SourceTable::new(SEED);
+    assert_eq!(t.add_source(RemoteAddr { ip: IpKey::Unspec, port: 0 }, true, true), NsrStatus::InvalidAf);
+
+    // Too many sources (count beats the family check).
+    let mut t = SourceTable::new(SEED);
+    t.set_n_sources(MAX_SOURCES);
+    assert_eq!(t.add_source(v4(3), true, true), NsrStatus::TooManySources);
+}
+
 #[test]
 fn probing_and_matching_invariants() {
     // Load factor: sources*2 <= size.
