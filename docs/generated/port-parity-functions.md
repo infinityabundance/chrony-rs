@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 579 / 1373 C functions have a direct counterpart (42.2%).** The other 794 are gaps.
+**Overall: 584 / 1373 C functions have a direct counterpart (42.5%).** The other 789 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -62,6 +62,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
+| `ntp_sources.c` | 58 | 5 | 53 | 8.6% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
 | `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
@@ -75,7 +76,6 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
 | `ntp_io.c` | 19 | 0 | 19 | 0.0% |
 | `ntp_io_linux.c` | 16 | 0 | 16 | 0.0% |
-| `ntp_sources.c` | 58 | 0 | 58 | 0.0% |
 | `nts_ke_client.c` | 10 | 0 | 10 | 0.0% |
 | `nts_ke_server.c` | 21 | 0 | 21 | 0.0% |
 | `nts_ke_session.c` | 32 | 0 | 32 | 0.0% |
@@ -974,6 +974,67 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_ZeroTimespec`
 - · `create_dir`
 - · `join_path`
+
+### `ntp_sources.c` — 5/58 (8.6%)
+
+- · `NSR_AddSource`
+- · `NSR_AddSourceByName`
+- · `NSR_AutoStartSources`
+- · `NSR_DumpAuthData`
+- · `NSR_Finalise`
+- · `NSR_GetActivityReport`
+- · `NSR_GetAuthReport`
+- · `NSR_GetLocalRefid`
+- · `NSR_GetNTPReport`
+- · `NSR_GetName`
+- · `NSR_HandleBadSource`
+- · `NSR_Initialise`
+- · `NSR_InitiateSampleBurst`
+- · `NSR_ModifyMaxdelay`
+- · `NSR_ModifyMaxdelaydevratio`
+- · `NSR_ModifyMaxdelayratio`
+- · `NSR_ModifyMaxpoll`
+- · `NSR_ModifyMinpoll`
+- · `NSR_ModifyMinstratum`
+- · `NSR_ModifyPolltarget`
+- · `NSR_ProcessRx`
+- · `NSR_ProcessTx`
+- · `NSR_RefreshAddresses`
+- · `NSR_RemoveAllSources`
+- · `NSR_RemoveSource`
+- · `NSR_RemoveSourcesById`
+- · `NSR_ReportSource`
+- · `NSR_ResolveSources`
+- · `NSR_SetConnectivity`
+- · `NSR_SetSourceResolvingEndHandler`
+- · `NSR_StartSources`
+- ✓ `NSR_StatusToString`
+- · `NSR_UpdateSourceNtpAddress`
+- · `add_source`
+- · `append_unresolved_source`
+- · `change_source_address`
+- ✓ `check_hashtable_size`
+- · `clean_source_record`
+- ✓ `find_slot`
+- ✓ `find_slot2`
+- ✓ `get_next_conf_id`
+- · `get_pool`
+- · `get_record`
+- · `get_unused_pool_id`
+- · `handle_saved_address_update`
+- · `is_resolved`
+- · `log_source`
+- · `maybe_refresh_source`
+- · `name_resolve_handler`
+- · `process_resolved_name`
+- · `rehash_records`
+- · `remove_pool_sources`
+- · `remove_unresolved_source`
+- · `replace_source_connectable`
+- · `resolve_source_replacement`
+- · `resolve_sources`
+- · `resolve_sources_timeout`
+- · `slew_sources`
 
 ### `main.c` — 1/16 (6.2%)
 
