@@ -27,6 +27,7 @@ mod packet;
 pub mod params;
 pub mod parse;
 pub mod poll;
+pub mod report;
 pub mod sample;
 pub mod support;
 pub mod sync;
