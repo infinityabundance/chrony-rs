@@ -287,6 +287,48 @@ impl SourceTable {
     fn set_n_sources(&mut self, n: u32) {
         self.n_sources = n;
     }
+
+    /// chrony `NSR_RemoveSource` (table part): remove the source at `address`. Returns
+    /// `NoSuchSource` if absent; otherwise clears the slot, decrements `n_sources`, and
+    /// rehashes (chrony rehashes after every removal to keep probe sequences unbroken).
+    /// The pool-counter bookkeeping (`clean_source_record`'s pool branch) is
+    /// [`SourcePool::on_remove`]; the `NCR_DestroyInstance`/name-free are host-boundary.
+    pub fn remove_source(&mut self, address: IpKey) -> NsrStatus {
+        let (found, slot) = self.find_slot(address);
+        if !found {
+            return NsrStatus::NoSuchSource;
+        }
+        self.slots[slot] = None;
+        self.n_sources -= 1;
+        self.rehash(self.n_sources);
+        NsrStatus::Success
+    }
+}
+
+/// chrony `struct SourcePool`: per-pool source counters.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SourcePool {
+    pub sources: i32,
+    pub unresolved_sources: i32,
+    pub confirmed_sources: i32,
+    pub max_sources: i32,
+}
+
+impl SourcePool {
+    /// chrony `clean_source_record`'s pool branch: account for removing a source.
+    /// `is_real` is `UTI_IsIPReal(addr)`; `tentative` is the record's tentative flag.
+    pub fn on_remove(&mut self, is_real: bool, tentative: bool) {
+        self.sources -= 1;
+        if !is_real {
+            self.unresolved_sources -= 1;
+        }
+        if !tentative {
+            self.confirmed_sources -= 1;
+        }
+        if self.max_sources > self.sources {
+            self.max_sources = self.sources;
+        }
+    }
 }
 
 #[cfg(test)]

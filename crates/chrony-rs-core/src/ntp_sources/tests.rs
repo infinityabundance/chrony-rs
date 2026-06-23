@@ -53,7 +53,7 @@ fn matches_real_c_source_table() {
 
     // Hashtable sizing.
     for l in lines(v, "HTS ") {
-        let ok = check_hashtable_size(field(l, "sources").parse().unwrap(), field(l, "size").parse().unwrap());
+        let ok = check_hashtable_size(field(l, "sources").parse::<u32>().unwrap(), field(l, "size").parse().unwrap());
         assert_eq!(ok as i32, field(l, "ok").parse::<i32>().unwrap(), "{l}");
     }
 
@@ -256,6 +256,73 @@ fn add_source_validation_order() {
     let mut t = SourceTable::new(SEED);
     t.set_n_sources(MAX_SOURCES);
     assert_eq!(t.add_source(v4(3), true, true), NsrStatus::TooManySources);
+}
+
+#[test]
+fn matches_real_c_removal_and_pools() {
+    let v = include_str!("../../../../research/oracle/ntp_sources-rm-c-vectors.txt");
+    let line = |tag: &str| lines(v, tag)[0];
+    let v4 = |ip| RemoteAddr { ip: IpKey::V4(ip), port: 123 };
+    let status_code = |s: NsrStatus| match s {
+        NsrStatus::Success => 0,
+        NsrStatus::NoSuchSource => 1,
+        _ => 99,
+    };
+
+    // Table-level removal on a 3-source table.
+    let mut t = SourceTable::new(SEED);
+    for ip in [0x0a00_0001u32, 0x0a00_0002, 0x0a00_0003] {
+        t.add_source(v4(ip), true, true);
+    }
+    let check_rm = |t: &mut SourceTable, tag: &str, ip: u32| {
+        let l = line(tag);
+        let s = t.remove_source(IpKey::V4(ip));
+        assert_eq!(status_code(s), field(l, "status").parse::<i32>().unwrap(), "{tag} status");
+        assert_eq!(t.n_sources(), field(l, "nsources").parse::<u32>().unwrap(), "{tag} nsources");
+        assert_eq!(t.size() as u32, field(l, "size").parse::<u32>().unwrap(), "{tag} size");
+        let remain: String = (0..t.size())
+            .filter_map(|s| t.get(s))
+            .map(|r| match r.ip { IpKey::V4(v) => format!("{v:08x},"), _ => String::new() })
+            .collect();
+        assert_eq!(remain, field(l, "remain"), "{tag} remain");
+    };
+    check_rm(&mut t, "RM_PRESENT", 0x0a00_0002);
+    check_rm(&mut t, "RM_ABSENT", 0x0a00_00ff);
+    check_rm(&mut t, "RM_PRESENT2", 0x0a00_0001);
+    check_rm(&mut t, "RM_LAST", 0x0a00_0003);
+
+    // Pool-counter bookkeeping (pre-set 5/2/3/5, observe each branch's decrement).
+    let pool = || SourcePool { sources: 5, unresolved_sources: 2, confirmed_sources: 3, max_sources: 5 };
+    let check_pool = |tag: &str, is_real: bool, tentative: bool, mut p: SourcePool| {
+        p.on_remove(is_real, tentative);
+        let l = line(tag);
+        assert_eq!(p.sources, field(l, "sources").parse::<i32>().unwrap(), "{tag} sources");
+        assert_eq!(p.unresolved_sources, field(l, "unresolved").parse::<i32>().unwrap(), "{tag} unresolved");
+        assert_eq!(p.confirmed_sources, field(l, "confirmed").parse::<i32>().unwrap(), "{tag} confirmed");
+        assert_eq!(p.max_sources, field(l, "max").parse::<i32>().unwrap(), "{tag} max");
+    };
+    check_pool("POOL_REAL_TENTATIVE", true, true, pool());
+    check_pool("POOL_CONFIRMED", true, false, pool());
+    check_pool("POOL_UNRESOLVED", false, true, pool());
+    check_pool("POOL_NOCLAMP", true, true, SourcePool { max_sources: 2, ..pool() });
+}
+
+#[test]
+fn remove_round_trip() {
+    let mut t = SourceTable::new(SEED);
+    let v4 = |ip| RemoteAddr { ip: IpKey::V4(ip), port: 123 };
+    for ip in [1u32, 2, 3] {
+        t.add_source(v4(ip), true, true);
+    }
+    assert_eq!(t.n_sources(), 3);
+    // Removing an absent source is a no-op error.
+    assert_eq!(t.remove_source(IpKey::V4(99)), NsrStatus::NoSuchSource);
+    assert_eq!(t.n_sources(), 3);
+    // Remove all; the table empties and the remaining stay findable until removed.
+    assert_eq!(t.remove_source(IpKey::V4(2)), NsrStatus::Success);
+    assert!(t.find_slot(IpKey::V4(1)).0 && t.find_slot(IpKey::V4(3)).0);
+    assert!(!t.find_slot(IpKey::V4(2)).0);
+    assert_eq!(t.n_sources(), 2);
 }
 
 #[test]
