@@ -1,0 +1,7 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c process_response test A.
+# Consumer Rust (ntp/test_a.rs); NO Python.
+TA_PASS peer_delay=0.11000000000000001 peer_disp=2.12e-06 precision=9.5467431640625008e-07 max_delay=16 presend_done=0 response_time=0.01 good=1
+TA_FAIL_DELAY peer_delay=0.11000000000000001 peer_disp=2.12e-06 precision=9.5467431640625008e-07 max_delay=0.0001 presend_done=0 response_time=0.01 good=0
+TA_FAIL_PRECISION peer_delay=2.0000009536743164 peer_disp=2.0000010736743166 precision=2.0000009536743164 max_delay=1 presend_done=0 response_time=0.01 good=0
+TA_FAIL_PRESEND peer_delay=0.11000000000000001 peer_disp=2.12e-06 precision=9.5467431640625008e-07 max_delay=16 presend_done=1 response_time=0.01 good=0
+TA_FAIL_RESPONSE peer_delay=4.8899999999999997 peer_disp=2.12e-06 precision=9.5467431640625008e-07 max_delay=16 presend_done=0 response_time=5.0099999999999998 good=0

@@ -29,6 +29,7 @@ pub mod parse;
 pub mod poll;
 pub mod sample;
 pub mod sync;
+pub mod test_a;
 mod timestamp;
 
 pub use measurements::{ts_diff_seconds, Measurement};
