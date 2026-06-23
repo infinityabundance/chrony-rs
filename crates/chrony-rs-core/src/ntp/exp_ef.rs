@@ -77,7 +77,7 @@ fn double_to_ntp64(mut src: f64) -> (u32, u32) {
 
 /// chrony `UTI_TimespecToNtp64` without fuzz, returned as the `(hi, lo)` host-order
 /// halves (the no-era-split build).
-fn timespec_to_ntp64(ts: Timespec) -> (u32, u32) {
+pub(crate) fn timespec_to_ntp64(ts: Timespec) -> (u32, u32) {
     let sec = ts.tv_sec as u32;
     let nsec = ts.tv_nsec as u32;
     if sec == 0 && nsec == 0 {

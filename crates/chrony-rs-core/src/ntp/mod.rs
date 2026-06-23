@@ -32,6 +32,7 @@ pub mod support;
 pub mod sync;
 pub mod test_a;
 mod timestamp;
+pub mod transmit;
 
 pub use measurements::{ts_diff_seconds, Measurement};
 pub use packet::{LeapIndicator, Mode, NtpPacket, PacketError, NTP_PACKET_MIN_LEN};
