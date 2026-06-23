@@ -34,6 +34,27 @@ const MODE_CLIENT: i32 = 3;
 const NTP_HEADER_LENGTH: usize = 48;
 /// A client request reveals no clock state: chrony sets `precision = 32`.
 const CLIENT_PRECISION: i8 = 32;
+/// chrony `MODE_SERVER`, `NTP_MAX_STRATUM`, `NTP_INVALID_STRATUM`.
+const MODE_SERVER: i32 = 4;
+const NTP_MAX_STRATUM: i32 = 16;
+const NTP_INVALID_STRATUM: u8 = 0;
+
+/// chrony `UTI_DoubleToNtp32`: seconds to the 16.16 NTP-short fixed point (host order).
+fn double_to_ntp32(x: f64) -> u32 {
+    const MAX_NTP_INT32: f64 = 4_294_967_295.0 / 65536.0;
+    if x >= MAX_NTP_INT32 {
+        0xffff_ffff
+    } else if x <= 0.0 {
+        0
+    } else {
+        let xs = x * 65536.0;
+        let mut r = xs as u32;
+        if (r as f64) < xs {
+            r += 1;
+        }
+        r
+    }
+}
 
 /// chrony `NTP_LVM`: pack leap/version/mode into the first header byte.
 fn ntp_lvm(leap: u8, version: i32, mode: i32) -> u8 {
@@ -88,6 +109,75 @@ pub fn build_client_request(
         local_ntp_rx: 0,
         local_tx: local_transmit,
     }
+}
+
+/// Our reference parameters for a server response (chrony's `REF_GetReferenceParams`
+/// outputs), supplied by the caller (a host boundary).
+#[derive(Clone, Copy, Debug)]
+pub struct ReferenceParams {
+    pub leap: u8,
+    pub stratum: i32,
+    pub ref_id: u32,
+    pub ref_time: Timespec,
+    pub root_delay: f64,
+    pub root_dispersion: f64,
+}
+
+/// A built server response.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ServerResponse {
+    pub packet: [u8; NTP_HEADER_LENGTH],
+    pub length: i32,
+}
+
+/// chrony `transmit_packet` for a basic (non-interleaved) server response to a client
+/// request. The response carries our reference state (`params`), echoes the client's
+/// transmit timestamp as the originate timestamp (`request_transmit_ts`, the packed
+/// NTP64 of the request), and stamps the receive (`local_receive`) and transmit
+/// (`cooked_transmit`, read just before sending) times. As a server it encodes the
+/// interleaved-mode RX flag: the receive timestamp's low bit is set and the transmit
+/// timestamp's cleared.
+///
+/// Scope/adaptation: non-interleaved server mode; smoothing, the anti-replay fuzz, auth,
+/// and the send are host boundaries (see [`build_client_request`]). `version` is capped.
+#[allow(clippy::too_many_arguments)]
+pub fn build_server_response(
+    my_poll: i32,
+    version: i32,
+    params: &ReferenceParams,
+    request_transmit_ts: u64,
+    local_receive: Timespec,
+    cooked_transmit: Timespec,
+    precision_log: i8,
+) -> ServerResponse {
+    let version = version.min(NTP_VERSION);
+
+    let mut packet = [0u8; NTP_HEADER_LENGTH];
+    packet[0] = ntp_lvm(params.leap, version, MODE_SERVER);
+    packet[1] = if params.stratum < NTP_MAX_STRATUM { params.stratum as u8 } else { NTP_INVALID_STRATUM };
+    packet[2] = my_poll as u8;
+    packet[3] = precision_log as u8;
+    packet[4..8].copy_from_slice(&double_to_ntp32(params.root_delay).to_be_bytes());
+    packet[8..12].copy_from_slice(&double_to_ntp32(params.root_dispersion).to_be_bytes());
+    packet[12..16].copy_from_slice(&params.ref_id.to_be_bytes());
+
+    let (rhi, rlo) = timespec_to_ntp64(params.ref_time);
+    packet[16..20].copy_from_slice(&rhi.to_be_bytes());
+    packet[20..24].copy_from_slice(&rlo.to_be_bytes());
+
+    // Originate = the client's transmit timestamp, echoed verbatim.
+    packet[24..28].copy_from_slice(&((request_transmit_ts >> 32) as u32).to_be_bytes());
+    packet[28..32].copy_from_slice(&(request_transmit_ts as u32).to_be_bytes());
+
+    // Receive (RX flag bit set) and transmit (RX flag bit cleared). The fuzz is zero.
+    let (rxhi, rxlo) = timespec_to_ntp64(local_receive);
+    packet[32..36].copy_from_slice(&rxhi.to_be_bytes());
+    packet[36..40].copy_from_slice(&(rxlo | 1).to_be_bytes());
+    let (txhi, txlo) = timespec_to_ntp64(cooked_transmit);
+    packet[40..44].copy_from_slice(&txhi.to_be_bytes());
+    packet[44..48].copy_from_slice(&(txlo & !1).to_be_bytes());
+
+    ServerResponse { packet, length: NTP_HEADER_LENGTH as i32 }
 }
 
 #[cfg(test)]
