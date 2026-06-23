@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 570 / 1373 C functions have a direct counterpart (41.5%).** The other 803 are gaps.
+**Overall: 573 / 1373 C functions have a direct counterpart (41.7%).** The other 800 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -57,7 +57,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
-| `ntp_core.c` | 69 | 34 | 35 | 49.3% |
+| `ntp_core.c` | 69 | 37 | 32 | 53.6% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
@@ -710,7 +710,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `slew_samples`
 - ✓ `valid_sample_time`
 
-### `ntp_core.c` — 34/69 (49.3%)
+### `ntp_core.c` — 37/69 (53.6%)
 
 - ✓ `NCR_AddAccessRestriction`
 - · `NCR_AddBroadcastDestination`
@@ -751,7 +751,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `apply_net_correction`
 - · `broadcast_timeout`
 - ✓ `check_delay_dev_ratio`
-- · `check_delay_quant`
+- ✓ `check_delay_quant`
 - ✓ `check_delay_ratio`
 - ✓ `check_sync_loop`
 - · `close_client_socket`
@@ -761,8 +761,8 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `get_separation`
 - ✓ `get_transmit_delay`
 - ✓ `get_transmit_poll`
-- · `handle_slew`
-- · `has_saved_response`
+- ✓ `handle_slew`
+- ✓ `has_saved_response`
 - ✓ `is_exp_ef`
 - ✓ `is_zero_data`
 - ✓ `parse_packet`

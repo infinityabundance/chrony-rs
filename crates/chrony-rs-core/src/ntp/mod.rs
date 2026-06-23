@@ -28,6 +28,7 @@ pub mod params;
 pub mod parse;
 pub mod poll;
 pub mod sample;
+pub mod support;
 pub mod sync;
 pub mod test_a;
 mod timestamp;

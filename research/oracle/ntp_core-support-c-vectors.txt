@@ -1,0 +1,11 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c support helpers.
+# Consumer Rust (ntp/support.rs); NO Python.
+SLEW_ADJUST offset=2.5 reseed=0
+SLEW_STEP offset=0 reseed=1
+SLEW_UNKNOWN offset=0 reseed=1
+HSR_NONE ret=0
+HSR_ZERO_TIMEOUT ret=0
+HSR_ACTIVE ret=1
+CDQ_UNDER ret=1
+CDQ_EQUAL ret=1
+CDQ_OVER ret=0
