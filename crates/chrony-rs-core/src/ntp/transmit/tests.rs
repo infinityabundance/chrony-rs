@@ -34,7 +34,10 @@ fn matches_real_c_transmit_vectors() {
     ];
     for (tag, poll, version, prev_tx) in scenarios {
         let l = v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
-        let r = build_client_request(poll, version, ts_for(tag), prev_tx);
+        let event = ts_for(tag);
+        // The generator's cooked-at-send time is the event time + 1234 ns.
+        let cooked = Timespec::new(event.tv_sec, event.tv_nsec + 1234);
+        let r = build_client_request(poll, version, event, cooked, prev_tx);
 
         assert_eq!(r.length, field(l, "length").parse::<i32>().unwrap(), "{tag} length");
         assert_eq!(r.packet[0], field(l, "lvm").parse::<u8>().unwrap(), "{tag} lvm");
@@ -53,13 +56,14 @@ fn matches_real_c_transmit_vectors() {
         // Output timestamps.
         assert_eq!(r.local_ntp_tx, field(l, "out_ntp_tx").parse::<u64>().unwrap(), "{tag} out_ntp_tx");
         assert_eq!(r.local_ntp_rx, field(l, "out_ntp_rx").parse::<u64>().unwrap(), "{tag} out_ntp_rx");
-        assert_eq!(r.local_tx.tv_sec, field(l, "out_local_tx_sec").parse::<i64>().unwrap(), "{tag} local_tx");
+        assert_eq!(r.local_tx.tv_sec, field(l, "out_local_tx_sec").parse::<i64>().unwrap(), "{tag} local_tx sec");
+        assert_eq!(r.local_tx.tv_nsec, field(l, "out_local_tx_nsec").parse::<i64>().unwrap(), "{tag} local_tx nsec");
     }
 }
 
 #[test]
 fn client_request_blanks_clock_state() {
-    let r = build_client_request(6, 4, Timespec::new(2_000_000_000, 0), 0);
+    let r = build_client_request(6, 4, Timespec::new(2_000_000_000, 0), Timespec::new(2_000_000_000, 0), 0);
     // version 4, mode 3 (client), leap 0.
     assert_eq!(r.packet[0], 0x23);
     // Everything but lvm/poll/precision/transmit_ts is zero.
@@ -115,8 +119,30 @@ fn matches_real_c_server_response() {
 }
 
 #[test]
+fn matches_real_c_interleaved_client() {
+    let v = include_str!("../../../../../research/oracle/ntp_core-transmit-c-vectors.txt");
+    let l = v.lines().map(str::trim).find(|l| l.starts_with("TX_IL_CLIENT")).unwrap();
+    let packet = build_interleaved_client_request(
+        6,
+        4,
+        0xaabb_ccdd_1122_3344,                     // remote_ntp_rx (originate echo)
+        Timespec::new(2_000_000_000, 700_000_000), // local receive
+        Timespec::new(2_000_000_000, 300_000_000), // previously sent transmit
+    );
+    assert_eq!(packet[0], field(l, "lvm").parse::<u8>().unwrap(), "lvm");
+    assert_eq!(packet[3] as i8 as i32, field(l, "precision").parse::<i32>().unwrap(), "precision");
+    let be32 = |o: usize| u32::from_be_bytes(packet[o..o + 4].try_into().unwrap());
+    let be64 = |o: usize| ((be32(o) as u64) << 32) | be32(o + 4) as u64;
+    assert_eq!(be64(24), field(l, "originate_ts").parse::<u64>().unwrap(), "originate_ts");
+    assert_eq!(be64(32), field(l, "receive_ts").parse::<u64>().unwrap(), "receive_ts");
+    assert_eq!(be64(40), field(l, "transmit_ts").parse::<u64>().unwrap(), "transmit_ts");
+    // Client interleaved does not set the server RX-flag bits.
+    assert_eq!(be64(32) & 1, field(l, "receive_ts").parse::<u64>().unwrap() & 1, "no RX flag forced");
+}
+
+#[test]
 fn version_is_capped() {
     // Version 9 is capped to NTP_VERSION (4); version 3 is preserved.
-    assert_eq!(build_client_request(6, 9, Timespec::new(2_000_000_000, 0), 0).packet[0] >> 3 & 0x7, 4);
-    assert_eq!(build_client_request(6, 3, Timespec::new(2_000_000_000, 0), 0).packet[0] >> 3 & 0x7, 3);
+    assert_eq!(build_client_request(6, 9, Timespec::new(2_000_000_000, 0), Timespec::new(2_000_000_000, 0), 0).packet[0] >> 3 & 0x7, 4);
+    assert_eq!(build_client_request(6, 3, Timespec::new(2_000_000_000, 0), Timespec::new(2_000_000_000, 0), 0).packet[0] >> 3 & 0x7, 3);
 }

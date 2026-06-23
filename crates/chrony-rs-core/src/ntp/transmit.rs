@@ -75,16 +75,20 @@ pub struct ClientRequest {
     pub local_tx: Timespec,
 }
 
-/// chrony `transmit_packet` for a client request. `local_transmit` is the local time the
-/// packet is timestamped with; `prev_local_ntp_tx` is the previous transmit timestamp
-/// (used by chrony's anti-replay retry — see the module docs). `version` is capped to
-/// `NTP_VERSION`.
+/// chrony `transmit_packet` for a client request. `event_time` is the scheduler event
+/// time stamped into the packet's transmit field; `cooked_transmit` is the more accurate
+/// reading taken just before sending and *saved* as the instance's `local_tx` (these
+/// differ — chrony reads a fresh cooked time at the tail of `transmit_packet`).
+/// `prev_local_ntp_tx` is the previous transmit timestamp (used by chrony's anti-replay
+/// retry — see the module docs). `version` is capped to `NTP_VERSION`.
 pub fn build_client_request(
     my_poll: i32,
     version: i32,
-    local_transmit: Timespec,
+    event_time: Timespec,
+    cooked_transmit: Timespec,
     prev_local_ntp_tx: u64,
 ) -> ClientRequest {
+    let local_transmit = event_time;
     let version = version.min(NTP_VERSION);
 
     let mut packet = [0u8; NTP_HEADER_LENGTH];
@@ -107,8 +111,42 @@ pub fn build_client_request(
         length: NTP_HEADER_LENGTH as i32,
         local_ntp_tx: transmit_ts,
         local_ntp_rx: 0,
-        local_tx: local_transmit,
+        // The saved transmit timestamp is the cooked reading taken just before sending,
+        // not the event time stamped into the packet.
+        local_tx: cooked_transmit,
     }
+}
+
+/// chrony `transmit_packet` for an **interleaved** client request. Unlike the basic
+/// request, an interleaved one reveals timestamps so the server can match the exchange:
+/// the originate timestamp echoes the server's last receive timestamp (`remote_ntp_rx`),
+/// the receive timestamp is our last receive (`local_receive`), and the transmit
+/// timestamp is the *previously sent* transmit time (`prev_local_tx`, the saved HW
+/// timestamp) rather than a fresh reading. (Client mode: no server RX-flag bits; the fuzz
+/// is host-boundary.)
+pub fn build_interleaved_client_request(
+    my_poll: i32,
+    version: i32,
+    remote_ntp_rx: u64,
+    local_receive: Timespec,
+    prev_local_tx: Timespec,
+) -> [u8; NTP_HEADER_LENGTH] {
+    let version = version.min(NTP_VERSION);
+    let mut packet = [0u8; NTP_HEADER_LENGTH];
+    packet[0] = ntp_lvm(0, version, MODE_CLIENT);
+    packet[2] = my_poll as u8;
+    packet[3] = CLIENT_PRECISION as u8;
+
+    // Originate = the server's last receive timestamp, echoed.
+    packet[24..28].copy_from_slice(&((remote_ntp_rx >> 32) as u32).to_be_bytes());
+    packet[28..32].copy_from_slice(&(remote_ntp_rx as u32).to_be_bytes());
+    let (rxhi, rxlo) = timespec_to_ntp64(local_receive);
+    packet[32..36].copy_from_slice(&rxhi.to_be_bytes());
+    packet[36..40].copy_from_slice(&rxlo.to_be_bytes());
+    let (txhi, txlo) = timespec_to_ntp64(prev_local_tx);
+    packet[40..44].copy_from_slice(&txhi.to_be_bytes());
+    packet[44..48].copy_from_slice(&txlo.to_be_bytes());
+    packet
 }
 
 /// Our reference parameters for a server response (chrony's `REF_GetReferenceParams`
