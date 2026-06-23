@@ -1,0 +1,12 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c instance lifecycle.
+# Consumer Rust (ntp/lifecycle.rs); NO Python.
+RESET tx_count=0 presend_done=0 remote_poll=0 remote_stratum=0 remote_root_delay=0 remote_root_dispersion=0 remote_mono_epoch=0 mono_doffset=0 valid_rx=0 valid_timestamps=0 monorx=0 rrx=0 rtx=0 lrx=0 ltx=0 prev_local_poll=0 prev_tx_count=0 updated_init=0 init_rtx=0 filter_count=0 local_rx_sec=0 local_rx_nsec=0 local_rx_err=0 local_rx_src=0 local_rx_rxd=0 local_rx_nc=0 prev_local_tx_sec=0 prev_local_tx_nsec=0 prev_local_tx_err=0 prev_local_tx_src=0 prev_local_tx_rxd=0 prev_local_tx_nc=0 init_local_rx_sec=0 init_local_rx_nsec=0 init_local_rx_err=0 init_local_rx_src=0 init_local_rx_rxd=0 init_local_rx_nc=0
+RESETPOLL_CHANGED poll_score=0 local_poll=4 restart=1
+RESETPOLL_SAME poll_score=0 local_poll=4 restart=0
+RESETPOLL_NOTIMER poll_score=0 local_poll=4 restart=0
+BURST_CLIENT_ONLINE opmode=3 burst_good=4 burst_total=8 set_active=1
+BURST_CLIENT_OFFLINE opmode=2 burst_good=4 burst_total=8 set_active=1
+BURST_CLIENT_BWON opmode=3 burst_good=0 burst_total=0 set_active=0
+BURST_CLIENT_BWOFF opmode=2 burst_good=0 burst_total=0 set_active=0
+BURST_ACTIVE_ONLINE opmode=1 burst_good=0 burst_total=0 set_active=0
+SLEW local_rx_sec=2000000000 local_rx_nsec=99099000 local_rx_err=0 local_rx_src=0 local_rx_rxd=0 local_rx_nc=0 local_tx_sec=2000000000 local_tx_nsec=49099500 local_tx_err=0 local_tx_src=0 local_tx_rxd=0 local_tx_nc=0 prev_local_tx_sec=0 prev_local_tx_nsec=0 prev_local_tx_err=0 prev_local_tx_src=0 prev_local_tx_rxd=0 prev_local_tx_nc=0 init_local_rx_sec=1999999999 init_local_rx_nsec=999100000 init_local_rx_err=0 init_local_rx_src=0 init_local_rx_rxd=0 init_local_rx_nc=0

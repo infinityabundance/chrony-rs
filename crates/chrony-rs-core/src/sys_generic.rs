@@ -114,6 +114,14 @@ impl Timespec {
         let diff = later.diff_to_double(self);
         (self.add_double(diff / 2.0), diff)
     }
+
+    /// chrony `UTI_AdjustTimespec(old=self, when, dfreq, doffset)`: slew `self` by the
+    /// elapsed-time-scaled frequency error minus the offset correction.
+    pub(crate) fn adjust(self, when: Timespec, dfreq: f64, doffset: f64) -> Timespec {
+        let elapsed = when.diff_to_double(self);
+        let delta = elapsed * dfreq - doffset;
+        self.add_double(delta)
+    }
 }
 
 /// chrony `LCL_ChangeType` (subset this module reacts to).

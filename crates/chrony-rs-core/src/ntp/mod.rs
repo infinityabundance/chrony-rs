@@ -19,6 +19,7 @@ pub mod access;
 pub mod create;
 pub mod exp_ef;
 pub mod ext;
+pub mod lifecycle;
 pub mod local_ts;
 mod measurements;
 pub mod opmode;
