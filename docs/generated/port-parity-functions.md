@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 575 / 1373 C functions have a direct counterpart (41.9%).** The other 798 are gaps.
+**Overall: 579 / 1373 C functions have a direct counterpart (42.2%).** The other 794 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -57,7 +57,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
-| `ntp_core.c` | 69 | 39 | 30 | 56.5% |
+| `ntp_core.c` | 69 | 43 | 26 | 62.3% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
@@ -710,7 +710,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `slew_samples`
 - ✓ `valid_sample_time`
 
-### `ntp_core.c` — 39/69 (56.5%)
+### `ntp_core.c` — 43/69 (62.3%)
 
 - ✓ `NCR_AddAccessRestriction`
 - · `NCR_AddBroadcastDestination`
@@ -735,10 +735,10 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `NCR_ModifyMinpoll`
 - ✓ `NCR_ModifyMinstratum`
 - ✓ `NCR_ModifyPolltarget`
-- · `NCR_ProcessRxKnown`
-- · `NCR_ProcessRxUnknown`
-- · `NCR_ProcessTxKnown`
-- · `NCR_ProcessTxUnknown`
+- ✓ `NCR_ProcessRxKnown`
+- ✓ `NCR_ProcessRxUnknown`
+- ✓ `NCR_ProcessTxKnown`
+- ✓ `NCR_ProcessTxUnknown`
 - ✓ `NCR_ReportSource`
 - ✓ `NCR_ResetInstance`
 - ✓ `NCR_ResetPoll`

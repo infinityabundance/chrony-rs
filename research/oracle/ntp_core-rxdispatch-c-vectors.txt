@@ -1,0 +1,19 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c RX mode dispatch.
+# Consumer Rust (ntp/rx_dispatch.rs); NO Python.
+RK_ACT_ACT packet_mode=1 our_mode=1 action=ProcResponse ret=0
+RK_ACT_PASV packet_mode=1 our_mode=2 action=Discard ret=0
+RK_ACT_CLIENT packet_mode=1 our_mode=3 action=ProcAsUnknown ret=0
+RK_PASV_ACT packet_mode=2 our_mode=1 action=ProcResponse ret=0
+RK_PASV_PASV packet_mode=2 our_mode=2 action=Discard ret=0
+RK_CLIENT_CLIENT packet_mode=3 our_mode=3 action=ProcAsUnknown ret=0
+RK_CLIENT_ACT packet_mode=3 our_mode=1 action=ProcAsUnknown ret=0
+RK_SERVER_CLIENT packet_mode=4 our_mode=3 action=ProcResponse ret=0
+RK_SERVER_ACT packet_mode=4 our_mode=1 action=Discard ret=0
+RK_BCAST_CLIENT packet_mode=5 our_mode=3 action=Discard ret=0
+RU_ACTIVE packet_mode=1 version=4 port=123 reply_mode=2
+RU_CLIENT packet_mode=3 version=4 port=50000 reply_mode=4
+RU_UNDEF_V1 packet_mode=0 version=1 port=50000 reply_mode=4
+RU_UNDEF_V1_PORT123 packet_mode=0 version=1 port=123 reply_mode=none
+RU_UNDEF_V4 packet_mode=0 version=4 port=50000 reply_mode=none
+RU_SERVER packet_mode=4 version=4 port=50000 reply_mode=none
+RU_BCAST packet_mode=5 version=4 port=50000 reply_mode=none

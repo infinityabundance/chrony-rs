@@ -28,12 +28,14 @@ pub mod params;
 pub mod parse;
 pub mod poll;
 pub mod report;
+pub mod rx_dispatch;
 pub mod sample;
 pub mod support;
 pub mod sync;
 pub mod test_a;
 mod timestamp;
 pub mod transmit;
+pub mod tx_dispatch;
 
 pub use measurements::{ts_diff_seconds, Measurement};
 pub use packet::{LeapIndicator, Mode, NtpPacket, PacketError, NTP_PACKET_MIN_LEN};
