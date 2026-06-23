@@ -106,6 +106,29 @@ impl IpKey {
     }
 }
 
+/// chrony `UTI_CompareIPs(a, b, mask) == 0`: whether `a` and `b` are equal under `mask`
+/// (a `None` mask compares the full addresses). Different families never match.
+fn ip_equal_under_mask(a: IpKey, b: IpKey, mask: Option<IpKey>) -> bool {
+    match (a, b) {
+        (IpKey::V4(x), IpKey::V4(y)) => {
+            let m = match mask {
+                Some(IpKey::V4(m)) => m,
+                _ => 0xffff_ffff,
+            };
+            x & m == y & m
+        }
+        (IpKey::V6(x), IpKey::V6(y)) => {
+            let m = match mask {
+                Some(IpKey::V6(m)) => m,
+                _ => [0xff; 16],
+            };
+            (0..16).all(|i| x[i] & m[i] == y[i] & m[i])
+        }
+        (IpKey::Id(x), IpKey::Id(y)) => x == y,
+        _ => false,
+    }
+}
+
 /// chrony `UTI_IPToHash`: `hash = seed; for b in addr_bytes { hash = 71*hash + b }; hash +
 /// seed` (all `u32` wrapping). `seed` is the process-random seed (host boundary). An
 /// invalid family hashes to 0 (chrony's `default` case).
@@ -302,6 +325,44 @@ impl SourceTable {
         self.n_sources -= 1;
         self.rehash(self.n_sources);
         NsrStatus::Success
+    }
+}
+
+impl SourceTable {
+    /// chrony's source-iteration match (used by `NSR_InitiateSampleBurst`,
+    /// `NSR_SetConnectivity`): the occupied slots whose address matches `address` under
+    /// `mask`, in slot order. An `Unspec` address matches every source. Returns
+    /// `(matched_slots, any)` where `any` is chrony's return flag.
+    pub fn select_matching(&self, address: IpKey, mask: Option<IpKey>) -> (Vec<usize>, bool) {
+        let mut matched = Vec::new();
+        for (slot, rec) in self.slots.iter().enumerate() {
+            if let Some(r) = rec {
+                if matches!(address, IpKey::Unspec) || ip_equal_under_mask(r.ip, address, mask) {
+                    matched.push(slot);
+                }
+            }
+        }
+        let any = !matched.is_empty();
+        (matched, any)
+    }
+
+    /// chrony `NSR_RemoveAllSources`: clean every record and rehash back to the empty
+    /// 1-slot table.
+    pub fn remove_all(&mut self) {
+        for s in self.slots.iter_mut() {
+            *s = None;
+        }
+        self.n_sources = 0;
+        self.rehash(0);
+    }
+
+    /// chrony `NSR_GetLocalRefid`: the local reference id for the source at `address`
+    /// (via `refid_of`, the ported `NCR_GetLocalRefid`), or 0 when no such source.
+    pub fn get_local_refid<F: Fn(RemoteAddr) -> u32>(&self, address: IpKey, refid_of: F) -> u32 {
+        match self.find_slot(address) {
+            (true, slot) => refid_of(self.slots[slot].unwrap()),
+            _ => 0,
+        }
     }
 }
 

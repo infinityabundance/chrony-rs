@@ -326,6 +326,62 @@ fn remove_round_trip() {
 }
 
 #[test]
+fn matches_real_c_iteration_ops() {
+    let v = include_str!("../../../../research/oracle/ntp_sources-iter-c-vectors.txt");
+    let line = |tag: &str| lines(v, tag)[0];
+    let v4 = |ip| RemoteAddr { ip: IpKey::V4(ip), port: 123 };
+
+    // Build the oracle's table (insert order matters for slot layout).
+    let mut t = SourceTable::new(SEED);
+    for ip in [0x0a00_0001u32, 0x0a00_0002, 0x0a00_00ff, 0xc0a8_0001] {
+        t.add_source(v4(ip), true, true);
+    }
+
+    // NSR_InitiateSampleBurst selection: matched addresses in slot order + any.
+    let check_burst = |tag: &str, address: IpKey, mask: Option<IpKey>| {
+        let l = line(tag);
+        let (slots, any) = t.select_matching(address, mask);
+        assert_eq!(any as i32, field(l, "any").parse::<i32>().unwrap(), "{tag} any");
+        let hits: String = slots
+            .iter()
+            .map(|&s| match t.get(s).unwrap().ip { IpKey::V4(x) => format!("{x:08x},"), _ => String::new() })
+            .collect();
+        assert_eq!(hits, field(l, "hits"), "{tag} hits");
+    };
+    check_burst("BURST_ALL", IpKey::Unspec, Some(IpKey::V4(0)));
+    check_burst("BURST_ONE", IpKey::V4(0x0a00_0002), Some(IpKey::V4(0xffff_ffff)));
+    check_burst("BURST_SUBNET", IpKey::V4(0x0a00_0000), Some(IpKey::V4(0xffff_ff00)));
+    check_burst("BURST_NONE", IpKey::V4(0x7f00_0001), Some(IpKey::V4(0xffff_ffff)));
+
+    // NSR_GetLocalRefid: present -> NCR refid, absent -> 0.
+    let refid_of = |r: RemoteAddr| match r.ip {
+        IpKey::V4(x) => 0xfeed_0000 | (x & 0xff),
+        _ => 0,
+    };
+    assert_eq!(
+        t.get_local_refid(IpKey::V4(0x0a00_0002), refid_of),
+        u32::from_str_radix(field(line("REFID_PRESENT"), "v"), 16).unwrap(),
+        "refid present",
+    );
+    assert_eq!(
+        t.get_local_refid(IpKey::V4(0x7f00_0001), refid_of),
+        u32::from_str_radix(field(line("REFID_ABSENT"), "v"), 16).unwrap(),
+        "refid absent",
+    );
+
+    // NSR_RemoveAllSources: empty table.
+    t.remove_all();
+    let l = line("REMOVEALL");
+    assert_eq!(t.n_sources(), field(l, "nsources").parse::<u32>().unwrap(), "removeall nsources");
+    assert_eq!(t.size() as u32, field(l, "size").parse::<u32>().unwrap(), "removeall size");
+    assert_eq!(
+        (0..t.size()).filter(|&s| t.get(s).is_some()).count() as i32,
+        field(l, "occupied").parse::<i32>().unwrap(),
+        "removeall occupied",
+    );
+}
+
+#[test]
 fn probing_and_matching_invariants() {
     // Load factor: sources*2 <= size.
     assert!(check_hashtable_size(4, 8));

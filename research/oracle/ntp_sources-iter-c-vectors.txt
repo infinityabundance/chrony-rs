@@ -1,0 +1,9 @@
+# Differential-oracle vectors: REAL chrony ntp_sources.c iteration ops.
+# Consumer Rust (ntp_sources.rs); NO Python. seed=0x01010101
+BURST_ALL any=1 hits=c0a80001,0a000002,0a000001,0a0000ff,
+BURST_ONE any=1 hits=0a000002,
+BURST_SUBNET any=1 hits=0a000002,0a000001,0a0000ff,
+BURST_NONE any=0 hits=
+REFID_PRESENT v=feed0002
+REFID_ABSENT v=00000000
+REMOVEALL nsources=0 size=1 occupied=0

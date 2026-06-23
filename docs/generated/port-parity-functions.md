@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 595 / 1373 C functions have a direct counterpart (43.3%).** The other 778 are gaps.
+**Overall: 598 / 1373 C functions have a direct counterpart (43.6%).** The other 775 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -60,7 +60,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `ntp_core.c` | 69 | 43 | 26 | 62.3% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
-| `ntp_sources.c` | 58 | 16 | 42 | 27.6% |
+| `ntp_sources.c` | 58 | 19 | 39 | 32.8% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
@@ -803,7 +803,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `sock_finalise`
 - · `sock_initialise`
 
-### `ntp_sources.c` — 16/58 (27.6%)
+### `ntp_sources.c` — 19/58 (32.8%)
 
 - · `NSR_AddSource`
 - · `NSR_AddSourceByName`
@@ -812,12 +812,12 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `NSR_Finalise`
 - · `NSR_GetActivityReport`
 - · `NSR_GetAuthReport`
-- · `NSR_GetLocalRefid`
+- ✓ `NSR_GetLocalRefid`
 - · `NSR_GetNTPReport`
 - · `NSR_GetName`
 - · `NSR_HandleBadSource`
 - · `NSR_Initialise`
-- · `NSR_InitiateSampleBurst`
+- ✓ `NSR_InitiateSampleBurst`
 - ✓ `NSR_ModifyMaxdelay`
 - ✓ `NSR_ModifyMaxdelaydevratio`
 - ✓ `NSR_ModifyMaxdelayratio`
@@ -828,7 +828,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `NSR_ProcessRx`
 - · `NSR_ProcessTx`
 - · `NSR_RefreshAddresses`
-- · `NSR_RemoveAllSources`
+- ✓ `NSR_RemoveAllSources`
 - ✓ `NSR_RemoveSource`
 - · `NSR_RemoveSourcesById`
 - · `NSR_ReportSource`
