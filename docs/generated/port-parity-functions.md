@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 584 / 1373 C functions have a direct counterpart (42.5%).** The other 789 are gaps.
+**Overall: 585 / 1373 C functions have a direct counterpart (42.6%).** The other 788 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -62,7 +62,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
-| `ntp_sources.c` | 58 | 5 | 53 | 8.6% |
+| `ntp_sources.c` | 58 | 6 | 52 | 10.3% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
 | `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
@@ -975,7 +975,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `create_dir`
 - · `join_path`
 
-### `ntp_sources.c` — 5/58 (8.6%)
+### `ntp_sources.c` — 6/58 (10.3%)
 
 - · `NSR_AddSource`
 - · `NSR_AddSourceByName`
@@ -1027,7 +1027,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `maybe_refresh_source`
 - · `name_resolve_handler`
 - · `process_resolved_name`
-- · `rehash_records`
+- ✓ `rehash_records`
 - · `remove_pool_sources`
 - · `remove_unresolved_source`
 - · `replace_source_connectable`

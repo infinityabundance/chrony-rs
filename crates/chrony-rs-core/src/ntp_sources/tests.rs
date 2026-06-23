@@ -95,6 +95,60 @@ fn matches_real_c_source_table() {
 }
 
 #[test]
+fn matches_real_c_rehash() {
+    let v = include_str!("../../../../research/oracle/ntp_sources-table-c-vectors.txt");
+    // Each REHASH line: "tag size=N slot:iphex slot:iphex ...". Rebuild the same
+    // pre-rehash table, rehash on the given n_sources, and match the resulting layout.
+    let scenarios: &[(&str, usize, u32, &[u32])] = &[
+        ("REHASH_GROW", 8, 5, &[0x0a00_0001, 0x0a00_0002, 0x0a00_0003, 0x0a00_0004]),
+        ("REHASH_SAME", 8, 3, &[0x0a00_0001, 0x0a00_0002, 0x0a00_0003]),
+        ("REHASH_GROW2", 4, 3, &[0x0a00_0001, 0x0a00_0002]),
+    ];
+    for (tag, start_size, n_sources, ips) in scenarios {
+        let l = lines(v, tag)[0];
+        let mut toks = l.split_whitespace();
+        toks.next(); // tag
+        let want_size: usize = toks.next().unwrap().strip_prefix("size=").unwrap().parse().unwrap();
+
+        let mut t = SourceTable::with_size(SEED, *start_size);
+        for &ip in *ips {
+            t.insert(RemoteAddr { ip: IpKey::V4(ip), port: 123 });
+        }
+        t.rehash(*n_sources);
+
+        assert_eq!(t.size(), want_size, "{tag} size");
+        // Build the expected slot->ip map from the fixture and compare every slot.
+        let mut expected = vec![None; want_size];
+        for tok in toks {
+            let (slot, ip) = tok.split_once(':').unwrap();
+            expected[slot.parse::<usize>().unwrap()] = Some(u32::from_str_radix(ip, 16).unwrap());
+        }
+        for slot in 0..want_size {
+            assert_eq!(t.get(slot).map(|r| match r.ip { IpKey::V4(v) => v, _ => 0 }), expected[slot], "{tag} slot {slot}");
+        }
+    }
+}
+
+#[test]
+fn rehash_grows_and_preserves_records() {
+    let mut t = SourceTable::with_size(SEED, 4);
+    let addrs = [
+        RemoteAddr { ip: IpKey::V4(0x0a00_0001), port: 123 },
+        RemoteAddr { ip: IpKey::V4(0x0a00_0002), port: 123 },
+    ];
+    for a in addrs {
+        t.insert(a);
+    }
+    // 5 sources need a 16-slot table (2*5 <= 16, not <= 8).
+    t.rehash(5);
+    assert_eq!(t.size(), 16);
+    // Every record is still findable after the rehash.
+    for a in addrs {
+        assert!(t.find_slot(a.ip).0, "record survived rehash");
+    }
+}
+
+#[test]
 fn probing_and_matching_invariants() {
     // Load factor: sources*2 <= size.
     assert!(check_hashtable_size(4, 8));

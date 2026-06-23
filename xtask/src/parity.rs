@@ -103,7 +103,7 @@ const MAP: &[Row] = &[
         rust: &["ntp_signd.rs"], port: Port::Full,
         note: "complete port of all 7 functions: the asynchronous Samba ntp_signd client — serialise the SigndRequest (the ntp_signd IDL wire format), the bounded ring queue (bursts not lost), the writable/readable state machine (partial send/recv), response validation (packet_id/op/length) and signed-packet emission; the other half of the MS-SNTP path that ntp_auth injects. Host boundaries (socket SCK_*, scheduler file-handler events SCH_*, NTP send NIO_*) are one injected trait. Differential-tested vs the REAL compiled ntp_signd.c (+ array.c, memory.c): byte-identical SigndRequest + emitted signed packet, with bad-packet-id / non-success-op / over-short-length rejection + an independent partial-write/queue-capacity check" },
     Row { c: "ntp_sources.c", role: "NTP source record add/remove/pool (NSR_*)", rust: &["ntp_sources.rs"], port: Port::Partial,
-        note: "STAGED port of the NTP source manager. Stage 1 (ntp_sources.rs): the source-table internals -- the open-addressing hash table keyed by remote IP (find_slot/find_slot2 quadratic probing, check_hashtable_size power-of-two load factor), UTI_IPToHash (seeded), NSR_StatusToString, and the get_next_conf_id counter. Differential-tested vs the REAL compiled ntp_sources.c via the #include harness (real array.c linked, the random hash seed pinned): the hash, the slot probing on a built 8-slot table, the sizing rule, the status strings, and the id counter are matched. REMAINING: add/remove/resolve sources, pools, the NSR_* operation surface (NCR-instance/socket/resolver-bound)" },
+        note: "STAGED port of the NTP source manager. Stage 1 (ntp_sources.rs): the source-table internals -- the open-addressing hash table keyed by remote IP (find_slot/find_slot2 quadratic probing, check_hashtable_size power-of-two load factor), UTI_IPToHash (seeded), NSR_StatusToString, and the get_next_conf_id counter. Differential-tested vs the REAL compiled ntp_sources.c via the #include harness (real array.c linked, the random hash seed pinned): the hash, the slot probing on a built 8-slot table, the sizing rule, the status strings, and the id counter are matched. Stage 2 (ntp_sources.rs): rehash_records -- grow the table to the smallest power-of-two satisfying the load factor and re-insert every record by re-probing (matched vs the real ntp_sources.c on grow/no-grow scenarios, including a re-layout under a new modulus). REMAINING: add/remove/resolve sources, pools, the NSR_* operation surface (NCR-instance/socket/resolver-bound)" },
 
     // ---- source selection / statistics ----
     Row { c: "sources.c", role: "source reachability + selection (SRC_*)",
@@ -989,6 +989,8 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "check_hashtable_size",
             "get_next_conf_id",
             "NSR_StatusToString",
+            // Stage 2: table growth.
+            "rehash_records",
         ],
     ),
 ];

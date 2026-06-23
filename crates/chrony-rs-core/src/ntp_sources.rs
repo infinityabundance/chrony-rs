@@ -178,6 +178,37 @@ impl SourceTable {
         self.slots[slot] = Some(addr);
         slot
     }
+
+    /// The current table size (number of slots).
+    pub fn size(&self) -> usize {
+        self.slots.len()
+    }
+
+    /// The record at `slot`, if occupied.
+    pub fn get(&self, slot: usize) -> Option<RemoteAddr> {
+        self.slots[slot]
+    }
+
+    /// chrony `rehash_records`: grow the table to the smallest power-of-two size that
+    /// satisfies [`check_hashtable_size`] for `n_sources`, then re-insert every existing
+    /// record (probing its new slot in the old-slot order). `n_sources` is the source
+    /// count driving the resize (chrony increments it before rehashing on an add).
+    pub fn rehash(&mut self, n_sources: u32) {
+        let old = std::mem::take(&mut self.slots);
+
+        // The size of the hash table is always a power of two.
+        let mut new_size: u32 = 1;
+        while !check_hashtable_size(n_sources, new_size) {
+            new_size *= 2;
+        }
+
+        self.slots = vec![None; new_size as usize];
+        for rec in old.into_iter().flatten() {
+            let (r, slot) = self.find_slot2(rec);
+            debug_assert_eq!(r, Find2::NoMatch, "rehash: address unexpectedly present");
+            self.slots[slot] = Some(rec);
+        }
+    }
 }
 
 #[cfg(test)]
