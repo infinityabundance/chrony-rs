@@ -423,6 +423,39 @@ impl SourceTable {
             _ => 0,
         }
     }
+
+    /// chrony `NSR_GetName`: the configured name of the source at `address` (via
+    /// `name_of`, since the name string is host metadata), or `None` if no such source.
+    pub fn get_name<'a, F: FnOnce(RemoteAddr) -> &'a str>(
+        &self,
+        address: IpKey,
+        name_of: F,
+    ) -> Option<&'a str> {
+        match self.find_slot(address) {
+            (true, slot) => Some(name_of(self.slots[slot].unwrap())),
+            _ => None,
+        }
+    }
+
+    /// chrony `find_slot2 != 0` for an address — whether a source with this address+port
+    /// is present (used by [`is_resolved`]).
+    pub fn address_present(&self, addr: RemoteAddr) -> bool {
+        self.find_slot2(addr).0 != Find2::NoMatch
+    }
+}
+
+/// chrony `is_resolved`: whether the unresolved source has been resolved. For a *pool*
+/// source it is resolved once the pool has no unresolved sources left; for a *single*
+/// source it is resolved once its address is no longer present (it was removed or replaced
+/// by the resolved address). `pool_id` is the source's pool (or [`INVALID_POOL`]),
+/// `pool_unresolved_sources` the pool's counter, and `address_present` whether the
+/// single-source address is still in the table (chrony's `find_slot2 != 0`).
+pub fn is_resolved(pool_id: i32, pool_unresolved_sources: i32, address_present: bool) -> bool {
+    if pool_id != INVALID_POOL {
+        pool_unresolved_sources <= 0
+    } else {
+        !address_present
+    }
 }
 
 /// chrony `SRC_Connectivity` (the request passed to `NSR_SetConnectivity`).

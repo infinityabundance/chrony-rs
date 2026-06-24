@@ -1,0 +1,8 @@
+# Differential-oracle vectors: REAL chrony ntp_sources.c is_resolved + GetName.
+# Consumer Rust (ntp_sources.rs); NO Python. seed=0x01010101
+GETNAME_PRESENT found=1 name=x
+GETNAME_ABSENT found=0
+RESOLVED_POOL_PENDING r=0
+RESOLVED_POOL_DONE r=1
+RESOLVED_ADDR_PRESENT r=0
+RESOLVED_ADDR_ABSENT r=1

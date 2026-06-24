@@ -449,6 +449,36 @@ fn pool_id_skips_pending() {
 }
 
 #[test]
+fn matches_real_c_is_resolved_and_name() {
+    let v = include_str!("../../../../research/oracle/ntp_sources-misc-c-vectors.txt");
+    let line = |tag: &str| lines(v, tag)[0];
+    let v4 = |ip| RemoteAddr { ip: IpKey::V4(ip), port: 123 };
+
+    let mut t = SourceTable::new(SEED);
+    t.add_source(v4(0x0a00_0001), true, true);
+
+    // NSR_GetName: present -> name, absent -> None (the name is supplied by the closure).
+    let name_of = |_r: RemoteAddr| "x";
+    let present = t.get_name(IpKey::V4(0x0a00_0001), name_of);
+    assert_eq!(present.is_some() as i32, field(line("GETNAME_PRESENT"), "found").parse::<i32>().unwrap());
+    assert_eq!(present, Some(field(line("GETNAME_PRESENT"), "name")));
+    assert_eq!(
+        t.get_name(IpKey::V4(0x7f00_0001), name_of).is_some() as i32,
+        field(line("GETNAME_ABSENT"), "found").parse::<i32>().unwrap(),
+    );
+
+    // is_resolved, pool case (resolved once no unresolved sources remain).
+    assert_eq!(is_resolved(0, 2, false) as i32, field(line("RESOLVED_POOL_PENDING"), "r").parse::<i32>().unwrap());
+    assert_eq!(is_resolved(0, 0, false) as i32, field(line("RESOLVED_POOL_DONE"), "r").parse::<i32>().unwrap());
+
+    // is_resolved, single-source case (resolved once the address is gone).
+    let present = t.address_present(v4(0x0a00_0001));
+    let absent = t.address_present(v4(0x7f00_0001));
+    assert_eq!(is_resolved(INVALID_POOL, 0, present) as i32, field(line("RESOLVED_ADDR_PRESENT"), "r").parse::<i32>().unwrap());
+    assert_eq!(is_resolved(INVALID_POOL, 0, absent) as i32, field(line("RESOLVED_ADDR_ABSENT"), "r").parse::<i32>().unwrap());
+}
+
+#[test]
 fn probing_and_matching_invariants() {
     // Load factor: sources*2 <= size.
     assert!(check_hashtable_size(4, 8));
