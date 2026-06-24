@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 599 / 1373 C functions have a direct counterpart (43.6%).** The other 774 are gaps.
+**Overall: 602 / 1373 C functions have a direct counterpart (43.8%).** The other 771 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -59,7 +59,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
 | `ntp_core.c` | 69 | 43 | 26 | 62.3% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
-| `ntp_sources.c` | 58 | 20 | 38 | 34.5% |
+| `ntp_sources.c` | 58 | 23 | 35 | 39.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `util.c` | 76 | 10 | 66 | 13.2% |
@@ -797,7 +797,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `stop_helper`
 - · `submit_request`
 
-### `ntp_sources.c` — 20/58 (34.5%)
+### `ntp_sources.c` — 23/58 (39.7%)
 
 - · `NSR_AddSource`
 - · `NSR_AddSourceByName`
@@ -807,7 +807,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `NSR_GetActivityReport`
 - · `NSR_GetAuthReport`
 - ✓ `NSR_GetLocalRefid`
-- · `NSR_GetNTPReport`
+- ✓ `NSR_GetNTPReport`
 - · `NSR_GetName`
 - · `NSR_HandleBadSource`
 - · `NSR_Initialise`
@@ -825,7 +825,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `NSR_RemoveAllSources`
 - ✓ `NSR_RemoveSource`
 - · `NSR_RemoveSourcesById`
-- · `NSR_ReportSource`
+- ✓ `NSR_ReportSource`
 - · `NSR_ResolveSources`
 - ✓ `NSR_SetConnectivity`
 - · `NSR_SetSourceResolvingEndHandler`
@@ -842,7 +842,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `get_next_conf_id`
 - · `get_pool`
 - · `get_record`
-- · `get_unused_pool_id`
+- ✓ `get_unused_pool_id`
 - · `handle_saved_address_update`
 - · `is_resolved`
 - · `log_source`

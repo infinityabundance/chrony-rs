@@ -413,6 +413,42 @@ fn matches_real_c_set_connectivity() {
 }
 
 #[test]
+fn matches_real_c_pool_and_reports() {
+    let v = include_str!("../../../../research/oracle/ntp_sources-pool-c-vectors.txt");
+    let line = |tag: &str| lines(v, tag)[0];
+    let pool = |sources| SourcePool { sources, ..Default::default() };
+
+    // get_unused_pool_id: first pool with sources == 0 (no pending names).
+    let check_pool = |tag: &str, srcs: &[i32]| {
+        let pools: Vec<SourcePool> = srcs.iter().map(|&s| pool(s)).collect();
+        assert_eq!(get_unused_pool_id(&pools, &[]), field(line(tag), "id").parse::<i32>().unwrap(), "{tag}");
+    };
+    check_pool("POOLID_0", &[0, 5, 2]);
+    check_pool("POOLID_1", &[3, 0, 2]);
+    check_pool("POOLID_2", &[3, 5, 0]);
+    check_pool("POOLID_NONE", &[1, 2, 3]);
+    check_pool("POOLID_EMPTY", &[]);
+
+    // Report fan-outs on a table with one source.
+    let mut t = SourceTable::new(SEED);
+    t.add_source(RemoteAddr { ip: IpKey::V4(0x0a00_0001), port: 123 }, true, true);
+    assert_eq!(t.get_ntp_report(IpKey::V4(0x0a00_0001)) as i32, field(line("NTPREPORT_PRESENT"), "ret").parse::<i32>().unwrap());
+    assert_eq!(t.get_ntp_report(IpKey::V4(0x7f00_0001)) as i32, field(line("NTPREPORT_ABSENT"), "ret").parse::<i32>().unwrap());
+    // NCR_ReportSource fills poll with the marker 99.
+    assert_eq!(t.report_source(IpKey::V4(0x0a00_0001), |_| 99), field(line("REPORTSRC_PRESENT"), "poll").parse::<i32>().unwrap());
+    assert_eq!(t.report_source(IpKey::V4(0x7f00_0001), |_| 99), field(line("REPORTSRC_ABSENT"), "poll").parse::<i32>().unwrap());
+}
+
+#[test]
+fn pool_id_skips_pending() {
+    // A pool with no sources but a pending unresolved name is skipped.
+    let pools = [SourcePool::default(), SourcePool::default()];
+    assert_eq!(get_unused_pool_id(&pools, &[0]), 1, "pool 0 pending -> 1");
+    assert_eq!(get_unused_pool_id(&pools, &[0, 1]), INVALID_POOL, "all pending");
+    assert_eq!(get_unused_pool_id(&pools, &[]), 0, "none pending -> first");
+}
+
+#[test]
 fn probing_and_matching_invariants() {
     // Load factor: sources*2 <= size.
     assert!(check_hashtable_size(4, 8));

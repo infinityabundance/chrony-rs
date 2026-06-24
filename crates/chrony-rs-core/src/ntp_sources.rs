@@ -407,6 +407,22 @@ impl SourceTable {
         }
         (applied, any)
     }
+
+    /// chrony `NSR_GetNTPReport`: whether a source exists at `address` (chrony then fills
+    /// the report via the host-boundary `NCR_GetNTPReport` and returns 1).
+    pub fn get_ntp_report(&self, address: IpKey) -> bool {
+        self.find_slot(address).0
+    }
+
+    /// chrony `NSR_ReportSource`: the source report's poll for `address` — `fill` (the
+    /// host-boundary `NCR_ReportSource`) when the source exists, else 0 (chrony blanks the
+    /// poll / latest-measurement for an unknown source).
+    pub fn report_source<F: FnOnce(RemoteAddr) -> i32>(&self, address: IpKey, fill: F) -> i32 {
+        match self.find_slot(address) {
+            (true, slot) => fill(self.slots[slot].unwrap()),
+            _ => 0,
+        }
+    }
 }
 
 /// chrony `SRC_Connectivity` (the request passed to `NSR_SetConnectivity`).
@@ -415,6 +431,25 @@ pub enum SrcConnectivity {
     Offline,
     Online,
     MaybeOnline,
+}
+
+/// chrony `INVALID_POOL`.
+pub const INVALID_POOL: i32 = -1;
+
+/// chrony `get_unused_pool_id`: the index of the first pool with no sources and no name
+/// waiting to be resolved into it (`pending_pool_ids` are the pool ids of the pending
+/// unresolved sources — a host/resolver-bound list). Returns [`INVALID_POOL`] if none.
+pub fn get_unused_pool_id(pools: &[SourcePool], pending_pool_ids: &[i32]) -> i32 {
+    for (i, p) in pools.iter().enumerate() {
+        if p.sources > 0 {
+            continue;
+        }
+        if pending_pool_ids.contains(&(i as i32)) {
+            continue;
+        }
+        return i as i32;
+    }
+    INVALID_POOL
 }
 
 /// chrony `struct SourcePool`: per-pool source counters.
