@@ -1,0 +1,18 @@
+# Differential-oracle vectors: REAL chrony util.c time-scalar conversions.
+# Consumer Rust (util.rs); NO Python.
+TS_POS in=1234.5 sec=1234 nsec=500000000 back=1234.5
+TS_FRAC in=2000000000.1234567 sec=2000000000 nsec=123456716 back=2000000000.1234567
+TS_NEG in=-1.25 sec=-2 nsec=750000000 back=-1.25
+TS_ZERO in=0 sec=0 nsec=0 back=0
+TV_POS in=1234.5 sec=1234 usec=500000 back=1234.5
+TV_FRAC in=2000000000.123456 sec=2000000000 usec=123456 back=2000000000.123456
+TV_NEG in=-1.25 sec=-2 usec=750000 back=-1.25
+F28_SMALL in=0.01 raw=2684355 back=0.010000001639127731
+F28_ONE in=1 raw=268435456 back=1
+F28_NEG in=-5 raw=0 back=0
+F28_BIG in=1000000000 raw=4294967295 back=65535.999984741211
+CMP_EQ r=0
+CMP_LO r=-1
+CMP_HI r=1
+ISZERO_Y r=1
+ISZERO_N r=0

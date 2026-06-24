@@ -86,9 +86,159 @@ pub fn hex_to_bytes(hex: &str) -> Option<Vec<u8>> {
     Some(out)
 }
 
+const NSEC_PER_SEC: i64 = 1_000_000_000;
+
+/// `UTI_NormaliseTimespec`: carry an out-of-range nanosecond field into the seconds,
+/// keeping `0 <= tv_nsec < 1e9`.
+pub fn normalise_timespec(mut sec: i64, mut nsec: i64) -> (i64, i64) {
+    // chrony: nsec >= NSEC_PER_SEC || nsec < 0.
+    if !(0..NSEC_PER_SEC).contains(&nsec) {
+        sec += nsec / NSEC_PER_SEC;
+        nsec %= NSEC_PER_SEC;
+        if nsec < 0 {
+            sec -= 1;
+            nsec += NSEC_PER_SEC;
+        }
+    }
+    (sec, nsec)
+}
+
+/// `UTI_TimespecToDouble`: `sec + 1e-9 * nsec`.
+pub fn timespec_to_double(sec: i64, nsec: i64) -> f64 {
+    sec as f64 + 1.0e-9 * nsec as f64
+}
+
+/// `UTI_DoubleToTimespec`: split `d` into a normalised `(sec, nsec)` with chrony's
+/// `(time_t)`/`(long)` truncation.
+pub fn double_to_timespec(d: f64) -> (i64, i64) {
+    let sec = d as i64;
+    let nsec = (1.0e9 * (d - sec as f64)) as i64;
+    normalise_timespec(sec, nsec)
+}
+
+/// `UTI_NormaliseTimeval`: reduce `tv_usec` to `[0, 1e6)`. (Note chrony's `>=`/`<=`
+/// reduction bound, distinct from the timespec form.)
+pub fn normalise_timeval(mut sec: i64, mut usec: i64) -> (i64, i64) {
+    if usec >= 1_000_000 || usec <= -1_000_000 {
+        sec += usec / 1_000_000;
+        usec %= 1_000_000;
+    }
+    if usec < 0 {
+        sec -= 1;
+        usec += 1_000_000;
+    }
+    (sec, usec)
+}
+
+/// `UTI_TimevalToDouble`: `sec + 1e-6 * usec`.
+pub fn timeval_to_double(sec: i64, usec: i64) -> f64 {
+    sec as f64 + 1.0e-6 * usec as f64
+}
+
+/// `UTI_DoubleToTimeval`: split `d` into a normalised `(sec, usec)`; the microseconds are
+/// rounded (chrony's `round()`).
+pub fn double_to_timeval(d: f64) -> (i64, i64) {
+    let sec = d as i64;
+    let usec = (1.0e6 * (d - sec as f64)).round() as i64;
+    normalise_timeval(sec, usec)
+}
+
+/// chrony `MAX_NTP_INT32` (the 16.16 NTP-short maximum, also returned by the f28 max).
+const MAX_NTP_INT32: f64 = 4_294_967_295.0 / 65536.0;
+
+/// `UTI_DoubleToNtp32f28`: seconds to 4.28 fixed point (host-order raw value).
+pub fn double_to_ntp32f28(x: f64) -> u32 {
+    const SCALE: f64 = (1u32 << 28) as f64;
+    if x >= 4_294_967_295.0 / SCALE {
+        0xffff_ffff
+    } else if x <= 0.0 {
+        0
+    } else {
+        let xs = x * SCALE;
+        let mut r = xs as u32;
+        if (r as f64) < xs {
+            r += 1;
+        }
+        r
+    }
+}
+
+/// `UTI_Ntp32f28ToDouble`: 4.28 fixed point (host-order raw) to seconds. The all-ones
+/// value is special-cased to `MAX_NTP_INT32` (matching chrony).
+pub fn ntp32f28_to_double(r: u32) -> f64 {
+    if r == 0xffff_ffff {
+        MAX_NTP_INT32
+    } else {
+        r as f64 / (1u32 << 28) as f64
+    }
+}
+
+/// `UTI_IsZeroNtp64`: whether both halves of the 64-bit NTP timestamp are zero.
+pub fn is_zero_ntp64(hi: u32, lo: u32) -> bool {
+    hi == 0 && lo == 0
+}
+
+/// `UTI_CompareNtp64`: order two 64-bit NTP timestamps by their host-order halves
+/// (`-1`/`0`/`1`).
+pub fn compare_ntp64(a_hi: u32, a_lo: u32, b_hi: u32, b_lo: u32) -> i32 {
+    if a_hi == b_hi && a_lo == b_lo {
+        return 0;
+    }
+    let diff = (a_hi as i32).wrapping_sub(b_hi as i32);
+    if diff < 0 {
+        -1
+    } else if diff > 0 {
+        1
+    } else if a_lo < b_lo {
+        -1
+    } else {
+        1
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn field<'a>(line: &'a str, key: &str) -> &'a str {
+        line.split_whitespace().find_map(|t| t.strip_prefix(&format!("{key}="))).unwrap()
+    }
+
+    #[test]
+    fn matches_real_c_time_conversions() {
+        let v = include_str!("../../../research/oracle/util-time-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+
+        // DoubleToTimespec / TimespecToDouble round trips.
+        for tag in ["TS_POS", "TS_FRAC", "TS_NEG", "TS_ZERO"] {
+            let l = line(tag);
+            let (sec, nsec) = double_to_timespec(field(l, "in").parse().unwrap());
+            assert_eq!(sec, field(l, "sec").parse::<i64>().unwrap(), "{tag} sec");
+            assert_eq!(nsec, field(l, "nsec").parse::<i64>().unwrap(), "{tag} nsec");
+            assert_eq!(timespec_to_double(sec, nsec), field(l, "back").parse::<f64>().unwrap(), "{tag} back");
+        }
+        // DoubleToTimeval / TimevalToDouble round trips.
+        for tag in ["TV_POS", "TV_FRAC", "TV_NEG"] {
+            let l = line(tag);
+            let (sec, usec) = double_to_timeval(field(l, "in").parse().unwrap());
+            assert_eq!(sec, field(l, "sec").parse::<i64>().unwrap(), "{tag} sec");
+            assert_eq!(usec, field(l, "usec").parse::<i64>().unwrap(), "{tag} usec");
+            assert_eq!(timeval_to_double(sec, usec), field(l, "back").parse::<f64>().unwrap(), "{tag} back");
+        }
+        // f28 fixed point.
+        for tag in ["F28_SMALL", "F28_ONE", "F28_NEG", "F28_BIG"] {
+            let l = line(tag);
+            let raw = double_to_ntp32f28(field(l, "in").parse().unwrap());
+            assert_eq!(raw, field(l, "raw").parse::<u32>().unwrap(), "{tag} raw");
+            assert_eq!(ntp32f28_to_double(raw), field(l, "back").parse::<f64>().unwrap(), "{tag} back");
+        }
+        // CompareNtp64 / IsZeroNtp64.
+        assert_eq!(compare_ntp64(5, 10, 5, 10), field(line("CMP_EQ"), "r").parse::<i32>().unwrap());
+        assert_eq!(compare_ntp64(5, 10, 5, 11), field(line("CMP_LO"), "r").parse::<i32>().unwrap());
+        assert_eq!(compare_ntp64(6, 0, 5, 10), field(line("CMP_HI"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_zero_ntp64(0, 0) as i32, field(line("ISZERO_Y"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_zero_ntp64(5, 10) as i32, field(line("ISZERO_N"), "r").parse::<i32>().unwrap());
+    }
 
     #[test]
     fn log2_to_double_matches_chrony_branches() {

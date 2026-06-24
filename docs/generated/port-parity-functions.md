@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 604 / 1373 C functions have a direct counterpart (44.0%).** The other 769 are gaps.
+**Overall: 614 / 1373 C functions have a direct counterpart (44.7%).** The other 759 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -61,8 +61,8 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `ntp_sources.c` | 58 | 25 | 33 | 43.1% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
+| `util.c` | 76 | 20 | 56 | 26.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
-| `util.c` | 76 | 10 | 66 | 13.2% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
 | `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
@@ -864,6 +864,85 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `sock_finalise`
 - · `sock_initialise`
 
+### `util.c` — 20/76 (26.3%)
+
+- · `UTI_AddDiffToTimespec`
+- · `UTI_AddDoubleToTimespec`
+- · `UTI_AdjustTimespec`
+- · `UTI_AverageDiffTimespecs`
+- ✓ `UTI_BytesToHex`
+- · `UTI_CheckDirPermissions`
+- · `UTI_CheckFilePermissions`
+- · `UTI_CheckReadOnlyAccess`
+- · `UTI_CmacNameToAlgorithm`
+- · `UTI_CompareIPs`
+- ✓ `UTI_CompareNtp64`
+- · `UTI_CompareTimespecs`
+- · `UTI_CreateDirAndParents`
+- ✓ `UTI_DiffNtp64ToDouble`
+- · `UTI_DiffTimespecs`
+- · `UTI_DiffTimespecsToDouble`
+- ✓ `UTI_DoubleToNtp32`
+- ✓ `UTI_DoubleToNtp32f28`
+- ✓ `UTI_DoubleToNtp64`
+- ✓ `UTI_DoubleToTimespec`
+- ✓ `UTI_DoubleToTimeval`
+- · `UTI_DropRoot`
+- · `UTI_FdSetCloexec`
+- · `UTI_FloatHostToNetwork`
+- · `UTI_FloatNetworkToHost`
+- · `UTI_GetNtp64Fuzz`
+- · `UTI_GetRandomBytes`
+- · `UTI_GetRandomBytesUrandom`
+- · `UTI_HashNameToAlgorithm`
+- ✓ `UTI_HexToBytes`
+- · `UTI_IPHostToNetwork`
+- · `UTI_IPNetworkToHost`
+- · `UTI_IPSockAddrToString`
+- · `UTI_IPSubnetToString`
+- · `UTI_IPToHash`
+- · `UTI_IPToRefid`
+- · `UTI_IPToString`
+- · `UTI_Integer64HostToNetwork`
+- · `UTI_Integer64NetworkToHost`
+- · `UTI_IsEqualAnyNtp64`
+- · `UTI_IsIPReal`
+- · `UTI_IsStringIP`
+- ✓ `UTI_IsTimeOffsetSane`
+- ✓ `UTI_IsZeroNtp64`
+- · `UTI_IsZeroTimespec`
+- ✓ `UTI_Log2ToDouble`
+- ✓ `UTI_NormaliseTimespec`
+- ✓ `UTI_NormaliseTimeval`
+- ✓ `UTI_Ntp32ToDouble`
+- ✓ `UTI_Ntp32f28ToDouble`
+- ✓ `UTI_Ntp64ToDouble`
+- · `UTI_Ntp64ToString`
+- · `UTI_Ntp64ToTimespec`
+- · `UTI_OpenFile`
+- · `UTI_PathToDir`
+- ✓ `UTI_RefidToString`
+- · `UTI_RemoveFile`
+- · `UTI_RenameTempFile`
+- · `UTI_ResetGetRandomFunctions`
+- · `UTI_SetQuitSignalsHandler`
+- · `UTI_SplitString`
+- · `UTI_StringToIP`
+- · `UTI_StringToIdIP`
+- · `UTI_TimeToLogForm`
+- · `UTI_TimespecHostToNetwork`
+- · `UTI_TimespecNetworkToHost`
+- ✓ `UTI_TimespecToDouble`
+- · `UTI_TimespecToNtp64`
+- · `UTI_TimespecToString`
+- · `UTI_TimespecToTimeval`
+- ✓ `UTI_TimevalToDouble`
+- · `UTI_TimevalToTimespec`
+- · `UTI_ZeroNtp64`
+- · `UTI_ZeroTimespec`
+- · `create_dir`
+- · `join_path`
+
 ### `client.c` — 13/90 (14.4%)
 
 - · `LOG_Message`
@@ -956,85 +1035,6 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `request_reply`
 - · `signal_handler`
 - · `submit_request`
-
-### `util.c` — 10/76 (13.2%)
-
-- · `UTI_AddDiffToTimespec`
-- · `UTI_AddDoubleToTimespec`
-- · `UTI_AdjustTimespec`
-- · `UTI_AverageDiffTimespecs`
-- ✓ `UTI_BytesToHex`
-- · `UTI_CheckDirPermissions`
-- · `UTI_CheckFilePermissions`
-- · `UTI_CheckReadOnlyAccess`
-- · `UTI_CmacNameToAlgorithm`
-- · `UTI_CompareIPs`
-- · `UTI_CompareNtp64`
-- · `UTI_CompareTimespecs`
-- · `UTI_CreateDirAndParents`
-- ✓ `UTI_DiffNtp64ToDouble`
-- · `UTI_DiffTimespecs`
-- · `UTI_DiffTimespecsToDouble`
-- ✓ `UTI_DoubleToNtp32`
-- · `UTI_DoubleToNtp32f28`
-- ✓ `UTI_DoubleToNtp64`
-- · `UTI_DoubleToTimespec`
-- · `UTI_DoubleToTimeval`
-- · `UTI_DropRoot`
-- · `UTI_FdSetCloexec`
-- · `UTI_FloatHostToNetwork`
-- · `UTI_FloatNetworkToHost`
-- · `UTI_GetNtp64Fuzz`
-- · `UTI_GetRandomBytes`
-- · `UTI_GetRandomBytesUrandom`
-- · `UTI_HashNameToAlgorithm`
-- ✓ `UTI_HexToBytes`
-- · `UTI_IPHostToNetwork`
-- · `UTI_IPNetworkToHost`
-- · `UTI_IPSockAddrToString`
-- · `UTI_IPSubnetToString`
-- · `UTI_IPToHash`
-- · `UTI_IPToRefid`
-- · `UTI_IPToString`
-- · `UTI_Integer64HostToNetwork`
-- · `UTI_Integer64NetworkToHost`
-- · `UTI_IsEqualAnyNtp64`
-- · `UTI_IsIPReal`
-- · `UTI_IsStringIP`
-- ✓ `UTI_IsTimeOffsetSane`
-- · `UTI_IsZeroNtp64`
-- · `UTI_IsZeroTimespec`
-- ✓ `UTI_Log2ToDouble`
-- · `UTI_NormaliseTimespec`
-- · `UTI_NormaliseTimeval`
-- ✓ `UTI_Ntp32ToDouble`
-- · `UTI_Ntp32f28ToDouble`
-- ✓ `UTI_Ntp64ToDouble`
-- · `UTI_Ntp64ToString`
-- · `UTI_Ntp64ToTimespec`
-- · `UTI_OpenFile`
-- · `UTI_PathToDir`
-- ✓ `UTI_RefidToString`
-- · `UTI_RemoveFile`
-- · `UTI_RenameTempFile`
-- · `UTI_ResetGetRandomFunctions`
-- · `UTI_SetQuitSignalsHandler`
-- · `UTI_SplitString`
-- · `UTI_StringToIP`
-- · `UTI_StringToIdIP`
-- · `UTI_TimeToLogForm`
-- · `UTI_TimespecHostToNetwork`
-- · `UTI_TimespecNetworkToHost`
-- · `UTI_TimespecToDouble`
-- · `UTI_TimespecToNtp64`
-- · `UTI_TimespecToString`
-- · `UTI_TimespecToTimeval`
-- · `UTI_TimevalToDouble`
-- · `UTI_TimevalToTimespec`
-- · `UTI_ZeroNtp64`
-- · `UTI_ZeroTimespec`
-- · `create_dir`
-- · `join_path`
 
 ### `main.c` — 1/16 (6.2%)
 
