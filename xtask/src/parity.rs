@@ -157,7 +157,7 @@ const MAP: &[Row] = &[
     // ---- utilities (subsumed by std, or partially ported) ----
     Row { c: "util.c", role: "time/UTI/byte utilities (UTI_*)",
         rust: &["util.rs", "ntp/timestamp.rs", "ntp/measurements.rs"], port: Port::Partial,
-        note: "pure primitives ported: NTP short/64 + era algebra, the f28 fixed-point + NTP64 compare/zero, timespec/timeval<->double + normalise, log2->seconds, hex codec, refid<->string -- all differential-tested vs real util.c; broad UTI_* surface (files, sockets, randomness, string/addr formatting) not" },
+        note: "pure primitives ported: NTP short/64 + era algebra, the f28 fixed-point + NTP64 compare/zero/equal-any, timespec/timeval<->double + normalise + compare/diff/add-double/add-diff + timeval<->timespec, log2->seconds, hex codec, refid<->string -- all differential-tested vs real util.c; broad UTI_* surface (files, sockets, randomness, string/addr formatting) not" },
     Row { c: "array.c", role: "generic dynamic array (ARR_*)",
         rust: &["array.rs"], port: Port::Full,
         note: "complete port of all 10 functions over a flat Vec<u8> (slices where chrony returns pointers): exact capacity grow/shrink policy + order-preserving removal; no unsafe" },
@@ -452,6 +452,14 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "UTI_Ntp32f28ToDouble",
             "UTI_CompareNtp64",
             "UTI_IsZeroNtp64",
+            "UTI_IsEqualAnyNtp64",
+            "UTI_CompareTimespecs",
+            "UTI_DiffTimespecsToDouble",
+            "UTI_DiffTimespecs",
+            "UTI_AddDoubleToTimespec",
+            "UTI_AddDiffToTimespec",
+            "UTI_TimevalToTimespec",
+            "UTI_TimespecToTimeval",
         ],
     ),
     (

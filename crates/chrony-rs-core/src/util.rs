@@ -196,6 +196,66 @@ pub fn compare_ntp64(a_hi: u32, a_lo: u32, b_hi: u32, b_lo: u32) -> i32 {
     }
 }
 
+/// `UTI_IsEqualAnyNtp64`: whether `a` equals any of `b1`/`b2`/`b3` (each optional, as
+/// chrony skips `NULL` operands).
+pub fn is_equal_any_ntp64(
+    a: (u32, u32),
+    b1: Option<(u32, u32)>,
+    b2: Option<(u32, u32)>,
+    b3: Option<(u32, u32)>,
+) -> bool {
+    [b1, b2, b3].into_iter().flatten().any(|b| b == a)
+}
+
+/// `UTI_CompareTimespecs`: order two timespecs by seconds then nanoseconds (`-1`/`0`/`1`).
+pub fn compare_timespecs(a: (i64, i64), b: (i64, i64)) -> i32 {
+    if a.0 < b.0 {
+        -1
+    } else if a.0 > b.0 {
+        1
+    } else if a.1 < b.1 {
+        -1
+    } else if a.1 > b.1 {
+        1
+    } else {
+        0
+    }
+}
+
+/// `UTI_DiffTimespecsToDouble`: `a - b` in seconds.
+pub fn diff_timespecs_to_double(a: (i64, i64), b: (i64, i64)) -> f64 {
+    (a.0 as f64 - b.0 as f64) + 1.0e-9 * (a.1 - b.1) as f64
+}
+
+/// `UTI_DiffTimespecs`: `a - b` as a normalised timespec.
+pub fn diff_timespecs(a: (i64, i64), b: (i64, i64)) -> (i64, i64) {
+    normalise_timespec(a.0 - b.0, a.1 - b.1)
+}
+
+/// `UTI_AddDoubleToTimespec`: `start + increment` seconds, with chrony's `(time_t)`
+/// truncation of the integer part.
+pub fn add_double_to_timespec(start: (i64, i64), increment: f64) -> (i64, i64) {
+    let int_part = increment as i64;
+    let sec = start.0 + int_part;
+    let nsec = start.1 + (1.0e9 * (increment - int_part as f64)) as i64;
+    normalise_timespec(sec, nsec)
+}
+
+/// `UTI_AddDiffToTimespec`: `c + (a - b)` (the difference taken as a double).
+pub fn add_diff_to_timespec(a: (i64, i64), b: (i64, i64), c: (i64, i64)) -> (i64, i64) {
+    add_double_to_timespec(c, diff_timespecs_to_double(a, b))
+}
+
+/// `UTI_TimevalToTimespec`: microseconds to nanoseconds.
+pub fn timeval_to_timespec(sec: i64, usec: i64) -> (i64, i64) {
+    (sec, 1000 * usec)
+}
+
+/// `UTI_TimespecToTimeval`: nanoseconds to microseconds (truncating).
+pub fn timespec_to_timeval(sec: i64, nsec: i64) -> (i64, i64) {
+    (sec, nsec / 1000)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,6 +298,66 @@ mod tests {
         assert_eq!(compare_ntp64(6, 0, 5, 10), field(line("CMP_HI"), "r").parse::<i32>().unwrap());
         assert_eq!(is_zero_ntp64(0, 0) as i32, field(line("ISZERO_Y"), "r").parse::<i32>().unwrap());
         assert_eq!(is_zero_ntp64(5, 10) as i32, field(line("ISZERO_N"), "r").parse::<i32>().unwrap());
+    }
+
+    #[test]
+    fn matches_real_c_timespec_arithmetic() {
+        let v = include_str!("../../../research/oracle/util-time-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+
+        // IsEqualAnyNtp64: same values the C oracle used (a=5:10, b=5:10, c=5:11, d=6:0, z=0:0).
+        let (a, b, c, d, z) = ((5, 10), (5, 10), (5, 11), (6, 0), (0, 0));
+        assert_eq!(
+            is_equal_any_ntp64(a, Some(b), Some(c), Some(d)) as i32,
+            field(line("EQANY_B1"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_equal_any_ntp64(d, Some(c), Some(z), Some(d)) as i32,
+            field(line("EQANY_B3"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_equal_any_ntp64(a, Some(c), Some(d), Some(z)) as i32,
+            field(line("EQANY_NONE"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_equal_any_ntp64(a, None, None, None) as i32,
+            field(line("EQANY_NULLS"), "r").parse::<i32>().unwrap()
+        );
+
+        // CompareTimespecs: p=100:5e8, q=100:2e8, rr=50:9e8.
+        let (p, q, rr) = ((100i64, 500000000i64), (100i64, 200000000i64), (50i64, 900000000i64));
+        assert_eq!(compare_timespecs(p, q), field(line("CMPTS_GT"), "r").parse::<i32>().unwrap());
+        assert_eq!(compare_timespecs(q, p), field(line("CMPTS_LT"), "r").parse::<i32>().unwrap());
+        assert_eq!(compare_timespecs(p, p), field(line("CMPTS_EQ"), "r").parse::<i32>().unwrap());
+
+        // DiffTimespecs (p - rr) plus DiffTimespecsToDouble.
+        let l = line("DIFFTS");
+        let (ds, dn) = diff_timespecs(p, rr);
+        assert_eq!(ds, field(l, "sec").parse::<i64>().unwrap(), "DIFFTS sec");
+        assert_eq!(dn, field(l, "nsec").parse::<i64>().unwrap(), "DIFFTS nsec");
+        assert_eq!(diff_timespecs_to_double(p, rr), field(l, "d").parse::<f64>().unwrap(), "DIFFTS d");
+
+        // AddDoubleToTimespec(q, 1.75).
+        let l = line("ADDDBL");
+        let (asec, ansec) = add_double_to_timespec(q, 1.75);
+        assert_eq!(asec, field(l, "sec").parse::<i64>().unwrap(), "ADDDBL sec");
+        assert_eq!(ansec, field(l, "nsec").parse::<i64>().unwrap(), "ADDDBL nsec");
+
+        // AddDiffToTimespec(p, rr, q) = q + (p - rr).
+        let l = line("ADDDIFF");
+        let (fsec, fnsec) = add_diff_to_timespec(p, rr, q);
+        assert_eq!(fsec, field(l, "sec").parse::<i64>().unwrap(), "ADDDIFF sec");
+        assert_eq!(fnsec, field(l, "nsec").parse::<i64>().unwrap(), "ADDDIFF nsec");
+
+        // timeval <-> timespec.
+        let l = line("TV2TS");
+        let (tsec, tnsec) = timeval_to_timespec(123, 456789);
+        assert_eq!(tsec, field(l, "sec").parse::<i64>().unwrap(), "TV2TS sec");
+        assert_eq!(tnsec, field(l, "nsec").parse::<i64>().unwrap(), "TV2TS nsec");
+        let l = line("TS2TV");
+        let (vsec, vusec) = timespec_to_timeval(123, 456789999);
+        assert_eq!(vsec, field(l, "sec").parse::<i64>().unwrap(), "TS2TV sec");
+        assert_eq!(vusec, field(l, "usec").parse::<i64>().unwrap(), "TS2TV usec");
     }
 
     #[test]

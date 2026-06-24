@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 614 / 1373 C functions have a direct counterpart (44.7%).** The other 759 are gaps.
+**Overall: 622 / 1373 C functions have a direct counterpart (45.3%).** The other 751 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -60,8 +60,8 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `ntp_core.c` | 69 | 43 | 26 | 62.3% |
 | `ntp_sources.c` | 58 | 25 | 33 | 43.1% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
+| `util.c` | 76 | 28 | 48 | 36.8% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
-| `util.c` | 76 | 20 | 56 | 26.3% |
 | `client.c` | 90 | 13 | 77 | 14.4% |
 | `main.c` | 16 | 1 | 15 | 6.2% |
 | `conf.c` | 135 | 2 | 133 | 1.5% |
@@ -858,16 +858,10 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `stop_helper`
 - · `submit_request`
 
-### `refclock_sock.c` — 1/3 (33.3%)
+### `util.c` — 28/76 (36.8%)
 
-- ✓ `read_sample`
-- · `sock_finalise`
-- · `sock_initialise`
-
-### `util.c` — 20/76 (26.3%)
-
-- · `UTI_AddDiffToTimespec`
-- · `UTI_AddDoubleToTimespec`
+- ✓ `UTI_AddDiffToTimespec`
+- ✓ `UTI_AddDoubleToTimespec`
 - · `UTI_AdjustTimespec`
 - · `UTI_AverageDiffTimespecs`
 - ✓ `UTI_BytesToHex`
@@ -877,11 +871,11 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_CmacNameToAlgorithm`
 - · `UTI_CompareIPs`
 - ✓ `UTI_CompareNtp64`
-- · `UTI_CompareTimespecs`
+- ✓ `UTI_CompareTimespecs`
 - · `UTI_CreateDirAndParents`
 - ✓ `UTI_DiffNtp64ToDouble`
-- · `UTI_DiffTimespecs`
-- · `UTI_DiffTimespecsToDouble`
+- ✓ `UTI_DiffTimespecs`
+- ✓ `UTI_DiffTimespecsToDouble`
 - ✓ `UTI_DoubleToNtp32`
 - ✓ `UTI_DoubleToNtp32f28`
 - ✓ `UTI_DoubleToNtp64`
@@ -905,7 +899,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_IPToString`
 - · `UTI_Integer64HostToNetwork`
 - · `UTI_Integer64NetworkToHost`
-- · `UTI_IsEqualAnyNtp64`
+- ✓ `UTI_IsEqualAnyNtp64`
 - · `UTI_IsIPReal`
 - · `UTI_IsStringIP`
 - ✓ `UTI_IsTimeOffsetSane`
@@ -935,13 +929,19 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `UTI_TimespecToDouble`
 - · `UTI_TimespecToNtp64`
 - · `UTI_TimespecToString`
-- · `UTI_TimespecToTimeval`
+- ✓ `UTI_TimespecToTimeval`
 - ✓ `UTI_TimevalToDouble`
-- · `UTI_TimevalToTimespec`
+- ✓ `UTI_TimevalToTimespec`
 - · `UTI_ZeroNtp64`
 - · `UTI_ZeroTimespec`
 - · `create_dir`
 - · `join_path`
+
+### `refclock_sock.c` — 1/3 (33.3%)
+
+- ✓ `read_sample`
+- · `sock_finalise`
+- · `sock_initialise`
 
 ### `client.c` — 13/90 (14.4%)
 
