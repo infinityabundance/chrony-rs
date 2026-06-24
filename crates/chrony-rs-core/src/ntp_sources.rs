@@ -364,6 +364,57 @@ impl SourceTable {
             _ => 0,
         }
     }
+
+    /// chrony `NSR_SetConnectivity`'s selection + application order. Matches sources like
+    /// [`select_matching`](SourceTable::select_matching) but with two twists: for an
+    /// `Unspec` address with `MaybeOnline`, unresolved (non-real) sources are skipped (they
+    /// would always end up offline); and the synchronisation peer is applied **last** (to
+    /// avoid unnecessary reference switching). Returns `(slots_in_application_order, any)`.
+    /// `is_real` is `UTI_IsIPReal`; `is_syncpeer` is `NCR_IsSyncPeer`. The `connectivity`
+    /// value passed to each source and the resolve side effect are host-boundary.
+    pub fn set_connectivity_order<R, S>(
+        &self,
+        address: IpKey,
+        mask: Option<IpKey>,
+        connectivity: SrcConnectivity,
+        is_real: R,
+        is_syncpeer: S,
+    ) -> (Vec<usize>, bool)
+    where
+        R: Fn(RemoteAddr) -> bool,
+        S: Fn(RemoteAddr) -> bool,
+    {
+        let skip_unreal = matches!(connectivity, SrcConnectivity::MaybeOnline);
+        let mut applied = Vec::new();
+        let mut syncpeer = None;
+        let mut any = false;
+        for (slot, rec) in self.slots.iter().enumerate() {
+            if let Some(r) = rec {
+                let matched = (matches!(address, IpKey::Unspec) && (!skip_unreal || is_real(*r)))
+                    || ip_equal_under_mask(r.ip, address, mask);
+                if matched {
+                    any = true;
+                    if is_syncpeer(*r) {
+                        syncpeer = Some(slot); // applied last (a later sync peer overwrites)
+                        continue;
+                    }
+                    applied.push(slot);
+                }
+            }
+        }
+        if let Some(s) = syncpeer {
+            applied.push(s);
+        }
+        (applied, any)
+    }
+}
+
+/// chrony `SRC_Connectivity` (the request passed to `NSR_SetConnectivity`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SrcConnectivity {
+    Offline,
+    Online,
+    MaybeOnline,
 }
 
 /// chrony `struct SourcePool`: per-pool source counters.

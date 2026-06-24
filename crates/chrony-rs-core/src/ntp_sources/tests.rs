@@ -382,6 +382,37 @@ fn matches_real_c_iteration_ops() {
 }
 
 #[test]
+fn matches_real_c_set_connectivity() {
+    let v = include_str!("../../../../research/oracle/ntp_sources-conn-c-vectors.txt");
+    let line = |tag: &str| lines(v, tag)[0];
+    let v4 = |ip| RemoteAddr { ip: IpKey::V4(ip), port: 123 };
+
+    let mut t = SourceTable::new(SEED);
+    for ip in [0x0a00_0001u32, 0x0a00_0002, 0x0a00_00ff, 0xc0a8_0001] {
+        t.add_source(v4(ip), true, true);
+    }
+
+    let check = |tag: &str, address: IpKey, mask: Option<IpKey>, conn: SrcConnectivity, syncpeer: u32, unreal: u32| {
+        let l = line(tag);
+        let is_real = move |r: RemoteAddr| !matches!(r.ip, IpKey::V4(x) if x == unreal && unreal != 0);
+        let is_syncpeer = move |r: RemoteAddr| matches!(r.ip, IpKey::V4(x) if x == syncpeer && syncpeer != 0);
+        let (slots, any) = t.set_connectivity_order(address, mask, conn, is_real, is_syncpeer);
+        assert_eq!(any as i32, field(l, "any").parse::<i32>().unwrap(), "{tag} any");
+        let order: String = slots
+            .iter()
+            .map(|&s| match t.get(s).unwrap().ip { IpKey::V4(x) => format!("{x:08x},"), _ => String::new() })
+            .collect();
+        assert_eq!(order, field(l, "order"), "{tag} order");
+    };
+    use SrcConnectivity::*;
+    check("SC_ALL", IpKey::Unspec, Some(IpKey::V4(0)), Offline, 0, 0);
+    check("SC_SYNC", IpKey::Unspec, Some(IpKey::V4(0)), Offline, 0x0a00_0002, 0);
+    check("SC_MAYBE_SKIP", IpKey::Unspec, Some(IpKey::V4(0)), MaybeOnline, 0, 0x0a00_00ff);
+    check("SC_MAYBE_ALL", IpKey::Unspec, Some(IpKey::V4(0)), MaybeOnline, 0, 0);
+    check("SC_SUBNET_SYNC", IpKey::V4(0x0a00_0000), Some(IpKey::V4(0xffff_ff00)), Offline, 0x0a00_0001, 0);
+}
+
+#[test]
 fn probing_and_matching_invariants() {
     // Load factor: sources*2 <= size.
     assert!(check_hashtable_size(4, 8));

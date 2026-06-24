@@ -1,0 +1,7 @@
+# Differential-oracle vectors: REAL chrony ntp_sources.c NSR_SetConnectivity.
+# Consumer Rust (ntp_sources.rs); NO Python. seed=0x01010101
+SC_ALL any=1 order=c0a80001,0a000002,0a000001,0a0000ff,
+SC_SYNC any=1 order=c0a80001,0a000001,0a0000ff,0a000002,
+SC_MAYBE_SKIP any=1 order=c0a80001,0a000002,0a000001,
+SC_MAYBE_ALL any=1 order=c0a80001,0a000002,0a000001,0a0000ff,
+SC_SUBNET_SYNC any=1 order=0a000002,0a0000ff,0a000001,
