@@ -157,7 +157,7 @@ const MAP: &[Row] = &[
     // ---- utilities (subsumed by std, or partially ported) ----
     Row { c: "util.c", role: "time/UTI/byte utilities (UTI_*)",
         rust: &["util.rs", "ntp/timestamp.rs", "ntp/measurements.rs"], port: Port::Partial,
-        note: "pure primitives ported: NTP short/64 + era algebra, the f28 fixed-point + NTP64 compare/zero/equal-any/timespec<->ntp64(+fuzz, era-split-aware), timespec/timeval<->double + normalise + compare/diff/add-double/add-diff/average-diff/adjust + timeval<->timespec + zero/is-zero, Integer64 + custom-Float + era-split Timespec wire (de)serialization, time-offset-sane window, log2->seconds, hex codec, refid<->string -- all differential-tested vs real util.c (build-dependent paths pinned via a HAVE_LONG_TIME_T + NTP_ERA_SPLIT oracle); broad UTI_* surface (files, sockets, randomness, string/addr formatting) not" },
+        note: "pure primitives ported: NTP short/64 + era algebra, the f28 fixed-point + NTP64 compare/zero/equal-any/timespec<->ntp64(+fuzz, era-split-aware), timespec/timeval<->double + normalise + compare/diff/add-double/add-diff/average-diff/adjust + timeval<->timespec + zero/is-zero, Integer64 + custom-Float + era-split Timespec wire (de)serialization, time-offset-sane window, IP compare/is-real + IPAddr wire (de)serialization + cmac/hash name->algorithm, log2->seconds, hex codec, refid<->string -- all differential-tested vs real util.c (build-dependent paths pinned via a HAVE_LONG_TIME_T + NTP_ERA_SPLIT oracle); IP string parse/format (inet_pton/ntop), MD5 refid, and the broad host-bound UTI_* surface (files, sockets, randomness) not" },
     Row { c: "array.c", role: "generic dynamic array (ARR_*)",
         rust: &["array.rs"], port: Port::Full,
         note: "complete port of all 10 functions over a flat Vec<u8> (slices where chrony returns pointers): exact capacity grow/shrink policy + order-preserving removal; no unsafe" },
@@ -473,6 +473,12 @@ const PORTED_FNS: &[(&str, &[&str])] = &[
             "UTI_Ntp64ToTimespec",
             "UTI_TimespecHostToNetwork",
             "UTI_TimespecNetworkToHost",
+            "UTI_IsIPReal",
+            "UTI_CompareIPs",
+            "UTI_IPHostToNetwork",
+            "UTI_IPNetworkToHost",
+            "UTI_CmacNameToAlgorithm",
+            "UTI_HashNameToAlgorithm",
         ],
     ),
     (

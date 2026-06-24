@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 635 / 1373 C functions have a direct counterpart (46.2%).** The other 738 are gaps.
+**Overall: 641 / 1373 C functions have a direct counterpart (46.7%).** The other 732 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -58,7 +58,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
 | `ntp_core.c` | 69 | 43 | 26 | 62.3% |
-| `util.c` | 76 | 41 | 35 | 53.9% |
+| `util.c` | 76 | 47 | 29 | 61.8% |
 | `ntp_sources.c` | 58 | 25 | 33 | 43.1% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
@@ -782,7 +782,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `update_tx_timestamp`
 - ✓ `zero_local_timestamp`
 
-### `util.c` — 41/76 (53.9%)
+### `util.c` — 47/76 (61.8%)
 
 - ✓ `UTI_AddDiffToTimespec`
 - ✓ `UTI_AddDoubleToTimespec`
@@ -792,8 +792,8 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_CheckDirPermissions`
 - · `UTI_CheckFilePermissions`
 - · `UTI_CheckReadOnlyAccess`
-- · `UTI_CmacNameToAlgorithm`
-- · `UTI_CompareIPs`
+- ✓ `UTI_CmacNameToAlgorithm`
+- ✓ `UTI_CompareIPs`
 - ✓ `UTI_CompareNtp64`
 - ✓ `UTI_CompareTimespecs`
 - · `UTI_CreateDirAndParents`
@@ -812,10 +812,10 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_GetNtp64Fuzz`
 - · `UTI_GetRandomBytes`
 - · `UTI_GetRandomBytesUrandom`
-- · `UTI_HashNameToAlgorithm`
+- ✓ `UTI_HashNameToAlgorithm`
 - ✓ `UTI_HexToBytes`
-- · `UTI_IPHostToNetwork`
-- · `UTI_IPNetworkToHost`
+- ✓ `UTI_IPHostToNetwork`
+- ✓ `UTI_IPNetworkToHost`
 - · `UTI_IPSockAddrToString`
 - · `UTI_IPSubnetToString`
 - · `UTI_IPToHash`
@@ -824,7 +824,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `UTI_Integer64HostToNetwork`
 - ✓ `UTI_Integer64NetworkToHost`
 - ✓ `UTI_IsEqualAnyNtp64`
-- · `UTI_IsIPReal`
+- ✓ `UTI_IsIPReal`
 - · `UTI_IsStringIP`
 - ✓ `UTI_IsTimeOffsetSane`
 - ✓ `UTI_IsZeroNtp64`

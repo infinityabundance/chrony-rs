@@ -489,6 +489,134 @@ pub fn timespec_network_to_host(tv_sec_high: u32, tv_sec_low: u32, tv_nsec: u32)
     (tv_sec, tv_nsec)
 }
 
+/// chrony's `IPAddr` (addressing.h): a tagged address that is one of unspecified, IPv4
+/// (host-order `u32`), IPv6 (16 raw bytes), or a synthetic numeric id. The family tags
+/// match chrony's `IPADDR_*` constants (`UNSPEC=0`, `INET4=1`, `INET6=2`, `ID=3`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IpAddr {
+    /// `IPADDR_UNSPEC`.
+    Unspec,
+    /// `IPADDR_INET4`: an IPv4 address in host byte order.
+    Inet4(u32),
+    /// `IPADDR_INET6`: the 16 address bytes, network order (as stored on the wire).
+    Inet6([u8; 16]),
+    /// `IPADDR_ID`: a synthetic numeric source id.
+    Id(u32),
+}
+
+impl IpAddr {
+    /// The chrony `IPADDR_*` family tag.
+    pub fn family(&self) -> u16 {
+        match self {
+            IpAddr::Unspec => 0,
+            IpAddr::Inet4(_) => 1,
+            IpAddr::Inet6(_) => 2,
+            IpAddr::Id(_) => 3,
+        }
+    }
+}
+
+/// `UTI_IsIPReal`: whether the address is a real (routable) IP — i.e. INET4 or INET6,
+/// not the unspecified or synthetic-id pseudo-families.
+pub fn is_ip_real(ip: &IpAddr) -> bool {
+    matches!(ip, IpAddr::Inet4(_) | IpAddr::Inet6(_))
+}
+
+/// `UTI_CompareIPs`: chrony's address ordering. Returns the raw integer difference (NOT
+/// clamped to -1/0/1), reproducing the C subtraction semantics exactly — including the
+/// signed wraparound of the IPv4/id `uint32` subtraction and the first-differing-byte
+/// difference for IPv6. Different families compare by family tag. An optional `mask` is
+/// ignored unless its family matches `b`'s.
+pub fn compare_ips(a: &IpAddr, b: &IpAddr, mask: Option<&IpAddr>) -> i32 {
+    if a.family() != b.family() {
+        return a.family() as i32 - b.family() as i32;
+    }
+    // chrony drops the mask if its family doesn't match b's.
+    let mask = mask.filter(|m| m.family() == b.family());
+    match (a, b) {
+        (IpAddr::Unspec, _) => 0,
+        (IpAddr::Inet4(x), IpAddr::Inet4(y)) => match mask {
+            Some(IpAddr::Inet4(m)) => (x & m).wrapping_sub(y & m) as i32,
+            _ => x.wrapping_sub(*y) as i32,
+        },
+        (IpAddr::Inet6(x), IpAddr::Inet6(y)) => {
+            let mut d = 0i32;
+            let mut i = 0;
+            while d == 0 && i < 16 {
+                d = match mask {
+                    Some(IpAddr::Inet6(m)) => (x[i] & m[i]) as i32 - (y[i] & m[i]) as i32,
+                    _ => x[i] as i32 - y[i] as i32,
+                };
+                i += 1;
+            }
+            d
+        }
+        (IpAddr::Id(x), IpAddr::Id(y)) => x.wrapping_sub(*y) as i32,
+        _ => 0,
+    }
+}
+
+/// `UTI_IPHostToNetwork`: serialize an `IPAddr` into chrony's 20-byte on-wire image
+/// (`sizeof(IPAddr)`): the 16-byte address region, then the family as a big-endian
+/// `u16`, then a zero `_pad`. Uninitialized bytes are zeroed, exactly as chrony does to
+/// avoid leaking stack contents. The IPv4/id value goes out in network byte order.
+pub fn ip_host_to_network(ip: &IpAddr) -> [u8; 20] {
+    let mut w = [0u8; 20];
+    w[16..18].copy_from_slice(&ip.family().to_be_bytes());
+    match ip {
+        IpAddr::Inet4(v) | IpAddr::Id(v) => w[0..4].copy_from_slice(&v.to_be_bytes()),
+        IpAddr::Inet6(b) => w[0..16].copy_from_slice(b),
+        IpAddr::Unspec => {}
+    }
+    w
+}
+
+/// `UTI_IPNetworkToHost`: deserialize chrony's 20-byte on-wire `IPAddr` image. An
+/// unrecognized family decodes to [`IpAddr::Unspec`].
+pub fn ip_network_to_host(wire: &[u8; 20]) -> IpAddr {
+    let family = u16::from_be_bytes([wire[16], wire[17]]);
+    let v = u32::from_be_bytes([wire[0], wire[1], wire[2], wire[3]]);
+    match family {
+        1 => IpAddr::Inet4(v),
+        2 => {
+            let mut b = [0u8; 16];
+            b.copy_from_slice(&wire[0..16]);
+            IpAddr::Inet6(b)
+        }
+        3 => IpAddr::Id(v),
+        _ => IpAddr::Unspec,
+    }
+}
+
+/// `UTI_CmacNameToAlgorithm`: map a CMAC algorithm name to chrony's `CMC_Algorithm`
+/// value, `CMC_INVALID` (0) if unknown.
+pub fn cmac_name_to_algorithm(name: &str) -> i32 {
+    match name {
+        "AES128" => 13, // CMC_AES128
+        "AES256" => 14, // CMC_AES256
+        _ => 0,         // CMC_INVALID
+    }
+}
+
+/// `UTI_HashNameToAlgorithm`: map a hash algorithm name to chrony's `HSH_Algorithm`
+/// value, `HSH_INVALID` (0) if unknown.
+pub fn hash_name_to_algorithm(name: &str) -> i32 {
+    match name {
+        "MD5" => 1,
+        "SHA1" => 2,
+        "SHA256" => 3,
+        "SHA384" => 4,
+        "SHA512" => 5,
+        "SHA3-224" => 6,
+        "SHA3-256" => 7,
+        "SHA3-384" => 8,
+        "SHA3-512" => 9,
+        "TIGER" => 10,
+        "WHIRLPOOL" => 11,
+        _ => 0, // HSH_INVALID
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -777,6 +905,85 @@ mod tests {
             is_time_offset_sane(1.7e9, f64::NAN, split) as i32,
             field(line("SANE_NAN"), "r").parse::<i32>().unwrap()
         );
+    }
+
+    #[test]
+    fn matches_real_c_ip_address_algebra() {
+        let v = include_str!("../../../research/oracle/util-ip-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+        let r = |tag: &str| field(line(tag), "r").parse::<i32>().unwrap();
+        let val = |tag: &str| field(line(tag), "v").parse::<i32>().unwrap();
+
+        // The 20-byte wire image must match sizeof(IPAddr).
+        assert_eq!(field(line("SIZEOF"), "v").parse::<usize>().unwrap(), 20);
+
+        // The fixtures' addresses, mirrored from genip.c.
+        let a4 = IpAddr::Inet4(0xC0A8_0101);
+        let b4 = IpAddr::Inet4(0xC0A8_0102);
+        let m4 = IpAddr::Inet4(0xFFFF_FF00);
+        let hi4 = IpAddr::Inet4(0x8000_0000);
+        let lo4 = IpAddr::Inet4(0x0000_0000);
+        let mut a6b = [0u8; 16];
+        for (i, x) in a6b.iter_mut().enumerate() {
+            *x = i as u8 + 1;
+        }
+        let a6 = IpAddr::Inet6(a6b);
+        let mut b6b = a6b;
+        b6b[8] = 0xFF;
+        let b6 = IpAddr::Inet6(b6b);
+        let mut m6b = [0u8; 16];
+        m6b[..8].fill(0xFF);
+        let m6 = IpAddr::Inet6(m6b);
+        let id1 = IpAddr::Id(100);
+        let id2 = IpAddr::Id(250);
+        let un = IpAddr::Unspec;
+
+        // IsIPReal.
+        assert_eq!(is_ip_real(&a4) as i32, r("REAL_4"));
+        assert_eq!(is_ip_real(&a6) as i32, r("REAL_6"));
+        assert_eq!(is_ip_real(&id1) as i32, r("REAL_ID"));
+        assert_eq!(is_ip_real(&un) as i32, r("REAL_UN"));
+
+        // CompareIPs (raw integer differences, not clamped).
+        assert_eq!(compare_ips(&a4, &b4, None), r("CMP_4_LT"));
+        assert_eq!(compare_ips(&b4, &a4, None), r("CMP_4_GT"));
+        assert_eq!(compare_ips(&a4, &a4, None), r("CMP_4_EQ"));
+        assert_eq!(compare_ips(&a4, &b4, Some(&m4)), r("CMP_4_MASK"));
+        assert_eq!(compare_ips(&hi4, &lo4, None), r("CMP_4_WRAP"));
+        assert_eq!(compare_ips(&a6, &b6, None), r("CMP_6_LT"));
+        assert_eq!(compare_ips(&b6, &a6, None), r("CMP_6_GT"));
+        assert_eq!(compare_ips(&a6, &a6, None), r("CMP_6_EQ"));
+        assert_eq!(compare_ips(&a6, &b6, Some(&m6)), r("CMP_6_MASK"));
+        assert_eq!(compare_ips(&id1, &id2, None), r("CMP_ID_LT"));
+        assert_eq!(compare_ips(&id2, &id1, None), r("CMP_ID_GT"));
+        assert_eq!(compare_ips(&un, &un, None), r("CMP_UN"));
+        assert_eq!(compare_ips(&a4, &a6, None), r("CMP_FAM_46"));
+        assert_eq!(compare_ips(&a6, &a4, None), r("CMP_FAM_64"));
+        // Mask whose family != b's is ignored.
+        assert_eq!(compare_ips(&a4, &b4, Some(&m6)), r("CMP_MASK_FAMMISMATCH"));
+
+        // IPHostToNetwork / IPNetworkToHost: exact wire image + round trip.
+        let wire = |tag: &str| field(line(tag), "bytes");
+        assert_eq!(bytes_to_hex(&ip_host_to_network(&a4)), wire("H2N_4").to_uppercase());
+        assert_eq!(ip_network_to_host(&ip_host_to_network(&a4)), a4);
+        assert_eq!(bytes_to_hex(&ip_host_to_network(&a6)), wire("H2N_6").to_uppercase());
+        assert_eq!(ip_network_to_host(&ip_host_to_network(&a6)), a6);
+        assert_eq!(bytes_to_hex(&ip_host_to_network(&id1)), wire("H2N_ID").to_uppercase());
+        assert_eq!(ip_network_to_host(&ip_host_to_network(&id1)), id1);
+        assert_eq!(bytes_to_hex(&ip_host_to_network(&un)), wire("H2N_UN").to_uppercase());
+        assert_eq!(ip_network_to_host(&ip_host_to_network(&un)), un);
+
+        // Cmac/Hash name -> algorithm.
+        assert_eq!(cmac_name_to_algorithm("AES128"), val("CMAC_AES128"));
+        assert_eq!(cmac_name_to_algorithm("AES256"), val("CMAC_AES256"));
+        assert_eq!(cmac_name_to_algorithm("AES999"), val("CMAC_BAD"));
+        for name in [
+            "MD5", "SHA1", "SHA256", "SHA384", "SHA512", "SHA3-224", "SHA3-256", "SHA3-384",
+            "SHA3-512", "TIGER", "WHIRLPOOL",
+        ] {
+            assert_eq!(hash_name_to_algorithm(name), val(&format!("HASH_{name}")), "{name}");
+        }
+        assert_eq!(hash_name_to_algorithm("BOGUS"), val("HASH_BOGUS"));
     }
 
     #[test]
