@@ -617,6 +617,81 @@ pub fn hash_name_to_algorithm(name: &str) -> i32 {
     }
 }
 
+/// `UTI_TimespecToString`: render a timespec as `seconds.nanoseconds`, the nanoseconds
+/// zero-padded to 9 digits, for diagnostic display. The seconds keep their sign; the
+/// nanoseconds are formatted unsigned (chrony's `(unsigned long)`).
+pub fn timespec_to_string(sec: i64, nsec: i64) -> String {
+    format!("{}.{:09}", sec, nsec as u64)
+}
+
+/// `UTI_Ntp64ToString`: render a 64-bit NTP timestamp as a diagnostic string by mapping
+/// it to a timespec ([`ntp64_to_timespec`], so era-split-aware) and formatting that via
+/// [`timespec_to_string`].
+pub fn ntp64_to_string(hi: u32, lo: u32, ntp_era_split: i64) -> String {
+    let (sec, nsec) = ntp64_to_timespec(hi, lo, ntp_era_split);
+    timespec_to_string(sec, nsec)
+}
+
+/// Civil date `(year, month, day)` from a count of days since 1970-01-01 (Howard
+/// Hinnant's algorithm), matching `gmtime`'s proleptic-Gregorian calendar.
+fn civil_from_days(days: i64) -> (i64, u32, u32) {
+    let z = days + 719_468;
+    let era = (if z >= 0 { z } else { z - 146_096 }) / 146_097;
+    let doe = z - era * 146_097; // [0, 146096]
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365; // [0, 399]
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100); // [0, 365]
+    let mp = (5 * doy + 2) / 153; // [0, 11]
+    let d = doy - (153 * mp + 2) / 5 + 1; // [1, 31]
+    let m = if mp < 10 { mp + 3 } else { mp - 9 }; // [1, 12]
+    (y + i64::from(m <= 2), m as u32, d as u32)
+}
+
+/// `UTI_TimeToLogForm`: format a Unix time (UTC) as `"%Y-%m-%d %H:%M:%S"`, matching
+/// chrony's `gmtime` + `strftime`. Years are rendered with at least four digits (chrony
+/// never logs years before 1000, where `strftime`'s `%Y` would differ).
+pub fn time_to_log_form(t: i64) -> String {
+    // gmtime: floor-divide into whole days and the second-of-day, for negative t too.
+    let days = t.div_euclid(86_400);
+    let secs = t.rem_euclid(86_400);
+    let (year, month, day) = civil_from_days(days);
+    let hour = secs / 3600;
+    let min = (secs % 3600) / 60;
+    let sec = secs % 60;
+    format!("{year:04}-{month:02}-{day:02} {hour:02}:{min:02}:{sec:02}")
+}
+
+/// `UTI_PathToDir`: the directory part of a path (a `dirname`-like split on the last
+/// `/`). No slash → `"."`; a single leading slash → `"/"`; otherwise the prefix before
+/// the last slash.
+pub fn path_to_dir(path: &str) -> String {
+    match path.rfind('/') {
+        None => ".".to_string(),
+        Some(0) => "/".to_string(),
+        Some(i) => path[..i].to_string(),
+    }
+}
+
+/// `UTI_SplitString`: split on runs of ASCII whitespace, returning the words and the
+/// total word count. chrony fills a caller buffer of `max_saved_words` and returns the
+/// full count (which may exceed it), so the returned `Vec` is capped at `max_saved_words`
+/// while the count is not.
+pub fn split_string(string: &str, max_saved_words: usize) -> (Vec<String>, usize) {
+    let mut words = Vec::new();
+    let mut count = 0;
+    // chrony uses C isspace: space, \t, \n, \v, \f, \r.
+    for word in string.split([' ', '\t', '\n', '\u{b}', '\u{c}', '\r']) {
+        if word.is_empty() {
+            continue;
+        }
+        if count < max_saved_words {
+            words.push(word.to_string());
+        }
+        count += 1;
+    }
+    (words, count)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -984,6 +1059,65 @@ mod tests {
             assert_eq!(hash_name_to_algorithm(name), val(&format!("HASH_{name}")), "{name}");
         }
         assert_eq!(hash_name_to_algorithm("BOGUS"), val("HASH_BOGUS"));
+    }
+
+    #[test]
+    fn matches_real_c_string_path_split() {
+        let v = include_str!("../../../research/oracle/util-str-c-vectors.txt");
+        // Match the tag as the exact first token (tags like PATHDIR_A are prefixes of
+        // PATHDIR_ABC, so a plain starts_with would mis-match).
+        let line = |tag: &str| {
+            v.lines().map(str::trim).find(|l| l.split_whitespace().next() == Some(tag)).unwrap()
+        };
+        // Everything after "key=" to end of line (for values that may contain spaces).
+        let after = |tag: &str, key: &str| {
+            line(tag).split_once(&format!("{key}=")).unwrap().1.to_string()
+        };
+        let split: i64 = 123_200_000; // matches the oracle build's NTP_ERA_SPLIT
+
+        // TimespecToString.
+        assert_eq!(timespec_to_string(1_700_000_000, 123_456_789), after("TS2STR_A", "s"));
+        assert_eq!(timespec_to_string(42, 7), after("TS2STR_B", "s"));
+        assert_eq!(timespec_to_string(0, 0), after("TS2STR_C", "s"));
+        assert_eq!(timespec_to_string(-5, 500_000_000), after("TS2STR_D", "s"));
+
+        // Ntp64ToString.
+        assert_eq!(ntp64_to_string(0, 0, split), after("N642STR_ZERO", "s"));
+        let ntp_sec = 1_700_000_000u32.wrapping_add(JAN_1970);
+        assert_eq!(ntp64_to_string(ntp_sec, 2_147_483_648, split), after("N642STR_MID", "s"));
+
+        // TimeToLogForm.
+        assert_eq!(time_to_log_form(0), after("T2LOG_EPOCH", "s"));
+        assert_eq!(time_to_log_form(1_700_000_000), after("T2LOG_Y2023", "s"));
+        assert_eq!(time_to_log_form(951_782_400), after("T2LOG_Y2000", "s")); // leap day
+        assert_eq!(time_to_log_form(86_399), after("T2LOG_DAY1", "s"));
+        assert_eq!(time_to_log_form(32_503_680_000), after("T2LOG_Y3000", "s"));
+        assert_eq!(time_to_log_form(-1), after("T2LOG_NEG1", "s")); // pre-1970
+        assert_eq!(time_to_log_form(-2_208_988_800), after("T2LOG_Y1900", "s"));
+
+        // PathToDir.
+        assert_eq!(path_to_dir("/a/b/c"), after("PATHDIR_ABC", "s"));
+        assert_eq!(path_to_dir("/a"), after("PATHDIR_A", "s"));
+        assert_eq!(path_to_dir("a"), after("PATHDIR_REL", "s"));
+        assert_eq!(path_to_dir("noslash"), after("PATHDIR_NOSLASH", "s"));
+        assert_eq!(path_to_dir("/"), after("PATHDIR_ROOT", "s"));
+        assert_eq!(path_to_dir("a/b"), after("PATHDIR_AB", "s"));
+        assert_eq!(path_to_dir("/usr/local/bin/x"), after("PATHDIR_DEEP", "s"));
+
+        // SplitString: words + total count (capped at max_saved_words = 4).
+        let chk = |input: &str, tag: &str| {
+            let (words, count) = split_string(input, 4);
+            assert_eq!(count, field(line(tag), "count").parse::<usize>().unwrap(), "{tag} count");
+            for (i, w) in words.iter().enumerate() {
+                assert_eq!(w.as_str(), field(line(tag), &format!("w{i}")), "{tag} w{i}");
+            }
+        };
+        chk("  hello   world  foo ", "SPLIT_A");
+        chk("a b c d e f", "SPLIT_B");
+        chk("single", "SPLIT_C");
+        chk("", "SPLIT_D");
+        chk("   \t\n  ", "SPLIT_E");
+        chk("tab\tsep\tx", "SPLIT_F");
     }
 
     #[test]
