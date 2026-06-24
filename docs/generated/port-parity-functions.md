@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 646 / 1373 C functions have a direct counterpart (47.1%).** The other 727 are gaps.
+**Overall: 650 / 1373 C functions have a direct counterpart (47.3%).** The other 723 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -57,7 +57,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
-| `util.c` | 76 | 52 | 24 | 68.4% |
+| `util.c` | 76 | 56 | 20 | 73.7% |
 | `ntp_core.c` | 69 | 43 | 26 | 62.3% |
 | `ntp_sources.c` | 58 | 25 | 33 | 43.1% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
@@ -710,7 +710,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `slew_samples`
 - ✓ `valid_sample_time`
 
-### `util.c` — 52/76 (68.4%)
+### `util.c` — 56/76 (73.7%)
 
 - ✓ `UTI_AddDiffToTimespec`
 - ✓ `UTI_AddDoubleToTimespec`
@@ -748,12 +748,12 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_IPSubnetToString`
 - · `UTI_IPToHash`
 - · `UTI_IPToRefid`
-- · `UTI_IPToString`
+- ✓ `UTI_IPToString`
 - ✓ `UTI_Integer64HostToNetwork`
 - ✓ `UTI_Integer64NetworkToHost`
 - ✓ `UTI_IsEqualAnyNtp64`
 - ✓ `UTI_IsIPReal`
-- · `UTI_IsStringIP`
+- ✓ `UTI_IsStringIP`
 - ✓ `UTI_IsTimeOffsetSane`
 - ✓ `UTI_IsZeroNtp64`
 - ✓ `UTI_IsZeroTimespec`
@@ -773,8 +773,8 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_ResetGetRandomFunctions`
 - · `UTI_SetQuitSignalsHandler`
 - ✓ `UTI_SplitString`
-- · `UTI_StringToIP`
-- · `UTI_StringToIdIP`
+- ✓ `UTI_StringToIP`
+- ✓ `UTI_StringToIdIP`
 - ✓ `UTI_TimeToLogForm`
 - ✓ `UTI_TimespecHostToNetwork`
 - ✓ `UTI_TimespecNetworkToHost`

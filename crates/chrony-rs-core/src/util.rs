@@ -692,6 +692,74 @@ pub fn split_string(string: &str, max_saved_words: usize) -> (Vec<String>, usize
     (words, count)
 }
 
+/// `UTI_IPToString`: render an `IPAddr` as its canonical text. INET4 and INET6 use the
+/// platform's `inet_ntop` form (dotted-quad / RFC 5952); chrony's tests confirm Rust's
+/// std `Ipv4Addr`/`Ipv6Addr` `Display` is byte-identical to glibc's `inet_ntop`
+/// (including the `::ffff:a.b.c.d` IPv4-mapped form and leftmost-longest zero-run
+/// compression). `ID` renders as `ID#` + a 10-digit zero-padded number; `UNSPEC` as
+/// `[UNSPEC]`.
+pub fn ip_to_string(ip: &IpAddr) -> String {
+    match ip {
+        IpAddr::Unspec => "[UNSPEC]".to_string(),
+        // chrony stores INET4 in host order and prints MSB first; `Ipv4Addr::from(u32)`
+        // interprets the u32 big-endian, matching.
+        IpAddr::Inet4(v) => std::net::Ipv4Addr::from(*v).to_string(),
+        IpAddr::Inet6(b) => std::net::Ipv6Addr::from(*b).to_string(),
+        IpAddr::Id(id) => format!("ID#{id:010}"),
+    }
+}
+
+/// `UTI_StringToIP`: parse an IP literal, trying IPv4 then IPv6 exactly as chrony's
+/// `inet_pton(AF_INET, …)` then `inet_pton(AF_INET6, …)`. Returns `None` if neither
+/// parses. The oracle confirms Rust's std parsers reject the same inputs glibc's
+/// `inet_pton` does (leading zeros, out-of-range octets, embedded spaces, hex, etc.).
+pub fn string_to_ip(s: &str) -> Option<IpAddr> {
+    if let Ok(v4) = s.parse::<std::net::Ipv4Addr>() {
+        // chrony stores ntohl(s_addr), i.e. the host-order value.
+        return Some(IpAddr::Inet4(u32::from(v4)));
+    }
+    if let Ok(v6) = s.parse::<std::net::Ipv6Addr>() {
+        return Some(IpAddr::Inet6(v6.octets()));
+    }
+    None
+}
+
+/// `UTI_IsStringIP`: whether `s` is a valid IP literal (IPv4 or IPv6).
+pub fn is_string_ip(s: &str) -> bool {
+    string_to_ip(s).is_some()
+}
+
+/// `UTI_StringToIdIP`: parse chrony's `ID#<number>` pseudo-address. Matches the literal
+/// `ID#` prefix (no leading whitespace), then `sscanf("%u")`: skip whitespace, take the
+/// leading decimal digits, and store them truncated to a `u32` (so `4294967296` wraps to
+/// `0`, exactly as glibc). Trailing non-digits are ignored.
+pub fn string_to_id_ip(s: &str) -> Option<IpAddr> {
+    let rest = s.strip_prefix("ID#")?;
+    // sscanf %u skips leading ASCII whitespace.
+    let rest = rest.trim_start_matches([' ', '\t', '\n', '\u{b}', '\u{c}', '\r']);
+    let mut digits = 0;
+    let mut v: u32 = 0;
+    for c in rest.bytes() {
+        if !c.is_ascii_digit() {
+            break;
+        }
+        // Modular accumulation in u32 reproduces glibc's uint32 truncation of the value.
+        v = v.wrapping_mul(10).wrapping_add((c - b'0') as u32);
+        digits += 1;
+    }
+    if digits == 0 {
+        return None;
+    }
+    Some(IpAddr::Id(v))
+}
+
+/// `UTI_IPToRefid`: derive a 32-bit reference id from an address. For IPv4 this is the
+/// host-order address itself. (The IPv6 case hashes the address with non-cryptographic
+/// MD5 and is deferred until the hash module is ported.)
+pub fn ip_to_refid_inet4(addr: u32) -> u32 {
+    addr
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1118,6 +1186,102 @@ mod tests {
         chk("", "SPLIT_D");
         chk("   \t\n  ", "SPLIT_E");
         chk("tab\tsep\tx", "SPLIT_F");
+    }
+
+    #[test]
+    fn matches_real_c_ip_string_parse_format() {
+        let v = include_str!("../../../research/oracle/util-ipstr-c-vectors.txt");
+        let line = |tag: &str| {
+            v.lines().map(str::trim).find(|l| l.split_whitespace().next() == Some(tag)).unwrap()
+        };
+
+        // IsStringIP.
+        assert_eq!(is_string_ip("1.2.3.4") as i32, field(line("ISIP_V4"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_string_ip("::1") as i32, field(line("ISIP_V6"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_string_ip("nope") as i32, field(line("ISIP_NO"), "r").parse::<i32>().unwrap());
+
+        // StringToIP + IPToString round trips, mirroring genipstr.c's inputs.
+        let cases: &[(&str, &str)] = &[
+            ("V4_ZERO", "0.0.0.0"),
+            ("V4_BCAST", "255.255.255.255"),
+            ("V4_TYP", "192.168.1.1"),
+            ("V4_SEQ", "1.2.3.4"),
+            ("V4_8", "8.8.8.8"),
+            ("V4_LEADZ", "01.2.3.4"),
+            ("V4_OOR", "256.1.1.1"),
+            ("V4_SHORT", "1.2.3"),
+            ("V4_LONG", "1.2.3.4.5"),
+            ("V4_EMPTY", ""),
+            ("V4_LSPACE", " 1.2.3.4"),
+            ("V4_TSPACE", "1.2.3.4 "),
+            ("V4_HEX", "0x1.2.3.4"),
+            ("V4_BAD", "1.2.3.x"),
+            ("V4_BIG", "999.999.999.999"),
+            ("V6_UNSPEC", "::"),
+            ("V6_LOOP", "::1"),
+            ("V6_DOC", "2001:db8::1"),
+            ("V6_LL", "fe80::1"),
+            ("V6_MAPPED", "::ffff:192.168.1.1"),
+            ("V6_FULL", "2001:0db8:0000:0000:0000:0000:0000:0001"),
+            ("V6_MID", "ff02::1:2"),
+            ("V6_ALL", "1:2:3:4:5:6:7:8"),
+            ("V6_UPPER", "2001:DB8::ABCD"),
+            ("V6_RUN", "2001:db8:0:0:1:0:0:1"),
+            ("V6_BADCHAR", "::g"),
+            ("V6_DBLCOLON", "1::2::3"),
+            ("V6_OOR", "12345::"),
+        ];
+        for (tag, input) in cases {
+            let l = line(tag);
+            let ok: i32 = field(l, "ok").parse().unwrap();
+            let parsed = string_to_ip(input);
+            if ok == 0 {
+                assert!(parsed.is_none(), "{tag}: expected parse failure, got {parsed:?}");
+                continue;
+            }
+            let ip = parsed.unwrap_or_else(|| panic!("{tag}: expected parse success"));
+            match field(l, "family").parse::<u16>().unwrap() {
+                1 => {
+                    let in4: u32 = field(l, "in4").parse().unwrap();
+                    assert_eq!(ip, IpAddr::Inet4(in4), "{tag} in4");
+                    assert_eq!(ip_to_refid_inet4(in4), field(l, "refid").parse::<u32>().unwrap(), "{tag} refid");
+                }
+                2 => {
+                    let bytes = hex_to_bytes(field(l, "in6")).unwrap();
+                    let mut b = [0u8; 16];
+                    b.copy_from_slice(&bytes);
+                    assert_eq!(ip, IpAddr::Inet6(b), "{tag} in6");
+                }
+                f => panic!("{tag}: unexpected family {f}"),
+            }
+            // Canonical text round trip (the inet_ntop / Display equivalence check).
+            assert_eq!(ip_to_string(&ip), field(l, "str"), "{tag} str");
+        }
+
+        // StringToIdIP.
+        let id_cases: &[(&str, &str)] = &[
+            ("ID_OK", "ID#0000000042"),
+            ("ID_PLAIN", "ID#7"),
+            ("ID_BAD", "X#7"),
+            ("ID_NONUM", "ID#abc"),
+            ("ID_WS", "ID#  42"),
+            ("ID_TRAIL", "ID#42xyz"),
+            ("ID_OVF", "ID#4294967296"),
+            ("ID_LSPACE", " ID#7"),
+            ("ID_EMPTY", "ID#"),
+        ];
+        for (tag, input) in id_cases {
+            let l = line(tag);
+            let ok: i32 = field(l, "ok").parse().unwrap();
+            let parsed = string_to_id_ip(input);
+            if ok == 0 {
+                assert!(parsed.is_none(), "{tag}: expected failure, got {parsed:?}");
+                continue;
+            }
+            let id: u32 = field(l, "id").parse().unwrap();
+            assert_eq!(parsed, Some(IpAddr::Id(id)), "{tag} id");
+            assert_eq!(ip_to_string(&IpAddr::Id(id)), field(l, "str"), "{tag} str");
+        }
     }
 
     #[test]
