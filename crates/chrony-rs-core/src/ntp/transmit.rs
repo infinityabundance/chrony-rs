@@ -36,6 +36,9 @@ const NTP_HEADER_LENGTH: usize = 48;
 const CLIENT_PRECISION: i8 = 32;
 /// chrony `MODE_SERVER`, `NTP_MAX_STRATUM`, `NTP_INVALID_STRATUM`.
 const MODE_SERVER: i32 = 4;
+/// chrony `MODE_ACTIVE` / `MODE_PASSIVE` (symmetric peer modes).
+const MODE_ACTIVE: i32 = 1;
+const MODE_PASSIVE: i32 = 2;
 const NTP_MAX_STRATUM: i32 = 16;
 const NTP_INVALID_STRATUM: u8 = 0;
 
@@ -214,6 +217,67 @@ pub fn build_server_response(
     let (txhi, txlo) = timespec_to_ntp64(cooked_transmit);
     packet[40..44].copy_from_slice(&txhi.to_be_bytes());
     packet[44..48].copy_from_slice(&(txlo & !1).to_be_bytes());
+
+    ServerResponse { packet, length: NTP_HEADER_LENGTH as i32 }
+}
+
+/// chrony `transmit_packet` for a basic (non-interleaved) **symmetric** (peer) packet,
+/// `MODE_ACTIVE` or `MODE_PASSIVE`. Like a server response it reveals our reference state
+/// (`params`); the originate timestamp is the peer's last *transmit* timestamp
+/// (`remote_ntp_tx`, echoed so the packet is not its own valid response), the receive
+/// timestamp is `local_receive` and the transmit timestamp is `cooked_transmit` (read
+/// just before sending).
+///
+/// The interleaved-mode RX flag (receive low bit set, transmit low bit cleared) is encoded
+/// only in `MODE_PASSIVE` — exactly as chrony applies it to `MODE_SERVER || MODE_PASSIVE`
+/// but not to `MODE_ACTIVE`.
+///
+/// Scope/adaptation: non-interleaved symmetric mode; the anti-replay fuzz, auth, and send
+/// are host boundaries (see [`build_client_request`]). `version` is capped. `my_mode` must
+/// be [`MODE_ACTIVE`] or [`MODE_PASSIVE`].
+#[allow(clippy::too_many_arguments)]
+pub fn build_symmetric_packet(
+    my_mode: i32,
+    my_poll: i32,
+    version: i32,
+    params: &ReferenceParams,
+    remote_ntp_tx: u64,
+    local_receive: Timespec,
+    cooked_transmit: Timespec,
+    precision_log: i8,
+) -> ServerResponse {
+    debug_assert!(my_mode == MODE_ACTIVE || my_mode == MODE_PASSIVE);
+    let version = version.min(NTP_VERSION);
+
+    let mut packet = [0u8; NTP_HEADER_LENGTH];
+    packet[0] = ntp_lvm(params.leap, version, my_mode);
+    packet[1] = if params.stratum < NTP_MAX_STRATUM { params.stratum as u8 } else { NTP_INVALID_STRATUM };
+    packet[2] = my_poll as u8;
+    packet[3] = precision_log as u8;
+    packet[4..8].copy_from_slice(&double_to_ntp32(params.root_delay).to_be_bytes());
+    packet[8..12].copy_from_slice(&double_to_ntp32(params.root_dispersion).to_be_bytes());
+    packet[12..16].copy_from_slice(&params.ref_id.to_be_bytes());
+
+    let (rhi, rlo) = timespec_to_ntp64(params.ref_time);
+    packet[16..20].copy_from_slice(&rhi.to_be_bytes());
+    packet[20..24].copy_from_slice(&rlo.to_be_bytes());
+
+    // Originate = the peer's last transmit timestamp, echoed verbatim.
+    packet[24..28].copy_from_slice(&((remote_ntp_tx >> 32) as u32).to_be_bytes());
+    packet[28..32].copy_from_slice(&(remote_ntp_tx as u32).to_be_bytes());
+
+    // Receive / transmit timestamps (fuzz zero). The RX flag is encoded only for PASSIVE.
+    let (rxhi, rxlo) = timespec_to_ntp64(local_receive);
+    let (txhi, txlo) = timespec_to_ntp64(cooked_transmit);
+    let (rxlo, txlo) = if my_mode == MODE_PASSIVE {
+        (rxlo | 1, txlo & !1)
+    } else {
+        (rxlo, txlo)
+    };
+    packet[32..36].copy_from_slice(&rxhi.to_be_bytes());
+    packet[36..40].copy_from_slice(&rxlo.to_be_bytes());
+    packet[40..44].copy_from_slice(&txhi.to_be_bytes());
+    packet[44..48].copy_from_slice(&txlo.to_be_bytes());
 
     ServerResponse { packet, length: NTP_HEADER_LENGTH as i32 }
 }

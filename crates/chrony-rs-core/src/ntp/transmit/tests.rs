@@ -119,6 +119,51 @@ fn matches_real_c_server_response() {
 }
 
 #[test]
+fn matches_real_c_symmetric_packet() {
+    let v = include_str!("../../../../../research/oracle/ntp_core-transmit-sym-c-vectors.txt");
+    let params = ReferenceParams {
+        leap: 0,
+        stratum: 2,
+        ref_id: 0x0a00_0001,
+        ref_time: Timespec::new(1_900_000_000, 250_000_000),
+        root_delay: 0.01,
+        root_dispersion: 0.0,
+    };
+    for (tag, my_mode) in [("SYM_ACTIVE", MODE_ACTIVE), ("SYM_PASSIVE", MODE_PASSIVE)] {
+        let l = v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+        let r = build_symmetric_packet(
+            my_mode,
+            6,
+            4,
+            &params,
+            0xaabb_ccdd_1122_3344,                     // peer's transmit ts (originate echo)
+            Timespec::new(2_000_000_000, 500_000_000), // local receive (lo even)
+            Timespec::new(2_000_000_000, 700_000_000), // cooked transmit (lo odd)
+            -20,
+        );
+        assert_eq!(r.length, field(l, "length").parse::<i32>().unwrap(), "{tag} length");
+        assert_eq!(r.packet[0], field(l, "lvm").parse::<u8>().unwrap(), "{tag} lvm");
+        assert_eq!(r.packet[1], field(l, "stratum").parse::<u8>().unwrap(), "{tag} stratum");
+        assert_eq!(r.packet[2], field(l, "poll").parse::<u8>().unwrap(), "{tag} poll");
+        assert_eq!(r.packet[3] as i8 as i32, field(l, "precision").parse::<i32>().unwrap(), "{tag} precision");
+        let be32 = |o: usize| u32::from_be_bytes(r.packet[o..o + 4].try_into().unwrap());
+        let be64 = |o: usize| ((be32(o) as u64) << 32) | be32(o + 4) as u64;
+        assert_eq!(be32(4), field(l, "root_delay").parse::<u32>().unwrap(), "{tag} root_delay");
+        assert_eq!(be32(8), field(l, "root_dispersion").parse::<u32>().unwrap(), "{tag} root_dispersion");
+        assert_eq!(be32(12), field(l, "reference_id").parse::<u32>().unwrap(), "{tag} reference_id");
+        assert_eq!(be64(16), field(l, "reference_ts").parse::<u64>().unwrap(), "{tag} reference_ts");
+        assert_eq!(be64(24), field(l, "originate_ts").parse::<u64>().unwrap(), "{tag} originate_ts");
+        assert_eq!(be64(32), field(l, "receive_ts").parse::<u64>().unwrap(), "{tag} receive_ts");
+        assert_eq!(be64(40), field(l, "transmit_ts").parse::<u64>().unwrap(), "{tag} transmit_ts");
+        // RX flag only in PASSIVE.
+        if my_mode == MODE_PASSIVE {
+            assert_eq!(be64(32) & 1, 1, "{tag} receive RX-flag set");
+            assert_eq!(be64(40) & 1, 0, "{tag} transmit RX-flag cleared");
+        }
+    }
+}
+
+#[test]
 fn matches_real_c_interleaved_client() {
     let v = include_str!("../../../../../research/oracle/ntp_core-transmit-c-vectors.txt");
     let l = v.lines().map(str::trim).find(|l| l.starts_with("TX_IL_CLIENT")).unwrap();
