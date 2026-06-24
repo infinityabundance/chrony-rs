@@ -760,6 +760,90 @@ pub fn ip_to_refid_inet4(addr: u32) -> u32 {
     addr
 }
 
+/// `UTI_IPSockAddrToString`: render an address and port as `ip:port`, bracketing the IP
+/// for IPv6 (`[ip]:port`), matching chrony's family check.
+pub fn ip_sockaddr_to_string(ip: &IpAddr, port: u16) -> String {
+    if ip.family() != 2 {
+        // not INET6
+        format!("{}:{}", ip_to_string(ip), port)
+    } else {
+        format!("[{}]:{}", ip_to_string(ip), port)
+    }
+}
+
+/// `UTI_IPSubnetToString`: render a subnet. `UNSPEC` → `"any address"`; a full-length
+/// prefix (IPv4 `/32`, IPv6 `/128`) → just the address; otherwise `address/bits`.
+pub fn ip_subnet_to_string(subnet: &IpAddr, bits: i32) -> String {
+    match subnet {
+        IpAddr::Unspec => "any address".to_string(),
+        IpAddr::Inet4(_) if bits == 32 => ip_to_string(subnet),
+        IpAddr::Inet6(_) if bits == 128 => ip_to_string(subnet),
+        _ => format!("{}/{}", ip_to_string(subnet), bits),
+    }
+}
+
+/// `join_path`: build `basedir/name + suffix` into a buffer of `length` bytes. A `None`
+/// basedir contributes neither the directory nor the `/` separator; a `None` suffix is
+/// empty. Returns `None` (chrony's "too long" failure) when the result would not fit in
+/// `length` bytes including the NUL terminator (i.e. its length is `>= length`).
+pub fn join_path(
+    basedir: Option<&str>,
+    name: &str,
+    suffix: Option<&str>,
+    length: usize,
+) -> Option<String> {
+    let (basedir, sep) = match basedir {
+        None => ("", ""),
+        Some(b) => (b, "/"),
+    };
+    let suffix = suffix.unwrap_or("");
+    let full = format!("{basedir}{sep}{name}{suffix}");
+    // snprintf reports the would-be length; it fails to fit when len >= length.
+    if full.len() >= length {
+        None
+    } else {
+        Some(full)
+    }
+}
+
+/// `UTI_CheckDirPermissions`: whether a directory's `stat` result is acceptable — it must
+/// be a directory, carry no permission bits outside `perm`, and be owned by `exp_uid` /
+/// `exp_gid`. The `stat` call itself is the host boundary; this is the pure decision over
+/// its result (`mode` is the low permission bits, `& 0o777`).
+pub fn check_dir_permissions(
+    is_dir: bool,
+    mode: u32,
+    uid: u32,
+    gid: u32,
+    perm: u32,
+    exp_uid: u32,
+    exp_gid: u32,
+) -> bool {
+    if !is_dir {
+        return false;
+    }
+    if (mode & 0o777) & !perm != 0 {
+        return false;
+    }
+    if uid != exp_uid {
+        return false;
+    }
+    if gid != exp_gid {
+        return false;
+    }
+    true
+}
+
+/// `UTI_CheckFilePermissions`: whether a regular file's permission bits are within `perm`.
+/// A non-regular file (or a failed `stat`) is "not considered an error" and passes. The
+/// `stat` call is the host boundary; this is the pure decision over its result.
+pub fn check_file_permissions(is_reg: bool, mode: u32, perm: u32) -> bool {
+    if !is_reg {
+        return true;
+    }
+    (mode & 0o777) & !perm == 0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1281,6 +1365,78 @@ mod tests {
             let id: u32 = field(l, "id").parse().unwrap();
             assert_eq!(parsed, Some(IpAddr::Id(id)), "{tag} id");
             assert_eq!(ip_to_string(&IpAddr::Id(id)), field(l, "str"), "{tag} str");
+        }
+    }
+
+    #[test]
+    fn matches_real_c_filesystem_and_addr_format() {
+        let v = include_str!("../../../research/oracle/util-fs-c-vectors.txt");
+        let line = |tag: &str| {
+            v.lines().map(str::trim).find(|l| l.split_whitespace().next() == Some(tag)).unwrap()
+        };
+        let after = |tag: &str, key: &str| {
+            line(tag).split_once(&format!("{key}=")).unwrap().1.to_string()
+        };
+        let oct = |l: &str, key: &str| u32::from_str_radix(field(l, key), 8).unwrap();
+        let ri = |l: &str, key: &str| field(l, key).parse::<i32>().unwrap();
+
+        // join_path: r (1/0) and the joined string.
+        let jp = |out: Option<String>| (out.is_some() as i32, out.unwrap_or_default());
+        let (r, s) = jp(join_path(Some("/etc"), "chrony", Some(".conf"), 128));
+        assert_eq!(r, ri(line("JP_FULL"), "r"));
+        assert_eq!(s, after("JP_FULL", "s"));
+        let (r, s) = jp(join_path(None, "name", None, 128));
+        assert_eq!(r, ri(line("JP_NOBASE"), "r"));
+        assert_eq!(s, after("JP_NOBASE", "s"));
+        let (r, s) = jp(join_path(Some("/var/lib"), "drift", None, 128));
+        assert_eq!(r, ri(line("JP_NOSUF"), "r"));
+        assert_eq!(s, after("JP_NOSUF", "s"));
+        assert_eq!(join_path(Some("/a"), "b", Some(".s"), 5).is_some() as i32, ri(line("JP_OVF"), "r"));
+        let (r, s) = jp(join_path(Some("/a"), "b", Some(".s"), 7));
+        assert_eq!(r, ri(line("JP_FIT"), "r"));
+        assert_eq!(s, after("JP_FIT", "s"));
+
+        // IPSockAddrToString.
+        assert_eq!(ip_sockaddr_to_string(&IpAddr::Inet4(0xC0A8_0101), 123), after("SA_V4", "s"));
+        let v6 = string_to_ip("2001:db8::1").unwrap();
+        assert_eq!(ip_sockaddr_to_string(&v6, 4460), after("SA_V6", "s"));
+        assert_eq!(ip_sockaddr_to_string(&IpAddr::Id(42), 7), after("SA_ID", "s"));
+        assert_eq!(ip_sockaddr_to_string(&IpAddr::Unspec, 0), after("SA_UN", "s"));
+
+        // IPSubnetToString.
+        let n4 = IpAddr::Inet4(0xC0A8_0100);
+        let n6 = string_to_ip("2001:db8::").unwrap();
+        assert_eq!(ip_subnet_to_string(&IpAddr::Unspec, 0), after("SUB_UN", "s"));
+        assert_eq!(ip_subnet_to_string(&n4, 32), after("SUB_V4_32", "s"));
+        assert_eq!(ip_subnet_to_string(&n4, 24), after("SUB_V4_24", "s"));
+        assert_eq!(ip_subnet_to_string(&n6, 128), after("SUB_V6_128", "s"));
+        assert_eq!(ip_subnet_to_string(&n6, 64), after("SUB_V6_64", "s"));
+
+        // CheckDirPermissions: reconstruct uid match/mismatch around an arbitrary uid.
+        let (au, ag) = (1000u32, 1000u32);
+        for tag in ["DIR_OK", "DIR_PERMISSIVE", "DIR_EXTRA", "DIR_WRONGUID", "DIR_ONFILE"] {
+            let l = line(tag);
+            let exp_uid = if ri(l, "uid_match") == 1 { au } else { au + 1 };
+            let got = check_dir_permissions(
+                ri(l, "isdir") == 1,
+                oct(l, "mode"),
+                au,
+                ag,
+                oct(l, "perm"),
+                exp_uid,
+                ag,
+            );
+            assert_eq!(got as i32, ri(l, "verdict"), "{tag}");
+        }
+
+        // CheckFilePermissions.
+        for tag in [
+            "DIR_NOTDIR", "FILE_OK", "FILE_WWRITE", "FILE_WREAD", "FILE_EXACT", "FILE_MISSING",
+            "FILE_ISDIR",
+        ] {
+            let l = line(tag);
+            let got = check_file_permissions(ri(l, "isreg") == 1, oct(l, "mode"), oct(l, "perm"));
+            assert_eq!(got as i32, ri(l, "verdict"), "{tag}");
         }
     }
 
