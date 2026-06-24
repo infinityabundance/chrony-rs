@@ -164,7 +164,7 @@ impl Manual {
         if !self.enabled {
             return None;
         }
-        if !is_time_offset_sane(ts, 0.0) {
+        if !is_time_offset_sane(ts, 0.0, crate::util::NTP_ERA_SPLIT) {
             return None;
         }
         if let Some(last) = self.samples.last() {

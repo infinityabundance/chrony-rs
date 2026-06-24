@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 632 / 1373 C functions have a direct counterpart (46.0%).** The other 741 are gaps.
+**Overall: 635 / 1373 C functions have a direct counterpart (46.2%).** The other 738 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -58,7 +58,7 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
 | `refclock.c` | 28 | 26 | 2 | 92.9% |
 | `ntp_core.c` | 69 | 43 | 26 | 62.3% |
-| `util.c` | 76 | 38 | 38 | 50.0% |
+| `util.c` | 76 | 41 | 35 | 53.9% |
 | `ntp_sources.c` | 58 | 25 | 33 | 43.1% |
 | `privops.c` | 12 | 5 | 7 | 41.7% |
 | `refclock_sock.c` | 3 | 1 | 2 | 33.3% |
@@ -782,7 +782,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `update_tx_timestamp`
 - ✓ `zero_local_timestamp`
 
-### `util.c` — 38/76 (50.0%)
+### `util.c` — 41/76 (53.9%)
 
 - ✓ `UTI_AddDiffToTimespec`
 - ✓ `UTI_AddDoubleToTimespec`
@@ -836,7 +836,7 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `UTI_Ntp32f28ToDouble`
 - ✓ `UTI_Ntp64ToDouble`
 - · `UTI_Ntp64ToString`
-- · `UTI_Ntp64ToTimespec`
+- ✓ `UTI_Ntp64ToTimespec`
 - · `UTI_OpenFile`
 - · `UTI_PathToDir`
 - ✓ `UTI_RefidToString`
@@ -848,8 +848,8 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - · `UTI_StringToIP`
 - · `UTI_StringToIdIP`
 - · `UTI_TimeToLogForm`
-- · `UTI_TimespecHostToNetwork`
-- · `UTI_TimespecNetworkToHost`
+- ✓ `UTI_TimespecHostToNetwork`
+- ✓ `UTI_TimespecNetworkToHost`
 - ✓ `UTI_TimespecToDouble`
 - ✓ `UTI_TimespecToNtp64`
 - · `UTI_TimespecToString`

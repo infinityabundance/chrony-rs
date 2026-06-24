@@ -245,7 +245,7 @@ impl LocalClock {
 
     /// `check_offset`: whether `now + (-offset)` is still a sane time.
     fn check_offset(now: f64, offset: f64) -> bool {
-        is_time_offset_sane(now, -offset)
+        is_time_offset_sane(now, -offset, crate::util::NTP_ERA_SPLIT)
     }
 
     /// `LCL_SetAbsoluteFrequency`.

@@ -708,7 +708,7 @@ impl SourceStats {
             self.root_dispersions[i] = v[6];
             self.sample_times[i] = sample_time;
 
-            if !is_time_offset_sane(self.sample_times[i], -self.offsets[i])
+            if !is_time_offset_sane(self.sample_times[i], -self.offsets[i], crate::util::NTP_ERA_SPLIT)
                 || now < self.sample_times[i]
                 || !(self.peer_delays[i].abs() < 1.0e6
                     && self.peer_dispersions[i].abs() < 1.0e6

@@ -27,12 +27,21 @@ pub fn log2_to_double(l: i32) -> f64 {
     }
 }
 
+/// chrony's `NTP_ERA_SPLIT`: the configure-time constant (`--with-ntp-era`, in seconds
+/// since 1970) that anchors the 32-bit NTP timestamp window for the `HAVE_LONG_TIME_T`
+/// build. Production 64-bit builds derive it from the build date (`build_epoch − 50 yr`),
+/// so it is a per-build constant rather than a universal value; this reconstruction pins
+/// the era-split-0 configuration (a valid, reproducible build via `--with-ntp-era=0`).
+/// Functions that depend on it take it as an explicit parameter so any build can be
+/// modelled.
+pub const NTP_ERA_SPLIT: i64 = 0;
+
 /// `UTI_IsTimeOffsetSane`: whether `ts` (Unix seconds) plus `offset` is a valid
-/// wall-clock time. The offset must be finite and within ±2³², and the resulting
-/// time must lie in the NTP-mapped window. With the default build
-/// (`NTP_ERA_SPLIT = 0`, 64-bit `time_t`) that window is `[0, 2³²]` seconds since
-/// 1970 (years 1970–2106); a non-default era split would shift it.
-pub fn is_time_offset_sane(ts: f64, offset: f64) -> bool {
+/// wall-clock time, for the `HAVE_LONG_TIME_T` (64-bit `time_t`) build. The offset must
+/// be finite and within ±2³², the time must not predate 1970, and it must lie in the
+/// NTP-mapped window `[ntp_era_split, ntp_era_split + 2³²]`. With `ntp_era_split = 0`
+/// that window is `[0, 2³²]` (years 1970–2106).
+pub fn is_time_offset_sane(ts: f64, offset: f64, ntp_era_split: i64) -> bool {
     // chrony's MAX_OFFSET.
     const MAX_OFFSET: f64 = 4_294_967_296.0; // 2^32
     // The `!(…)` form rejects NaN, matching chrony's comment.
@@ -40,8 +49,13 @@ pub fn is_time_offset_sane(ts: f64, offset: f64) -> bool {
         return false;
     }
     let t = ts + offset;
-    // Time before 1970, or beyond the NTP era window (split 0 -> [0, 2^32]).
-    (0.0..=MAX_OFFSET).contains(&t)
+    // Time before 1970 is not considered valid.
+    if t < 0.0 {
+        return false;
+    }
+    // HAVE_LONG_TIME_T: the interval to which NTP time is mapped.
+    let split = ntp_era_split as f64;
+    !(t < split || t > split + MAX_OFFSET)
 }
 
 /// `UTI_RefidToString`: render a 32-bit reference ID as its printable bytes
@@ -425,6 +439,56 @@ pub fn float_host_to_network(x: f64) -> u32 {
     (exp as u32) << FLOAT_COEF_BITS | (coef as u32 & ((1u32 << FLOAT_COEF_BITS) - 1))
 }
 
+/// chrony's `TV_NOHIGHSEC`: the `tv_sec_high` sentinel a 32-bit-`time_t` sender writes,
+/// which a 64-bit receiver treats as a zero high word.
+const TV_NOHIGHSEC: u32 = 0x7fff_ffff;
+
+/// `UTI_Ntp64ToTimespec` (`HAVE_LONG_TIME_T` build): convert a 64-bit NTP timestamp
+/// (host-order `(hi, lo)`) to a Unix timespec `(sec, nsec)`. Zero maps to zero (the
+/// "unknown" sentinel). The seconds map through the era split: the `(uint32_t)`
+/// subtraction wraps modulo 2³² before being widened to `time_t` and re-anchored at
+/// `ntp_era_split`, exactly as chrony does — `ntp_era_split` is the configure-time
+/// [`NTP_ERA_SPLIT`] constant.
+pub fn ntp64_to_timespec(hi: u32, lo: u32, ntp_era_split: i64) -> (i64, i64) {
+    if is_zero_ntp64(hi, lo) {
+        return zero_timespec();
+    }
+    let ntp_sec = hi;
+    let ntp_frac = lo;
+    // chrony: ntp_sec - (uint32_t)(NTP_ERA_SPLIT + JAN_1970) + (time_t)NTP_ERA_SPLIT.
+    // The subtraction is in uint32 (wrapping), then widened to time_t.
+    let split_plus = ntp_era_split.wrapping_add(JAN_1970 as i64) as u32;
+    let tv_sec = ntp_sec.wrapping_sub(split_plus) as i64 + ntp_era_split;
+    let tv_nsec = (ntp_frac as f64 / NSEC_PER_NTP64) as i64;
+    (tv_sec, tv_nsec)
+}
+
+/// `UTI_TimespecHostToNetwork` (`HAVE_LONG_TIME_T` build): serialize a Unix timespec
+/// `(sec, nsec)` into chrony's wire `Timespec` halves, returned host-order as
+/// `(tv_sec_high, tv_sec_low, tv_nsec)` (the values `ntohl` would yield from the on-wire
+/// struct). `tv_sec_high` carries the seconds above 2³².
+pub fn timespec_host_to_network(sec: i64, nsec: i64) -> (u32, u32, u32) {
+    let tv_nsec = nsec as u32;
+    let tv_sec_high = ((sec as u64) >> 32) as u32;
+    let tv_sec_low = sec as u32;
+    (tv_sec_high, tv_sec_low, tv_nsec)
+}
+
+/// `UTI_TimespecNetworkToHost` (`HAVE_LONG_TIME_T` build): deserialize chrony's wire
+/// `Timespec` halves (host-order `tv_sec_high`/`tv_sec_low`/`tv_nsec`) into a Unix
+/// timespec `(sec, nsec)`. A `tv_sec_high` of [`TV_NOHIGHSEC`] (a 32-bit sender) is read
+/// as zero, and `tv_nsec` is clamped to `999_999_999`.
+pub fn timespec_network_to_host(tv_sec_high: u32, tv_sec_low: u32, tv_nsec: u32) -> (i64, i64) {
+    let sec_low = tv_sec_low;
+    let mut sec_high = tv_sec_high;
+    if sec_high == TV_NOHIGHSEC {
+        sec_high = 0;
+    }
+    let tv_sec = ((sec_high as u64) << 32 | sec_low as u64) as i64;
+    let tv_nsec = tv_nsec.min(999_999_999) as i64;
+    (tv_sec, tv_nsec)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -629,12 +693,90 @@ mod tests {
 
     #[test]
     fn is_time_offset_sane_window() {
-        assert!(is_time_offset_sane(1.7e9, 0.0)); // ~2023, valid
-        assert!(is_time_offset_sane(0.0, 0.0)); // 1970 boundary
-        assert!(!is_time_offset_sane(-1.0, 0.0)); // before 1970
-        assert!(!is_time_offset_sane(5e9, 0.0)); // beyond 2^32 (after 2106)
-        assert!(!is_time_offset_sane(1.7e9, f64::NAN)); // NaN offset
-        assert!(!is_time_offset_sane(1.7e9, 5e9)); // offset out of range
+        // Era-split-0 build: window [0, 2^32].
+        assert!(is_time_offset_sane(1.7e9, 0.0, 0)); // ~2023, valid
+        assert!(is_time_offset_sane(0.0, 0.0, 0)); // split boundary
+        assert!(!is_time_offset_sane(-1.0, 0.0, 0)); // before 1970
+        assert!(!is_time_offset_sane(5e9, 0.0, 0)); // beyond 2^32 (after 2106)
+        assert!(!is_time_offset_sane(1.7e9, f64::NAN, 0)); // NaN offset
+        assert!(!is_time_offset_sane(1.7e9, 5e9, 0)); // offset out of range
+    }
+
+    #[test]
+    fn matches_real_c_era_split_conversions() {
+        // Oracle built with HAVE_LONG_TIME_T and a pinned NTP_ERA_SPLIT (see genera.c).
+        let v = include_str!("../../../research/oracle/util-era-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+        let split: i64 = field(line("ERA_SPLIT"), "v").parse().unwrap();
+        let jan_1970: u32 = field(line("JAN_1970"), "v").parse().unwrap();
+        assert_eq!(split, 123_200_000);
+        assert_eq!(jan_1970, JAN_1970);
+
+        // Ntp64ToTimespec.
+        let l = line("N2TS_ZERO");
+        assert_eq!(
+            ntp64_to_timespec(0, 0, split),
+            (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap())
+        );
+        let l = line("N2TS_MID");
+        let frac: u32 = field(l, "nsec_in").parse().unwrap();
+        let ntp_sec = 1_700_000_000u32.wrapping_add(JAN_1970);
+        let (sec, nsec) = ntp64_to_timespec(ntp_sec, frac, split);
+        assert_eq!(sec, field(l, "sec").parse::<i64>().unwrap(), "N2TS_MID sec");
+        assert_eq!(nsec, field(l, "nsec").parse::<i64>().unwrap(), "N2TS_MID nsec");
+        let l = line("N2TS_LOW");
+        let (sec, _) = ntp64_to_timespec(JAN_1970.wrapping_add(100), 0, split);
+        assert_eq!(sec, field(l, "sec").parse::<i64>().unwrap(), "N2TS_LOW sec");
+
+        // TimespecHostToNetwork.
+        let l = line("TSH2N_MID");
+        let (h, lo, n) = timespec_host_to_network(1_700_000_000, 123_456_789);
+        assert_eq!(h, field(l, "high").parse::<u32>().unwrap(), "TSH2N_MID high");
+        assert_eq!(lo, field(l, "low").parse::<u32>().unwrap(), "TSH2N_MID low");
+        assert_eq!(n, field(l, "nsec").parse::<u32>().unwrap(), "TSH2N_MID nsec");
+        let l = line("TSH2N_BIG");
+        let (h, lo, n) = timespec_host_to_network(0x12_3456_7890, 999_999_999);
+        assert_eq!(h, field(l, "high").parse::<u32>().unwrap(), "TSH2N_BIG high");
+        assert_eq!(lo, field(l, "low").parse::<u32>().unwrap(), "TSH2N_BIG low");
+        assert_eq!(n, field(l, "nsec").parse::<u32>().unwrap(), "TSH2N_BIG nsec");
+
+        // TimespecNetworkToHost (round trips of the above, plus the NOHIGH case).
+        let l = line("TSN2H_MID");
+        let (h, lo, n) = timespec_host_to_network(1_700_000_000, 123_456_789);
+        assert_eq!(
+            timespec_network_to_host(h, lo, n),
+            (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap())
+        );
+        let l = line("TSN2H_BIG");
+        let (h, lo, n) = timespec_host_to_network(0x12_3456_7890, 999_999_999);
+        assert_eq!(
+            timespec_network_to_host(h, lo, n),
+            (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap())
+        );
+        let l = line("TSN2H_NOHIGH");
+        // tv_sec_high = TV_NOHIGHSEC, low = 42, nsec = 1.5e9 (clamped).
+        assert_eq!(
+            timespec_network_to_host(0x7fff_ffff, 42, 1_500_000_000),
+            (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap())
+        );
+
+        // IsTimeOffsetSane window [split, split + 2^32].
+        assert_eq!(
+            is_time_offset_sane((split - 10) as f64, 0.0, split) as i32,
+            field(line("SANE_LO"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_time_offset_sane(1.7e9, 0.0, split) as i32,
+            field(line("SANE_IN"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_time_offset_sane((split + (1i64 << 32) + 10) as f64, 0.0, split) as i32,
+            field(line("SANE_HI"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_time_offset_sane(1.7e9, f64::NAN, split) as i32,
+            field(line("SANE_NAN"), "r").parse::<i32>().unwrap()
+        );
     }
 
     #[test]
