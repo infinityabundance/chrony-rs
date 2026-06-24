@@ -256,6 +256,175 @@ pub fn timespec_to_timeval(sec: i64, nsec: i64) -> (i64, i64) {
     (sec, nsec / 1000)
 }
 
+/// chrony `JAN_1970`: seconds between the NTP epoch (1900) and the Unix epoch (1970).
+const JAN_1970: u32 = 0x83aa_7e80;
+/// chrony `NSEC_PER_NTP64` = `2³² / 1e9`, so `nanoseconds × NSEC_PER_NTP64` is an NTP
+/// 32-bit fraction.
+const NSEC_PER_NTP64: f64 = 4.294_967_296;
+
+/// `UTI_ZeroNtp64`: the all-zero 64-bit NTP timestamp (chrony's "unknown" sentinel),
+/// as host-order `(hi, lo)`.
+pub fn zero_ntp64() -> (u32, u32) {
+    (0, 0)
+}
+
+/// `UTI_ZeroTimespec`: the all-zero timespec, as `(sec, nsec)`.
+pub fn zero_timespec() -> (i64, i64) {
+    (0, 0)
+}
+
+/// `UTI_IsZeroTimespec`: whether both fields of the timespec are zero.
+pub fn is_zero_timespec(sec: i64, nsec: i64) -> bool {
+    sec == 0 && nsec == 0
+}
+
+/// `UTI_TimespecToNtp64`: convert a timespec to a 64-bit NTP timestamp (host-order
+/// `(hi, lo)`). Zero maps to zero (chrony's "unknown" sentinel). The seconds field is
+/// taken modulo 2³² (`(uint32_t)tv_sec`), so this forward direction is independent of
+/// `time_t` width / NTP era split. An optional `fuzz` is XORed into the result, exactly
+/// as chrony adds sub-precision randomness; the XOR commutes with byte order, so it is
+/// applied to the host-order halves here.
+pub fn timespec_to_ntp64(sec: i64, nsec: i64, fuzz: Option<(u32, u32)>) -> (u32, u32) {
+    let sec = sec as u32;
+    let nsec = nsec as u32;
+    // Recognize zero as a special case - it always signifies an 'unknown' value.
+    if nsec == 0 && sec == 0 {
+        return (0, 0);
+    }
+    let mut hi = sec.wrapping_add(JAN_1970);
+    let mut lo = (NSEC_PER_NTP64 * nsec as f64) as u32;
+    if let Some((fhi, flo)) = fuzz {
+        hi ^= fhi;
+        lo ^= flo;
+    }
+    (hi, lo)
+}
+
+/// `UTI_AverageDiffTimespecs`: returns `(average, diff)` where `diff = later - earlier`
+/// (seconds) and `average = earlier + diff/2`.
+pub fn average_diff_timespecs(earlier: (i64, i64), later: (i64, i64)) -> ((i64, i64), f64) {
+    let diff = diff_timespecs_to_double(later, earlier);
+    let average = add_double_to_timespec(earlier, diff / 2.0);
+    (average, diff)
+}
+
+/// `UTI_AdjustTimespec`: project `old_ts` forward by a frequency/offset adjustment over
+/// the elapsed time to `when`. Returns `(new_ts, delta_time)` where
+/// `delta_time = elapsed × dfreq − doffset` and `new_ts = old_ts + delta_time`.
+pub fn adjust_timespec(
+    old_ts: (i64, i64),
+    when: (i64, i64),
+    dfreq: f64,
+    doffset: f64,
+) -> ((i64, i64), f64) {
+    let elapsed = diff_timespecs_to_double(when, old_ts);
+    let delta_time = elapsed * dfreq - doffset;
+    let new_ts = add_double_to_timespec(old_ts, delta_time);
+    (new_ts, delta_time)
+}
+
+/// `UTI_Integer64HostToNetwork`: split a 64-bit integer into chrony's wire `Integer64`
+/// `(high, low)` 32-bit halves. Returned in host order (the values `ntohl` would yield
+/// from the on-wire struct), making the representation byte-order independent.
+pub fn integer64_host_to_network(i: u64) -> (u32, u32) {
+    ((i >> 32) as u32, i as u32)
+}
+
+/// `UTI_Integer64NetworkToHost`: recombine chrony's wire `Integer64` `(high, low)` halves
+/// (host order) into a 64-bit integer. Inverse of [`integer64_host_to_network`].
+pub fn integer64_network_to_host(high: u32, low: u32) -> u64 {
+    (high as u64) << 32 | low as u64
+}
+
+// chrony's custom 32-bit wire float: a 7-bit signed exponent and a 25-bit signed
+// coefficient (no hidden bit). Value = coef × 2^(exp − 25). See candm.h `Float`.
+const FLOAT_EXP_BITS: i32 = 7;
+const FLOAT_EXP_MIN: i32 = -(1 << (FLOAT_EXP_BITS - 1)); // -64
+const FLOAT_EXP_MAX: i32 = -FLOAT_EXP_MIN - 1; // 63
+const FLOAT_COEF_BITS: i32 = 32 - FLOAT_EXP_BITS; // 25
+const FLOAT_COEF_MIN: i32 = -(1 << (FLOAT_COEF_BITS - 1)); // -2^24
+const FLOAT_COEF_MAX: i32 = -FLOAT_COEF_MIN - 1; // 2^24 - 1
+
+/// `UTI_FloatNetworkToHost`: decode chrony's custom 32-bit wire float (host-order raw
+/// `word`) to a `f64`.
+pub fn float_network_to_host(word: u32) -> f64 {
+    let x = word;
+    let mut exp = (x >> FLOAT_COEF_BITS) as i32;
+    if exp >= 1 << (FLOAT_EXP_BITS - 1) {
+        exp -= 1 << FLOAT_EXP_BITS;
+    }
+    exp -= FLOAT_COEF_BITS;
+
+    let mut coef = (x % (1u32 << FLOAT_COEF_BITS)) as i32;
+    if coef >= 1 << (FLOAT_COEF_BITS - 1) {
+        coef -= 1 << FLOAT_COEF_BITS;
+    }
+
+    coef as f64 * 2.0f64.powi(exp)
+}
+
+/// `UTI_FloatHostToNetwork`: encode a `f64` into chrony's custom 32-bit wire float,
+/// returned as the host-order raw 32-bit `word` (the value `ntohl` would yield from the
+/// on-wire `Float`). NaN is saved as zero; values saturate to the format's range.
+pub fn float_host_to_network(x: f64) -> u32 {
+    let mut x = x;
+    let neg;
+    if x < 0.0 {
+        x = -x;
+        neg = 1;
+    } else if x >= 0.0 {
+        neg = 0;
+    } else {
+        // Save NaN as zero.
+        x = 0.0;
+        neg = 0;
+    }
+
+    let mut exp: i32;
+    let mut coef: i32;
+    if x < 1.0e-100 {
+        exp = 0;
+        coef = 0;
+    } else if x > 1.0e100 {
+        exp = FLOAT_EXP_MAX;
+        coef = FLOAT_COEF_MAX + neg;
+    } else {
+        exp = (x.ln() / 2.0f64.ln()) as i32 + 1;
+        coef = (x * 2.0f64.powi(-exp + FLOAT_COEF_BITS) + 0.5) as i32;
+
+        debug_assert!(coef > 0);
+
+        // We may need to shift up to two bits down.
+        while coef > FLOAT_COEF_MAX + neg {
+            coef >>= 1;
+            exp += 1;
+        }
+
+        if exp > FLOAT_EXP_MAX {
+            // Overflow.
+            exp = FLOAT_EXP_MAX;
+            coef = FLOAT_COEF_MAX + neg;
+        } else if exp < FLOAT_EXP_MIN {
+            // Underflow.
+            if exp + FLOAT_COEF_BITS >= FLOAT_EXP_MIN {
+                coef >>= FLOAT_EXP_MIN - exp;
+                exp = FLOAT_EXP_MIN;
+            } else {
+                exp = 0;
+                coef = 0;
+            }
+        }
+    }
+
+    // Negate back.
+    if neg != 0 {
+        // chrony: (uint32_t)-coef << FLOAT_EXP_BITS >> FLOAT_EXP_BITS — mask to coef bits.
+        coef = (((-(coef as i64) as u32) << FLOAT_EXP_BITS) >> FLOAT_EXP_BITS) as i32;
+    }
+
+    (exp as u32) << FLOAT_COEF_BITS | (coef as u32 & ((1u32 << FLOAT_COEF_BITS) - 1))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -358,6 +527,93 @@ mod tests {
         let (vsec, vusec) = timespec_to_timeval(123, 456789999);
         assert_eq!(vsec, field(l, "sec").parse::<i64>().unwrap(), "TS2TV sec");
         assert_eq!(vusec, field(l, "usec").parse::<i64>().unwrap(), "TS2TV usec");
+    }
+
+    #[test]
+    fn matches_real_c_ntp64_wire_serialization() {
+        let v = include_str!("../../../research/oracle/util-time-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+
+        // ZeroNtp64 / ZeroTimespec.
+        let l = line("ZNTP64");
+        assert_eq!(zero_ntp64(), (field(l, "hi").parse().unwrap(), field(l, "lo").parse().unwrap()));
+        let l = line("ZTS");
+        assert_eq!(zero_timespec(), (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap()));
+
+        // IsZeroTimespec.
+        assert_eq!(is_zero_timespec(0, 0) as i32, field(line("ISZTS_ZZ"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_zero_timespec(0, 5) as i32, field(line("ISZTS_ZN"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_zero_timespec(5, 0) as i32, field(line("ISZTS_SZ"), "r").parse::<i32>().unwrap());
+
+        // TimespecToNtp64: plain, zero, and with fuzz XOR (fuzz = 0xdeadbeef:0x12345678).
+        let l = line("TS2N_POS");
+        assert_eq!(
+            timespec_to_ntp64(1234, 500000000, None),
+            (field(l, "hi").parse().unwrap(), field(l, "lo").parse().unwrap())
+        );
+        let l = line("TS2N_ZERO");
+        assert_eq!(
+            timespec_to_ntp64(0, 0, None),
+            (field(l, "hi").parse().unwrap(), field(l, "lo").parse().unwrap())
+        );
+        let l = line("TS2N_FUZZ");
+        assert_eq!(
+            timespec_to_ntp64(1234, 500000000, Some((0xdead_beef, 0x1234_5678))),
+            (field(l, "hi").parse().unwrap(), field(l, "lo").parse().unwrap())
+        );
+
+        // AverageDiffTimespecs (earlier=100:2e8, later=103:7e8).
+        let l = line("AVGDIFF");
+        let ((asec, ansec), diff) = average_diff_timespecs((100, 200000000), (103, 700000000));
+        assert_eq!(asec, field(l, "sec").parse::<i64>().unwrap(), "AVGDIFF sec");
+        assert_eq!(ansec, field(l, "nsec").parse::<i64>().unwrap(), "AVGDIFF nsec");
+        assert_eq!(diff, field(l, "diff").parse::<f64>().unwrap(), "AVGDIFF diff");
+
+        // AdjustTimespec (old=1000:0, when=1010:0, dfreq=1e-5, doffset=0.5).
+        let l = line("ADJ");
+        let ((nsec_s, nsec_n), delta) = adjust_timespec((1000, 0), (1010, 0), 1.0e-5, 0.5);
+        assert_eq!(nsec_s, field(l, "sec").parse::<i64>().unwrap(), "ADJ sec");
+        assert_eq!(nsec_n, field(l, "nsec").parse::<i64>().unwrap(), "ADJ nsec");
+        assert_eq!(delta, field(l, "delta").parse::<f64>().unwrap(), "ADJ delta");
+
+        // Integer64 host<->network round trip (i = 0x123456789abcdef0).
+        let l = line("I64");
+        let (high, low) = integer64_host_to_network(0x1234_5678_9abc_def0);
+        assert_eq!(high, field(l, "hi").parse::<u32>().unwrap(), "I64 hi");
+        assert_eq!(low, field(l, "lo").parse::<u32>().unwrap(), "I64 lo");
+        assert_eq!(
+            integer64_network_to_host(high, low),
+            field(l, "back").parse::<u64>().unwrap(),
+            "I64 back"
+        );
+
+        // Float host<->network: chrony's custom 7-exp/25-coef wire float.
+        let cases = [
+            ("FLT_ZERO", 0.0),
+            ("FLT_ONE", 1.0),
+            ("FLT_NEGONE", -1.0),
+            ("FLT_HALF", 0.5),
+            ("FLT_NEGHALF", -0.5),
+            ("FLT_BIG", 1234.5),
+            ("FLT_NEGBIG", -1234.5),
+            ("FLT_TINY", 1.0e-9),
+            ("FLT_PI", 3.141_592_653_589_79),
+            ("FLT_UNDER", 1.0e-120),
+            ("FLT_OVER", 1.0e120),
+            ("FLT_NEGOVER", -1.0e120),
+            ("FLT_NEARMAX", 65535.99),
+            ("FLT_POW2", 0.001953125),
+        ];
+        for (tag, x) in cases {
+            let l = line(tag);
+            let raw = float_host_to_network(x);
+            assert_eq!(raw, field(l, "raw").parse::<u32>().unwrap(), "{tag} raw");
+            assert_eq!(
+                float_network_to_host(raw),
+                field(l, "back").parse::<f64>().unwrap(),
+                "{tag} back"
+            );
+        }
     }
 
     #[test]
