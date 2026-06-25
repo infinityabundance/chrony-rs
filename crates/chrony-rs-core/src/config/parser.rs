@@ -126,6 +126,8 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "cmdallow" => parse_access(line_no, true, true, args, out),
         "cmddeny" => parse_access(line_no, false, true, args, out),
         "initstepslew" => parse_initstepslew(line_no, args, out),
+        "fallbackdrift" => parse_fallbackdrift(line_no, args, out),
+        "smoothtime" => parse_smoothtime(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -459,6 +461,68 @@ fn parse_log(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
         flags.push(flag);
     }
     out.config.directives.push((line_no, Directive::Log(flags)));
+}
+
+/// chrony `parse_fallbackdrift`: exactly two ints read with one `sscanf("%d %d")`.
+fn parse_fallbackdrift(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    if arity_error("fallbackdrift", "fallbackdrift", 2, line_no, &args, out) {
+        return;
+    }
+    match crate::config::scan::scan_two_int(&args.join(" ")) {
+        Some((min, max)) => out.config.directives.push((line_no, Directive::FallbackDrift { min, max })),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                format!("fallbackdrift expects '<min> <max>', found '{}'", args.join(" ")))
+                .for_directive("fallbackdrift"),
+        ),
+    }
+}
+
+/// chrony `parse_smoothtime`: `<max-freq> <max-wander> [leaponly]`. Valid arity is 2 or 3
+/// (chrony only enforces exactly-2 when there isn't a 3rd arg). The two doubles are read
+/// with `sscanf("%lf %lf")`; a present 3rd token must be `leaponly` (case-insensitive).
+fn parse_smoothtime(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    if args.len() < 2 {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_MISSING_VALUE",
+                format!("Missing arguments for smoothtime: expected 2, found {}", args.len()))
+                .for_directive("smoothtime"),
+        );
+        return;
+    }
+    if args.len() > 3 {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_UNEXPECTED_ARGS",
+                format!("Too many arguments for smoothtime: expected 2, found {}", args.len()))
+                .for_directive("smoothtime"),
+        );
+        return;
+    }
+    let (max_freq, max_wander) = match crate::config::scan::scan_two_double(&args.join(" ")) {
+        Some(v) => v,
+        None => {
+            out.diagnostics.push(
+                Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                    format!("smoothtime expects '<max-freq> <max-wander>', found '{}'", args.join(" ")))
+                    .for_directive("smoothtime"),
+            );
+            return;
+        }
+    };
+    let mut leap_only = false;
+    if let Some(third) = args.get(2) {
+        if third.eq_ignore_ascii_case("leaponly") {
+            leap_only = true;
+        } else {
+            out.diagnostics.push(
+                Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                    format!("smoothtime third argument must be 'leaponly', found '{third}'"))
+                    .for_directive("smoothtime"),
+            );
+            return;
+        }
+    }
+    out.config.directives.push((line_no, Directive::SmoothTime { max_freq, max_wander, leap_only }));
 }
 
 /// chrony `parse_allow_deny`: parse the access spec via the ported `CPS_ParseAllowDeny`
@@ -1039,5 +1103,44 @@ rtcsync
         );
         // Non-numeric threshold -> parse error.
         assert!(parse("initstepslew foo ntp1\n").has_errors());
+    }
+
+    #[test]
+    fn fallbackdrift_and_smoothtime_directives() {
+        // fallbackdrift: two ints.
+        assert_eq!(
+            parse("fallbackdrift 16 19\n").config.directives,
+            vec![(1, Directive::FallbackDrift { min: 16, max: 19 })]
+        );
+        // Wrong arity (only 1) -> Missing.
+        assert_eq!(
+            parse("fallbackdrift 16\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Missing arguments for fallbackdrift directive at line 1 in file <FILE>")
+        );
+
+        // smoothtime: two doubles, no flag.
+        assert_eq!(
+            parse("smoothtime 400 0.001\n").config.directives,
+            vec![(1, Directive::SmoothTime { max_freq: 400.0, max_wander: 0.001, leap_only: false })]
+        );
+        // ...with the optional leaponly flag (case-insensitive).
+        assert_eq!(
+            parse("smoothtime 400 0.001 LeapOnly\n").config.directives,
+            vec![(1, Directive::SmoothTime { max_freq: 400.0, max_wander: 0.001, leap_only: true })]
+        );
+        // A bad 3rd token (not leaponly) -> parse error.
+        assert_eq!(
+            parse("smoothtime 400 0.001 bogus\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse smoothtime directive at line 1 in file <FILE>")
+        );
+        // Too few args -> Missing; too many -> Too many.
+        assert_eq!(
+            parse("smoothtime 400\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Missing arguments for smoothtime directive at line 1 in file <FILE>")
+        );
+        assert_eq!(
+            parse("smoothtime 400 0.001 leaponly extra\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Too many arguments for smoothtime directive at line 1 in file <FILE>")
+        );
     }
 }

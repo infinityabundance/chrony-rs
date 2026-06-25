@@ -39,3 +39,12 @@ MC tag=JUNK0 ret=1 a=1 b=0 c=0
 MC tag=JUNK1 ret=2 a=1 b=30 c=0
 MC tag=SHORT ret=2 a=1 b=30 c=0
 MC tag=EXTRASPACE ret=3 a=1 b=30 c=2
+FB tag=OK ret=2 a=2 b=10
+FB tag=NEG ret=2 a=-3 b=-7
+FB tag=JUNK0 ret=1 a=2 b=0
+FB tag=SHORT ret=1 a=2 b=0
+ST tag=OK ret=2 a=1 b=2
+ST tag=EXP ret=2 a=0.050000000000000003 b=0.001
+ST tag=WANDERJUNK ret=2 a=1 b=2
+ST tag=JUNK0 ret=1 a=1 b=0
+ST tag=SHORT ret=1 a=1 b=0

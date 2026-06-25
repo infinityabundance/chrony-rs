@@ -136,6 +136,23 @@ pub fn scan_uint(s: &str) -> Option<u64> {
     scan_uint_at(s).map(|(v, _)| v)
 }
 
+/// `parse_fallbackdrift`'s `sscanf("%d %d", line)`: both ints must convert from one
+/// left-to-right pass. Returns `(min, max)` only when both parse.
+pub fn scan_two_int(line: &str) -> Option<(i32, i32)> {
+    let (a, i) = scan_int_at(line)?;
+    let (b, _) = scan_int_at(&line[i..])?;
+    Some((a, b))
+}
+
+/// `parse_smoothtime`'s `sscanf("%lf %lf", line)`: both doubles must convert. Trailing junk
+/// on the *second* field is fine (there is no third conversion to fail). Returns
+/// `(max_freq, max_wander)` only when both parse.
+pub fn scan_two_double(line: &str) -> Option<(f64, f64)> {
+    let (a, i) = scan_double_at(line)?;
+    let (b, _) = scan_double_at(&line[i..])?;
+    Some((a, b))
+}
+
 /// `parse_maxchange`'s `sscanf("%lf %d %d", line)` over the whole (space-normalized) line:
 /// all three fields must convert from one left-to-right pass (a non-final field's trailing
 /// junk makes the next conversion fail). Returns `(threshold, delay, ignore)` only when all
@@ -199,6 +216,33 @@ mod tests {
             // The directive succeeds iff the oracle's conversion count is 3.
             assert_eq!(got.is_some(), ret == 3, "{tag} success");
             assert_eq!(got, expected, "{tag} value");
+        }
+    }
+
+    #[test]
+    fn matches_real_c_two_field() {
+        // fallbackdrift: sscanf("%d %d"), both required.
+        for (line, ret, expected) in [
+            ("2 10", 2, Some((2, 10))),
+            ("-3 -7", 2, Some((-3, -7))),
+            ("2x 10", 1, None),
+            ("2", 1, None),
+        ] {
+            let got = scan_two_int(line);
+            assert_eq!(got.is_some(), ret == 2, "FB {line} success");
+            assert_eq!(got, expected, "FB {line}");
+        }
+        // smoothtime: sscanf("%lf %lf"), trailing junk on the 2nd field is fine.
+        for (line, ret, expected) in [
+            ("1.0 2.0", 2, Some((1.0, 2.0))),
+            ("5.0e-2 1.0e-3", 2, Some((0.05, 0.001))),
+            ("1.0 2.0x", 2, Some((1.0, 2.0))),
+            ("1.0x 2.0", 1, None),
+            ("1.0", 1, None),
+        ] {
+            let got = scan_two_double(line);
+            assert_eq!(got.is_some(), ret == 2, "ST {line} success");
+            assert_eq!(got, expected, "ST {line}");
         }
     }
 }

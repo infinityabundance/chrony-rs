@@ -110,6 +110,12 @@ pub enum Directive {
     /// is the allow/deny sense; `cmd` selects the command (vs NTP) restriction table. The
     /// `spec` is chrony's parsed `CPS_ParseAllowDeny` output (feed into the addrfilt table).
     AccessRestriction { allow: bool, cmd: bool, spec: crate::cmdparse::AllowDeny },
+    /// `fallbackdrift <min> <max>` — the min/max log2-second fallback drift intervals
+    /// (read with one `sscanf("%d %d")`, so both must parse).
+    FallbackDrift { min: i32, max: i32 },
+    /// `smoothtime <max-freq> <max-wander> [leaponly]` — the time-smoothing parameters
+    /// (`sscanf("%lf %lf")`) plus the optional `leaponly` flag.
+    SmoothTime { max_freq: f64, max_wander: f64, leap_only: bool },
     /// `initstepslew <threshold> [source]...` — the step threshold and the source
     /// host strings (resolution is a daemon-time boundary, deferred). Ignored at runtime
     /// when chronyd was started with `-R`, which is not a parse concern.
