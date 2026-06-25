@@ -132,6 +132,12 @@ pub enum Directive {
     /// `include <pattern>` — a glob pattern of config files to include (the glob expansion
     /// and file reading are a daemon-time boundary, deferred).
     Include { pattern: String },
+    /// `broadcast <interval> <address> [port]` — a broadcast destination. `address` is the
+    /// verbatim arg (validated to parse as an IP); `port` defaults to 123 (`NTP_PORT`).
+    Broadcast { interval: i32, address: String, port: i32 },
+    /// `mailonchange <address> <threshold>` — email a user when the offset on a clock step
+    /// exceeds `threshold` seconds.
+    MailOnChange { address: String, threshold: f64 },
     /// `ratelimit` / `cmdratelimit` / `ntsratelimit` `[interval N] [burst N] [leak N]`.
     /// The directive's presence enables it; each option is optional and may appear in any
     /// order. chrony reads the value of each option with `sscanf("%d%n")`, advancing past

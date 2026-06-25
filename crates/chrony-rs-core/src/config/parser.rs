@@ -132,6 +132,8 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "sourcedir" => out.config.directives.push((line_no, Directive::SourceDir { path: args.join(" ") })),
         "confdir" => parse_confdir(line_no, args, out),
         "include" => parse_include(line_no, args, out),
+        "broadcast" => parse_broadcast(line_no, args, out),
+        "mailonchange" => parse_mailonchange(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -465,6 +467,53 @@ fn parse_log(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
         flags.push(flag);
     }
     out.config.directives.push((line_no, Directive::Log(flags)));
+}
+
+/// chrony `parse_broadcast`: `<interval> <address> [port]`. The interval is `sscanf("%d")`
+/// on the first word; the address must parse as an IP (`UTI_StringToIP` →
+/// [`crate::util::string_to_ip`]); the optional third word is the port (`sscanf("%d")`),
+/// defaulting to `NTP_PORT` (123). A 4th word, a bad interval/port, or an unparseable
+/// address is `command_parse_error`.
+fn parse_broadcast(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    let err = |out: &mut ParseOutput| {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", "could not parse broadcast".to_string())
+                .for_directive("broadcast"),
+        );
+    };
+    let Some(interval) = args.first().and_then(|s| crate::config::scan::scan_int(s)) else {
+        return err(out);
+    };
+    let Some(address) = args.get(1).filter(|s| crate::util::string_to_ip(s).is_some()).cloned() else {
+        return err(out);
+    };
+    let port = match args.get(2) {
+        None => 123, // NTP_PORT
+        Some(s) => match crate::config::scan::scan_int(s) {
+            Some(p) if args.len() == 3 => p,
+            _ => return err(out),
+        },
+    };
+    out.config.directives.push((line_no, Directive::Broadcast { interval, address, port }));
+}
+
+/// chrony `parse_mailonchange`: exactly two args — the email address and the step threshold
+/// (`sscanf("%lf")`).
+fn parse_mailonchange(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    if arity_error("mailonchange", "mailonchange", 2, line_no, &args, out) {
+        return;
+    }
+    match crate::config::scan::scan_double(&args[1]) {
+        Some(threshold) => out.config.directives.push((
+            line_no,
+            Directive::MailOnChange { address: args[0].clone(), threshold },
+        )),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                format!("mailonchange threshold must be a number, found '{}'", args[1]))
+                .for_directive("mailonchange"),
+        ),
+    }
 }
 
 /// chrony `parse_local`: the `[stratum N] [orphan] [distance D]` options via the ported
@@ -1224,6 +1273,42 @@ rtcsync
         assert_eq!(
             parse("include a b\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
             Some("Fatal error : Too many arguments for include directive at line 1 in file <FILE>")
+        );
+    }
+
+    #[test]
+    fn broadcast_and_mailonchange_directives() {
+        // broadcast: interval + address, default port 123.
+        assert_eq!(
+            parse("broadcast 60 192.168.1.255\n").config.directives,
+            vec![(1, Directive::Broadcast { interval: 60, address: "192.168.1.255".into(), port: 123 })]
+        );
+        // ...with an explicit port.
+        assert_eq!(
+            parse("broadcast 60 192.168.1.255 1123\n").config.directives,
+            vec![(1, Directive::Broadcast { interval: 60, address: "192.168.1.255".into(), port: 1123 })]
+        );
+        // Unparseable address -> error.
+        assert!(parse("broadcast 60 not-an-ip\n").has_errors());
+        // A 4th word -> error.
+        assert!(parse("broadcast 60 192.168.1.255 1123 extra\n").has_errors());
+        // Missing address -> error.
+        assert!(parse("broadcast 60\n").has_errors());
+
+        // mailonchange: address + threshold.
+        assert_eq!(
+            parse("mailonchange root@localhost 0.5\n").config.directives,
+            vec![(1, Directive::MailOnChange { address: "root@localhost".into(), threshold: 0.5 })]
+        );
+        // Wrong arity -> Missing/Too many.
+        assert_eq!(
+            parse("mailonchange root@localhost\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Missing arguments for mailonchange directive at line 1 in file <FILE>")
+        );
+        // Non-numeric threshold -> Could not parse.
+        assert_eq!(
+            parse("mailonchange root@localhost soon\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse mailonchange directive at line 1 in file <FILE>")
         );
     }
 }
