@@ -26,6 +26,7 @@ pub mod diagnostics;
 pub mod lexer;
 pub mod model;
 pub mod parser;
+pub mod scan;
 
 pub use diagnostics::{Diagnostic, Severity};
 pub use model::{Config, Directive, ServerKind, SourceDirective};

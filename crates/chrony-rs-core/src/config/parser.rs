@@ -126,6 +126,12 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
             }
             out.config.directives.push((line_no, Directive::RtcSync));
         }
+        other if SCALAR_INT_DIRECTIVES.contains(&other) => {
+            parse_scalar_int(other, keyword_raw, line_no, args, out)
+        }
+        other if SCALAR_DOUBLE_DIRECTIVES.contains(&other) => {
+            parse_scalar_double(other, keyword_raw, line_no, args, out)
+        }
         other if is_known_directive(other) => {
             // Recognized chrony keyword we have not modeled. Preserve it; do NOT
             // emit a diagnostic — a valid chrony file must still check-config clean.
@@ -280,6 +286,77 @@ fn parse_driftfile(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
                 "driftfile takes a single path argument",
             )
             .for_directive("driftfile"),
+        ),
+    }
+}
+
+/// Single-value `int` directives (chrony `conf.c`: `parse_int(p, &global)`). Each takes
+/// exactly one argument parsed with `sscanf("%d")` (see [`crate::config::scan::scan_int`]).
+const SCALAR_INT_DIRECTIVES: &[&str] = &[
+    "cmdport", "ntpport", "ptpport", "maxsamples", "minsamples", "minsources",
+];
+
+/// Single-value `double` directives (chrony `conf.c`: `parse_double(p, &global)`).
+const SCALAR_DOUBLE_DIRECTIVES: &[&str] = &[
+    "clockprecision", "combinelimit", "corrtimeratio", "maxclockerror", "maxdistance",
+    "maxdrift", "maxjitter", "maxslewrate", "maxupdateskew", "reselectdistance", "stratumweight",
+];
+
+/// chrony `parse_int`: exactly one argument, read with lenient `sscanf("%d")`. Wrong arity
+/// or a non-numeric value is fatal in chrony; here it is a recoverable diagnostic.
+fn parse_scalar_int(keyword: &str, keyword_raw: String, line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    if args.len() != 1 {
+        // chrony check_number_of_args: too few -> "Missing", too many -> "Too many".
+        let (code, what) = if args.is_empty() {
+            ("CFG_MISSING_VALUE", "Missing")
+        } else {
+            ("CFG_UNEXPECTED_ARGS", "Too many")
+        };
+        out.diagnostics.push(
+            Diagnostic::error(line_no, code,
+                format!("{what} arguments for {keyword}: expected 1, found {}", args.len()))
+                .for_directive(&keyword_raw),
+        );
+        return;
+    }
+    match crate::config::scan::scan_int(&args[0]) {
+        Some(value) => out.config.directives.push((
+            line_no,
+            Directive::ScalarInt { keyword: keyword.to_string(), value },
+        )),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                format!("{keyword} value must be an integer, found '{}'", args[0]))
+                .for_directive(&keyword_raw),
+        ),
+    }
+}
+
+/// chrony `parse_double`: exactly one argument, read with lenient `sscanf("%lf")`.
+fn parse_scalar_double(keyword: &str, keyword_raw: String, line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    if args.len() != 1 {
+        // chrony check_number_of_args: too few -> "Missing", too many -> "Too many".
+        let (code, what) = if args.is_empty() {
+            ("CFG_MISSING_VALUE", "Missing")
+        } else {
+            ("CFG_UNEXPECTED_ARGS", "Too many")
+        };
+        out.diagnostics.push(
+            Diagnostic::error(line_no, code,
+                format!("{what} arguments for {keyword}: expected 1, found {}", args.len()))
+                .for_directive(&keyword_raw),
+        );
+        return;
+    }
+    match crate::config::scan::scan_double(&args[0]) {
+        Some(value) => out.config.directives.push((
+            line_no,
+            Directive::ScalarDouble { keyword: keyword.to_string(), value },
+        )),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                format!("{keyword} value must be a number, found '{}'", args[0]))
+                .for_directive(&keyword_raw),
         ),
     }
 }
@@ -442,5 +519,57 @@ rtcsync
                 "chrony-message mismatch for input {input:?}"
             );
         }
+    }
+
+    #[test]
+    fn scalar_directives_parse_with_sscanf_semantics() {
+        // Single-double directive, modeled and clean.
+        let out = parse("maxupdateskew 100.0\n");
+        assert!(!out.has_errors(), "{:?}", out.diagnostics);
+        assert_eq!(
+            out.config.directives,
+            vec![(1, Directive::ScalarDouble { keyword: "maxupdateskew".into(), value: 100.0 })]
+        );
+
+        // Single-int directive.
+        let out = parse("cmdport 0\n");
+        assert_eq!(
+            out.config.directives,
+            vec![(1, Directive::ScalarInt { keyword: "cmdport".into(), value: 0 })]
+        );
+
+        // chrony's lenient sscanf: trailing junk on a double is dropped (accepted as the
+        // leading number), where Rust's strict parse would have rejected it.
+        let out = parse("maxdrift 2.5x\n");
+        assert!(!out.has_errors());
+        assert_eq!(
+            out.config.directives,
+            vec![(1, Directive::ScalarDouble { keyword: "maxdrift".into(), value: 2.5 })]
+        );
+        // ...and an int directive truncates a decimal (sscanf %d on "3.14" -> 3).
+        let out = parse("minsources 3.14\n");
+        assert_eq!(
+            out.config.directives,
+            vec![(1, Directive::ScalarInt { keyword: "minsources".into(), value: 3 })]
+        );
+
+        // A value with no leading number is a parse failure ("Could not parse").
+        let out = parse("maxclockerror abc\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse maxclockerror directive at line 1 in file <FILE>")
+        );
+
+        // Wrong arity distinguishes Missing vs Too many, like check_number_of_args.
+        let out = parse("stratumweight\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Missing arguments for stratumweight directive at line 1 in file <FILE>")
+        );
+        let out = parse("cmdport 1 2\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Too many arguments for cmdport directive at line 1 in file <FILE>")
+        );
     }
 }

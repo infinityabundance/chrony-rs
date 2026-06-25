@@ -53,6 +53,12 @@ pub enum Directive {
     MakeStep { threshold: f64, limit: i32 },
     /// `rtcsync` — a bare flag directive.
     RtcSync,
+    /// A single-integer directive (e.g. `cmdport 0`), parsed with chrony's lenient
+    /// `sscanf("%d")` semantics. The keyword is kept lowercased.
+    ScalarInt { keyword: String, value: i32 },
+    /// A single-double directive (e.g. `maxupdateskew 100.0`), parsed with chrony's
+    /// lenient `sscanf("%lf")` semantics.
+    ScalarDouble { keyword: String, value: f64 },
     /// A recognized keyword whose semantics chrony-rs does not yet model. The full
     /// original token line is retained.
     Unmodeled {

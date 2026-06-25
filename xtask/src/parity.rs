@@ -78,7 +78,7 @@ const MAP: &[Row] = &[
     // ---- config surface: the most-ported area ----
     Row { c: "conf.c", role: "config file parser + 93-directive dispatch (CNF_*)",
         rust: &["config/parser.rs", "config/lexer.rs", "config/diagnostics.rs", "config/model.rs", "config/mod.rs"],
-        port: Port::Partial, note: "directive recognition (93/93), comment rules, diagnostics witnessed vs 4.5; per-directive value semantics partial" },
+        port: Port::Partial, note: "directive recognition (93/93), comment rules, diagnostics witnessed vs 4.5; per-directive value semantics partial. Scalar value parsing now faithful: config::scan reproduces chrony's lenient sscanf(\"%d\")/sscanf(\"%lf\") (leading-number with trailing junk accepted, decimal-truncated ints) differential-tested vs real sscanf; a batch of 17 single-scalar int/double directives (cmdport/ntpport/ptpport/maxsamples/minsamples/minsources + clockprecision/combinelimit/corrtimeratio/maxclockerror/maxdistance/maxdrift/maxjitter/maxslewrate/maxupdateskew/reselectdistance/stratumweight) modeled with arity (Missing/Too-many like check_number_of_args) and parse-failure diagnostics matching chrony's fatal-error messages" },
     Row { c: "cmdparse.c", role: "command/config line parsing (CPS_*)",
         rust: &["config/parser.rs", "cmdparse.rs"], port: Port::Full,
         note: "all 8: source options + word split/normalize/refid/key/local + allow-deny (incl. DNS hostname via nameserv; drives addrfilt end-to-end vs `chronyc accheck`)" },
