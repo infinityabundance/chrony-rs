@@ -106,6 +106,16 @@ pub enum Directive {
     AuthSelectMode(AuthSelectMode),
     /// `log <flag>...` — the enabled logging categories, in declaration order.
     Log(Vec<LogFlag>),
+    /// `ratelimit` / `cmdratelimit` / `ntsratelimit` `[interval N] [burst N] [leak N]`.
+    /// The directive's presence enables it; each option is optional and may appear in any
+    /// order. chrony reads the value of each option with `sscanf("%d%n")`, advancing past
+    /// only the digits, so a value's trailing junk becomes a (bad) option key.
+    RateLimit {
+        keyword: String,
+        interval: Option<i32>,
+        burst: Option<i32>,
+        leak: Option<i32>,
+    },
     /// A recognized keyword whose semantics chrony-rs does not yet model. The full
     /// original token line is retained.
     Unmodeled {

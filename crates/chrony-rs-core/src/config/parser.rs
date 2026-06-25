@@ -118,6 +118,9 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "leapsecmode" => parse_leapsecmode(line_no, args, out),
         "authselectmode" => parse_authselectmode(line_no, args, out),
         "log" => parse_log(line_no, args, out),
+        "ratelimit" | "cmdratelimit" | "ntsratelimit" => {
+            parse_ratelimit(keyword.as_str(), line_no, args, out)
+        }
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -451,6 +454,54 @@ fn parse_log(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
         flags.push(flag);
     }
     out.config.directives.push((line_no, Directive::Log(flags)));
+}
+
+/// chrony `parse_ratelimit`: the `[interval N] [burst N] [leak N]` key-value loop. The
+/// directive's presence enables it. Each iteration reads an option word
+/// (`CPS_SplitWord` → [`crate::cmdparse::split_word`]) and its value with `sscanf("%d%n")`,
+/// advancing by *only* the consumed digits — so a value's trailing junk (`5x`) re-tokenizes
+/// into a bad option key on the next pass. An unknown key or a missing/non-numeric value is
+/// chrony's `command_parse_error`; values applied before the error are kept (chrony would
+/// already have stored them).
+fn parse_ratelimit(keyword: &str, line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    let line = args.join(" ");
+    let mut rest = line.as_str();
+    let (mut interval, mut burst, mut leak) = (None, None, None);
+    let mut err = false;
+    while !rest.is_empty() {
+        let (opt, after) = crate::cmdparse::split_word(rest);
+        if opt.is_empty() {
+            break;
+        }
+        match crate::config::scan::scan_int_at(after) {
+            Some((val, consumed)) => {
+                rest = &after[consumed..];
+                match opt.to_ascii_lowercase().as_str() {
+                    "interval" => interval = Some(val),
+                    "burst" => burst = Some(val),
+                    "leak" => leak = Some(val),
+                    _ => {
+                        err = true;
+                        break;
+                    }
+                }
+            }
+            None => {
+                err = true;
+                break;
+            }
+        }
+    }
+    if err {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", format!("could not parse {keyword} options"))
+                .for_directive(keyword),
+        );
+    }
+    out.config.directives.push((
+        line_no,
+        Directive::RateLimit { keyword: keyword.to_string(), interval, burst, leak },
+    ));
 }
 
 /// chrony `parse_int`: exactly one argument, read with lenient `sscanf("%d")`. Wrong arity
@@ -818,5 +869,51 @@ rtcsync
             out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
             Some("Fatal error : Invalid log parameter at line 1 in file <FILE>")
         );
+    }
+
+    #[test]
+    fn matches_real_c_ratelimit() {
+        let v = include_str!("../../../../research/oracle/config-ratelimit-c-vectors.txt");
+        let line = |tag: &str| {
+            v.lines()
+                .find(|l| l.split_whitespace().any(|t| t == format!("tag={tag}")))
+                .unwrap()
+        };
+        let f = |l: &str, k: &str| -> i32 {
+            l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap().parse().unwrap()
+        };
+        // -1 in the oracle is the "unset" sentinel (no test sets a value to -1).
+        let opt = |l: &str, k: &str| {
+            let n = f(l, k);
+            if n == -1 { None } else { Some(n) }
+        };
+        let cases = [
+            ("BARE", "ratelimit\n"),
+            ("FULL", "ratelimit interval 5 burst 10 leak 2\n"),
+            ("ONE", "ratelimit interval 3\n"),
+            ("REORDER", "ratelimit leak 4 interval 6\n"),
+            ("CASE", "ratelimit INTERVAL 7\n"),
+            ("NOVAL", "ratelimit interval\n"),
+            ("BADKEY", "ratelimit frequency 5\n"),
+            ("JUNKVAL", "ratelimit interval 5x burst 10\n"),
+            ("NEG", "ratelimit interval -3\n"),
+        ];
+        for (tag, input) in cases {
+            let l = line(tag);
+            let out = parse(input);
+            assert_eq!(out.has_errors() as i32, f(l, "err"), "{tag} err");
+            let rl = out
+                .config
+                .directives
+                .iter()
+                .find_map(|(_, d)| match d {
+                    Directive::RateLimit { interval, burst, leak, .. } => Some((*interval, *burst, *leak)),
+                    _ => None,
+                })
+                .unwrap_or_else(|| panic!("{tag}: no RateLimit directive"));
+            assert_eq!(rl.0, opt(l, "interval"), "{tag} interval");
+            assert_eq!(rl.1, opt(l, "burst"), "{tag} burst");
+            assert_eq!(rl.2, opt(l, "leak"), "{tag} leak");
+        }
     }
 }

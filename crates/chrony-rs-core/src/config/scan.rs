@@ -26,10 +26,11 @@ fn skip_ws(b: &[u8], mut i: usize) -> usize {
     i
 }
 
-/// `sscanf("%d")` at the start of `s`: skip leading whitespace, parse the base-10 integer
-/// (optional sign), and return `(value, end_index)` — the index just past the consumed
-/// digits. `None` when no digit is present.
-fn scan_int_at(s: &str) -> Option<(i32, usize)> {
+/// `sscanf("%d%n")` at the start of `s`: skip leading whitespace, parse the base-10
+/// integer (optional sign), and return `(value, end_index)` — the index just past the
+/// consumed digits (the `%n` count). `None` when no digit is present. Used directly by the
+/// `ratelimit` key-value loop, which advances by exactly the consumed length.
+pub(crate) fn scan_int_at(s: &str) -> Option<(i32, usize)> {
     let b = s.as_bytes();
     let start = skip_ws(b, 0);
     let mut i = start;
