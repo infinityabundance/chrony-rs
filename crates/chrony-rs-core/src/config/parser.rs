@@ -128,6 +128,10 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "initstepslew" => parse_initstepslew(line_no, args, out),
         "fallbackdrift" => parse_fallbackdrift(line_no, args, out),
         "smoothtime" => parse_smoothtime(line_no, args, out),
+        "local" => parse_local(line_no, args, out),
+        "sourcedir" => out.config.directives.push((line_no, Directive::SourceDir { path: args.join(" ") })),
+        "confdir" => parse_confdir(line_no, args, out),
+        "include" => parse_include(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -461,6 +465,44 @@ fn parse_log(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
         flags.push(flag);
     }
     out.config.directives.push((line_no, Directive::Log(flags)));
+}
+
+/// chrony `parse_local`: the `[stratum N] [orphan] [distance D]` options via the ported
+/// `CPS_ParseLocal` ([`crate::cmdparse::parse_local`]). The directive's presence enables
+/// local mode; a malformed option is `command_parse_error`.
+fn parse_local(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    match crate::cmdparse::parse_local(&args.join(" ")) {
+        Some(opts) => out.config.directives.push((line_no, Directive::Local(opts))),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", "could not parse local options".to_string())
+                .for_directive("local"),
+        ),
+    }
+}
+
+/// chrony `parse_confdir` → `search_dirs`: `UTI_SplitString` the line into 1..=`MAX_CONF_DIRS`
+/// (10) directories (the `*.conf` globbing and file reading are a daemon-time boundary,
+/// deferred). Zero directories or more than 10 is `command_parse_error`.
+fn parse_confdir(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    // chrony MAX_CONF_DIRS.
+    if args.is_empty() || args.len() > 10 {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                format!("confdir expects 1..=10 directories, found {}", args.len()))
+                .for_directive("confdir"),
+        );
+        return;
+    }
+    out.config.directives.push((line_no, Directive::ConfDir { dirs: args }));
+}
+
+/// chrony `parse_include`: exactly one glob pattern argument (the glob expansion and file
+/// reading are a daemon-time boundary, deferred).
+fn parse_include(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    if arity_error("include", "include", 1, line_no, &args, out) {
+        return;
+    }
+    out.config.directives.push((line_no, Directive::Include { pattern: args.into_iter().next().unwrap() }));
 }
 
 /// chrony `parse_fallbackdrift`: exactly two ints read with one `sscanf("%d %d")`.
@@ -1141,6 +1183,47 @@ rtcsync
         assert_eq!(
             parse("smoothtime 400 0.001 leaponly extra\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
             Some("Fatal error : Too many arguments for smoothtime directive at line 1 in file <FILE>")
+        );
+    }
+
+    #[test]
+    fn local_dir_and_include_directives() {
+        use crate::cmdparse::LocalOpts;
+        // local: options via the ported CPS_ParseLocal (defaults when bare).
+        assert_eq!(
+            parse("local\n").config.directives,
+            vec![(1, Directive::Local(LocalOpts { stratum: 10, orphan: false, distance: 1.0 }))]
+        );
+        assert_eq!(
+            parse("local stratum 5 orphan distance 0.5\n").config.directives,
+            vec![(1, Directive::Local(LocalOpts { stratum: 5, orphan: true, distance: 0.5 }))]
+        );
+        // Malformed local option -> parse error.
+        assert!(parse("local stratum 99\n").has_errors()); // stratum >= NTP_MAX_STRATUM
+
+        // sourcedir: the rest of the line, verbatim, no arity check.
+        assert_eq!(
+            parse("sourcedir /etc/chrony/sources.d\n").config.directives,
+            vec![(1, Directive::SourceDir { path: "/etc/chrony/sources.d".into() })]
+        );
+
+        // confdir: 1..=10 directories.
+        assert_eq!(
+            parse("confdir /etc/chrony/conf.d /run/chrony.d\n").config.directives,
+            vec![(1, Directive::ConfDir { dirs: vec!["/etc/chrony/conf.d".into(), "/run/chrony.d".into()] })]
+        );
+        // Empty confdir -> parse error.
+        assert!(parse("confdir\n").has_errors());
+
+        // include: one glob pattern.
+        assert_eq!(
+            parse("include /etc/chrony/conf.d/*.conf\n").config.directives,
+            vec![(1, Directive::Include { pattern: "/etc/chrony/conf.d/*.conf".into() })]
+        );
+        // Wrong arity -> Too many.
+        assert_eq!(
+            parse("include a b\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Too many arguments for include directive at line 1 in file <FILE>")
         );
     }
 }

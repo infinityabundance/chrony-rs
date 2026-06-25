@@ -138,7 +138,7 @@ const NTP_MAX_STRATUM: i32 = 16;
 
 /// Parsed `local` directive options (chrony's `CPS_ParseLocal` outputs), with
 /// chrony's defaults: stratum 10, no orphan mode, distance 1.0.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct LocalOpts {
     pub stratum: i32,
     pub orphan: bool,

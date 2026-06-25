@@ -120,6 +120,18 @@ pub enum Directive {
     /// host strings (resolution is a daemon-time boundary, deferred). Ignored at runtime
     /// when chronyd was started with `-R`, which is not a parse concern.
     InitStepSlew { threshold: f64, sources: Vec<String> },
+    /// `local [stratum N] [orphan] [distance D]` — the local-reference options (chrony's
+    /// `CPS_ParseLocal`). The directive's presence enables local mode.
+    Local(crate::cmdparse::LocalOpts),
+    /// `sourcedir <dir>` — a directory scanned for `*.sources` files. chrony stores the
+    /// rest of the line verbatim (no tokenization or arity check).
+    SourceDir { path: String },
+    /// `confdir <dir>...` — 1..=10 directories scanned for `*.conf` files (the file
+    /// reading/globbing is a daemon-time boundary, deferred).
+    ConfDir { dirs: Vec<String> },
+    /// `include <pattern>` — a glob pattern of config files to include (the glob expansion
+    /// and file reading are a daemon-time boundary, deferred).
+    Include { pattern: String },
     /// `ratelimit` / `cmdratelimit` / `ntsratelimit` `[interval N] [burst N] [leak N]`.
     /// The directive's presence enables it; each option is optional and may appear in any
     /// order. chrony reads the value of each option with `sscanf("%d%n")`, advancing past
