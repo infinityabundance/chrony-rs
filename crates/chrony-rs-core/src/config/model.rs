@@ -59,6 +59,15 @@ pub enum Directive {
     /// A single-double directive (e.g. `maxupdateskew 100.0`), parsed with chrony's
     /// lenient `sscanf("%lf")` semantics.
     ScalarDouble { keyword: String, value: f64 },
+    /// A single-unsigned directive (e.g. `clientloglimit 1048576`), parsed with chrony's
+    /// `sscanf("%lu")` semantics (a leading `-` wraps).
+    ScalarUint { keyword: String, value: u64 },
+    /// A single-string directive (e.g. `pidfile /run/chronyd.pid`). chrony's `parse_string`
+    /// requires exactly one argument and stores it verbatim.
+    ScalarString { keyword: String, value: String },
+    /// `maxchange <threshold> <delay> <ignore>` — chrony reads all three with one
+    /// `sscanf("%lf %d %d")`, so a malformed earlier field fails the whole directive.
+    MaxChange { threshold: f64, delay: i32, ignore: i32 },
     /// A recognized keyword whose semantics chrony-rs does not yet model. The full
     /// original token line is retained.
     Unmodeled {

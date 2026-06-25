@@ -111,6 +111,8 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "peer" => parse_source(ServerKind::Peer, line_no, args, out),
         "driftfile" => parse_driftfile(line_no, args, out),
         "makestep" => parse_makestep(line_no, args, out),
+        "maxchange" => parse_maxchange(line_no, args, out),
+        "clientloglimit" => parse_clientloglimit(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -131,6 +133,9 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         }
         other if SCALAR_DOUBLE_DIRECTIVES.contains(&other) => {
             parse_scalar_double(other, keyword_raw, line_no, args, out)
+        }
+        other if SCALAR_STRING_DIRECTIVES.contains(&other) => {
+            parse_scalar_string(other, keyword_raw, line_no, args, out)
         }
         other if is_known_directive(other) => {
             // Recognized chrony keyword we have not modeled. Preserve it; do NOT
@@ -301,6 +306,80 @@ const SCALAR_DOUBLE_DIRECTIVES: &[&str] = &[
     "clockprecision", "combinelimit", "corrtimeratio", "maxclockerror", "maxdistance",
     "maxdrift", "maxjitter", "maxslewrate", "maxupdateskew", "reselectdistance", "stratumweight",
 ];
+
+/// Single-value string directives (chrony `conf.c`: `parse_string(p, &global)`). Each takes
+/// exactly one argument, stored verbatim. (`driftfile` is modeled separately for its
+/// last-wins accessor.)
+const SCALAR_STRING_DIRECTIVES: &[&str] = &[
+    "bindacqdevice", "bindcmddevice", "binddevice", "dumpdir", "hwclockfile", "keyfile",
+    "leapsectz", "logdir", "ntpsigndsocket", "ntsdumpdir", "pidfile", "rtcdevice", "rtcfile",
+    "user",
+];
+
+/// Emit chrony's `check_number_of_args` arity diagnostic (`Missing`/`Too many`) when
+/// `args.len() != want`. Returns `true` if the arity is wrong (caller should stop).
+fn arity_error(keyword: &str, keyword_raw: &str, want: usize, line_no: usize, args: &[String], out: &mut ParseOutput) -> bool {
+    if args.len() == want {
+        return false;
+    }
+    let (code, what) = if args.len() < want {
+        ("CFG_MISSING_VALUE", "Missing")
+    } else {
+        ("CFG_UNEXPECTED_ARGS", "Too many")
+    };
+    out.diagnostics.push(
+        Diagnostic::error(line_no, code,
+            format!("{what} arguments for {keyword}: expected {want}, found {}", args.len()))
+            .for_directive(keyword_raw),
+    );
+    true
+}
+
+/// chrony `parse_string`: exactly one argument, stored verbatim.
+fn parse_scalar_string(keyword: &str, keyword_raw: String, line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    if arity_error(keyword, &keyword_raw, 1, line_no, &args, out) {
+        return;
+    }
+    let value = args.into_iter().next().unwrap();
+    out.config.directives.push((line_no, Directive::ScalarString { keyword: keyword.to_string(), value }));
+}
+
+/// chrony `parse_clientloglimit`: exactly one argument, read with `sscanf("%lu")`.
+fn parse_clientloglimit(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    if arity_error("clientloglimit", "clientloglimit", 1, line_no, &args, out) {
+        return;
+    }
+    match crate::config::scan::scan_uint(&args[0]) {
+        Some(value) => out.config.directives.push((
+            line_no,
+            Directive::ScalarUint { keyword: "clientloglimit".into(), value },
+        )),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                format!("clientloglimit value must be an unsigned integer, found '{}'", args[0]))
+                .for_directive("clientloglimit"),
+        ),
+    }
+}
+
+/// chrony `parse_maxchange`: `maxchange <threshold> <delay> <ignore>` read with one
+/// `sscanf("%lf %d %d")` over the line, so a malformed earlier field fails the whole thing.
+fn parse_maxchange(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    if arity_error("maxchange", "maxchange", 3, line_no, &args, out) {
+        return;
+    }
+    match crate::config::scan::scan_maxchange(&args.join(" ")) {
+        Some((threshold, delay, ignore)) => out.config.directives.push((
+            line_no,
+            Directive::MaxChange { threshold, delay, ignore },
+        )),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                format!("maxchange expects '<threshold> <delay> <ignore>', found '{}'", args.join(" ")))
+                .for_directive("maxchange"),
+        ),
+    }
+}
 
 /// chrony `parse_int`: exactly one argument, read with lenient `sscanf("%d")`. Wrong arity
 /// or a non-numeric value is fatal in chrony; here it is a recoverable diagnostic.
@@ -570,6 +649,52 @@ rtcsync
         assert_eq!(
             out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
             Some("Fatal error : Too many arguments for cmdport directive at line 1 in file <FILE>")
+        );
+    }
+
+    #[test]
+    fn string_uint_and_maxchange_directives() {
+        // String directive: one argument, stored verbatim.
+        let out = parse("pidfile /run/chronyd.pid\n");
+        assert!(!out.has_errors(), "{:?}", out.diagnostics);
+        assert_eq!(
+            out.config.directives,
+            vec![(1, Directive::ScalarString { keyword: "pidfile".into(), value: "/run/chronyd.pid".into() })]
+        );
+        // A string directive with a space-containing value is "too many args" in chrony
+        // (no quoting), so two tokens is an arity error, not a two-word path.
+        let out = parse("user chrony extra\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Too many arguments for user directive at line 1 in file <FILE>")
+        );
+
+        // clientloglimit: %lu, lenient trailing junk.
+        let out = parse("clientloglimit 1048576\n");
+        assert_eq!(
+            out.config.directives,
+            vec![(1, Directive::ScalarUint { keyword: "clientloglimit".into(), value: 1048576 })]
+        );
+
+        // maxchange: all three fields parse.
+        let out = parse("maxchange 1.0 30 2\n");
+        assert!(!out.has_errors());
+        assert_eq!(
+            out.config.directives,
+            vec![(1, Directive::MaxChange { threshold: 1.0, delay: 30, ignore: 2 })]
+        );
+        // Trailing junk on the first field makes the second sscanf conversion fail, so the
+        // whole directive fails (a per-token parse would have wrongly accepted it).
+        let out = parse("maxchange 1.0x 30 2\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse maxchange directive at line 1 in file <FILE>")
+        );
+        // Wrong arity for the 3-arg form.
+        let out = parse("maxchange 1.0 30\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Missing arguments for maxchange directive at line 1 in file <FILE>")
         );
     }
 }
