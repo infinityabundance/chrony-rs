@@ -69,6 +69,15 @@ pub enum LogFlag {
     Tempcomp,
 }
 
+/// `tempcomp`'s compensation curve: either a points file or inline coefficients.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub enum TempCompCurve {
+    /// 3-arg form: a file of `(temperature, compensation)` points.
+    PointFile(String),
+    /// 6-arg form: the inline `T0 k0 k1 k2` quadratic coefficients.
+    Coefficients { t0: f64, k0: f64, k1: f64, k2: f64 },
+}
+
 /// A modeled directive, or an unmodeled-but-preserved one.
 ///
 /// Note: only `PartialEq` (not `Eq`) because `MakeStep.threshold` is an `f64`.
@@ -138,6 +147,10 @@ pub enum Directive {
     /// `mailonchange <address> <threshold>` — email a user when the offset on a clock step
     /// exceeds `threshold` seconds.
     MailOnChange { address: String, threshold: f64 },
+    /// `tempcomp <sensor-file> <interval> (<points-file> | <T0> <k0> <k1> <k2>)` —
+    /// temperature compensation. The form is chosen by argument count (3 = points file,
+    /// 6 = inline coefficients).
+    TempComp { sensor_file: String, interval: f64, curve: TempCompCurve },
     /// `ratelimit` / `cmdratelimit` / `ntsratelimit` `[interval N] [burst N] [leak N]`.
     /// The directive's presence enables it; each option is optional and may appear in any
     /// order. chrony reads the value of each option with `sscanf("%d%n")`, advancing past

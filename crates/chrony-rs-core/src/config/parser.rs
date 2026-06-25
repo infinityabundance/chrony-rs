@@ -18,6 +18,7 @@ use super::diagnostics::Diagnostic;
 use super::lexer::{tokenize, TokenLine};
 use super::model::{
     AuthSelectMode, Config, Directive, LeapSecMode, LogFlag, ServerKind, SourceDirective,
+    TempCompCurve,
 };
 
 /// Result of parsing: the (best-effort) config and any diagnostics.
@@ -134,6 +135,7 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "include" => parse_include(line_no, args, out),
         "broadcast" => parse_broadcast(line_no, args, out),
         "mailonchange" => parse_mailonchange(line_no, args, out),
+        "tempcomp" => parse_tempcomp(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -467,6 +469,53 @@ fn parse_log(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
         flags.push(flag);
     }
     out.config.directives.push((line_no, Directive::Log(flags)));
+}
+
+/// chrony `parse_tempcomp`: the form is chosen by argument count — 3 args is the
+/// `<sensor-file> <interval> <points-file>` form, otherwise exactly 6 for the
+/// `<sensor-file> <interval> <T0> <k0> <k1> <k2>` form (its five doubles read with one
+/// `sscanf("%lf %lf %lf %lf %lf")`). A non-numeric value is `command_parse_error`.
+fn parse_tempcomp(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    let point_form = args.len() == 3;
+    if !point_form && args.len() != 6 {
+        let (code, what) = if args.len() < 6 {
+            ("CFG_MISSING_VALUE", "Missing")
+        } else {
+            ("CFG_UNEXPECTED_ARGS", "Too many")
+        };
+        out.diagnostics.push(
+            Diagnostic::error(line_no, code,
+                format!("{what} arguments for tempcomp: expected 3 or 6, found {}", args.len()))
+                .for_directive("tempcomp"),
+        );
+        return;
+    }
+    let bad = |out: &mut ParseOutput| {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", "could not parse tempcomp".to_string())
+                .for_directive("tempcomp"),
+        );
+    };
+    let sensor_file = args[0].clone();
+    if point_form {
+        let Some(interval) = crate::config::scan::scan_double(&args[1]) else {
+            return bad(out);
+        };
+        out.config.directives.push((line_no, Directive::TempComp {
+            sensor_file,
+            interval,
+            curve: TempCompCurve::PointFile(args[2].clone()),
+        }));
+    } else {
+        let Some(v) = crate::config::scan::scan_doubles(&args[1..].join(" "), 5) else {
+            return bad(out);
+        };
+        out.config.directives.push((line_no, Directive::TempComp {
+            sensor_file,
+            interval: v[0],
+            curve: TempCompCurve::Coefficients { t0: v[1], k0: v[2], k1: v[3], k2: v[4] },
+        }));
+    }
 }
 
 /// chrony `parse_broadcast`: `<interval> <address> [port]`. The interval is `sscanf("%d")`
@@ -1309,6 +1358,43 @@ rtcsync
         assert_eq!(
             parse("mailonchange root@localhost soon\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
             Some("Fatal error : Could not parse mailonchange directive at line 1 in file <FILE>")
+        );
+    }
+
+    #[test]
+    fn tempcomp_both_forms() {
+        use crate::config::model::TempCompCurve;
+        // 3-arg points-file form.
+        assert_eq!(
+            parse("tempcomp /sys/temp 30 /etc/chrony/comp.points\n").config.directives,
+            vec![(1, Directive::TempComp {
+                sensor_file: "/sys/temp".into(),
+                interval: 30.0,
+                curve: TempCompCurve::PointFile("/etc/chrony/comp.points".into()),
+            })]
+        );
+        // 6-arg coefficient form (the five doubles via one sscanf).
+        assert_eq!(
+            parse("tempcomp /sys/temp 30 20.0 1.0 0.1 0.01\n").config.directives,
+            vec![(1, Directive::TempComp {
+                sensor_file: "/sys/temp".into(),
+                interval: 30.0,
+                curve: TempCompCurve::Coefficients { t0: 20.0, k0: 1.0, k1: 0.1, k2: 0.01 },
+            })]
+        );
+        // Junk on a non-final coefficient fails the whole sscanf.
+        assert_eq!(
+            parse("tempcomp /sys/temp 30 20.0 1.0x 0.1 0.01\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse tempcomp directive at line 1 in file <FILE>")
+        );
+        // Wrong arity: 4 or 5 args is neither the 3-arg nor 6-arg form -> Missing; >6 -> Too many.
+        assert_eq!(
+            parse("tempcomp /sys/temp 30 20.0 1.0\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Missing arguments for tempcomp directive at line 1 in file <FILE>")
+        );
+        assert_eq!(
+            parse("tempcomp /sys/temp 30 20.0 1.0 0.1 0.01 extra\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Too many arguments for tempcomp directive at line 1 in file <FILE>")
         );
     }
 }

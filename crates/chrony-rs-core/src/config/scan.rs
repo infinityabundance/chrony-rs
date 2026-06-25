@@ -153,6 +153,20 @@ pub fn scan_two_double(line: &str) -> Option<(f64, f64)> {
     Some((a, b))
 }
 
+/// `sscanf("%lf %lf …", line)` for `n` doubles (chrony `tempcomp`'s 5-coefficient form):
+/// all `n` must convert from one left-to-right pass. Returns the values only when all
+/// `n` parse.
+pub fn scan_doubles(line: &str, n: usize) -> Option<Vec<f64>> {
+    let mut vals = Vec::with_capacity(n);
+    let mut rest = line;
+    for _ in 0..n {
+        let (v, consumed) = scan_double_at(rest)?;
+        vals.push(v);
+        rest = &rest[consumed..];
+    }
+    Some(vals)
+}
+
 /// `parse_maxchange`'s `sscanf("%lf %d %d", line)` over the whole (space-normalized) line:
 /// all three fields must convert from one left-to-right pass (a non-final field's trailing
 /// junk makes the next conversion fail). Returns `(threshold, delay, ignore)` only when all
@@ -243,6 +257,22 @@ mod tests {
             let got = scan_two_double(line);
             assert_eq!(got.is_some(), ret == 2, "ST {line} success");
             assert_eq!(got, expected, "ST {line}");
+        }
+    }
+
+    #[test]
+    fn matches_real_c_five_double() {
+        // tempcomp coefficient form: sscanf("%lf %lf %lf %lf %lf"), all five required.
+        for (line, ret, expected) in [
+            ("30 20.0 1.0 0.1 0.01", 5, Some(vec![30.0, 20.0, 1.0, 0.1, 0.01])),
+            ("30 20 1e-1 2e-2 3e-3", 5, Some(vec![30.0, 20.0, 0.1, 0.02, 0.003])),
+            ("30 20 1.0x 0.1 0.01", 3, None),      // junk on 3rd field fails
+            ("30 20 1.0 0.1", 4, None),            // short
+            ("30 20 1.0 0.1 0.01x", 5, Some(vec![30.0, 20.0, 1.0, 0.1, 0.01])), // junk on last is fine
+        ] {
+            let got = scan_doubles(line, 5);
+            assert_eq!(got.is_some(), ret == 5, "TC {line} success");
+            assert_eq!(got, expected, "TC {line}");
         }
     }
 }
