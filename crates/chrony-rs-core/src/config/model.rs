@@ -106,6 +106,14 @@ pub enum Directive {
     AuthSelectMode(AuthSelectMode),
     /// `log <flag>...` — the enabled logging categories, in declaration order.
     Log(Vec<LogFlag>),
+    /// `allow` / `deny` / `cmdallow` / `cmddeny` — an access-control restriction. `allow`
+    /// is the allow/deny sense; `cmd` selects the command (vs NTP) restriction table. The
+    /// `spec` is chrony's parsed `CPS_ParseAllowDeny` output (feed into the addrfilt table).
+    AccessRestriction { allow: bool, cmd: bool, spec: crate::cmdparse::AllowDeny },
+    /// `initstepslew <threshold> [source]...` — the step threshold and the source
+    /// host strings (resolution is a daemon-time boundary, deferred). Ignored at runtime
+    /// when chronyd was started with `-R`, which is not a parse concern.
+    InitStepSlew { threshold: f64, sources: Vec<String> },
     /// `ratelimit` / `cmdratelimit` / `ntsratelimit` `[interval N] [burst N] [leak N]`.
     /// The directive's presence enables it; each option is optional and may appear in any
     /// order. chrony reads the value of each option with `sscanf("%d%n")`, advancing past

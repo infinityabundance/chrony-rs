@@ -239,7 +239,7 @@ fn scan_leading_f64(s: &str) -> Option<(f64, usize)> {
 /// A parsed `allow`/`deny` subnet specification (chrony's `CPS_ParseAllowDeny`
 /// outputs). `all` selects the prune (`*All`) variant; feed these straight into
 /// [`crate::addrfilt::AuthTable`].
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AllowDeny {
     /// The `all` keyword was present (use the `AllowAll`/`DenyAll` prune variant).
     pub all: bool,

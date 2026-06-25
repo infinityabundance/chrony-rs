@@ -121,6 +121,11 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "ratelimit" | "cmdratelimit" | "ntsratelimit" => {
             parse_ratelimit(keyword.as_str(), line_no, args, out)
         }
+        "allow" => parse_access(line_no, true, false, args, out),
+        "deny" => parse_access(line_no, false, false, args, out),
+        "cmdallow" => parse_access(line_no, true, true, args, out),
+        "cmddeny" => parse_access(line_no, false, true, args, out),
+        "initstepslew" => parse_initstepslew(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -454,6 +459,54 @@ fn parse_log(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
         flags.push(flag);
     }
     out.config.directives.push((line_no, Directive::Log(flags)));
+}
+
+/// chrony `parse_allow_deny`: parse the access spec via the ported `CPS_ParseAllowDeny`
+/// ([`crate::cmdparse::parse_allow_deny`]) and record an [`Directive::AccessRestriction`].
+/// `allow` is the allow/deny sense; `cmd` selects the command table. A malformed spec is
+/// chrony's `command_parse_error`. (A bare hostname resolves at daemon time in chrony; the
+/// ported parser defers DNS, so an unresolved hostname reads as a parse failure here.)
+fn parse_access(line_no: usize, allow: bool, cmd: bool, args: Vec<String>, out: &mut ParseOutput) {
+    let keyword = match (allow, cmd) {
+        (true, false) => "allow",
+        (false, false) => "deny",
+        (true, true) => "cmdallow",
+        (false, true) => "cmddeny",
+    };
+    match crate::cmdparse::parse_allow_deny(&args.join(" ")) {
+        Some(spec) => out
+            .config
+            .directives
+            .push((line_no, Directive::AccessRestriction { allow, cmd, spec })),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", format!("could not parse {keyword} spec"))
+                .for_directive(keyword),
+        ),
+    }
+}
+
+/// chrony `parse_initstepslew`: the first word is the step threshold (`sscanf("%lf")`); the
+/// remaining words are source host strings (chrony resolves them via DNS — deferred here,
+/// so they are kept verbatim). An empty line (no threshold) is `command_parse_error`.
+fn parse_initstepslew(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    let Some((threshold_tok, sources)) = args.split_first() else {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", "initstepslew needs a threshold".to_string())
+                .for_directive("initstepslew"),
+        );
+        return;
+    };
+    match crate::config::scan::scan_double(threshold_tok) {
+        Some(threshold) => out.config.directives.push((
+            line_no,
+            Directive::InitStepSlew { threshold, sources: sources.to_vec() },
+        )),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                format!("initstepslew threshold must be a number, found '{threshold_tok}'"))
+                .for_directive("initstepslew"),
+        ),
+    }
 }
 
 /// chrony `parse_ratelimit`: the `[interval N] [burst N] [leak N]` key-value loop. The
@@ -915,5 +968,76 @@ rtcsync
             assert_eq!(rl.1, opt(l, "burst"), "{tag} burst");
             assert_eq!(rl.2, opt(l, "leak"), "{tag} leak");
         }
+    }
+
+    #[test]
+    fn access_restriction_directives() {
+        use crate::addrfilt::Subnet;
+        use crate::cmdparse::AllowDeny;
+        let v4 = |s: &str| Subnet::V4(s.parse().unwrap());
+
+        // Bare `allow` = all addresses; keyword sets allow/cmd flags.
+        assert_eq!(
+            parse("allow\n").config.directives,
+            vec![(1, Directive::AccessRestriction {
+                allow: true, cmd: false,
+                spec: AllowDeny { all: false, subnet: Subnet::Unspec, subnet_bits: 0 },
+            })]
+        );
+        // `deny all`.
+        assert_eq!(
+            parse("deny all\n").config.directives,
+            vec![(1, Directive::AccessRestriction {
+                allow: false, cmd: false,
+                spec: AllowDeny { all: true, subnet: Subnet::Unspec, subnet_bits: 0 },
+            })]
+        );
+        // Full subnet, command table.
+        assert_eq!(
+            parse("cmdallow 10.0.0.0/8\n").config.directives,
+            vec![(1, Directive::AccessRestriction {
+                allow: true, cmd: true,
+                spec: AllowDeny { all: false, subnet: v4("10.0.0.0"), subnet_bits: 8 },
+            })]
+        );
+        // Shortened IPv4 notation (192.168 = 192.168.0.0/16), deny + command table.
+        assert_eq!(
+            parse("cmddeny 192.168\n").config.directives,
+            vec![(1, Directive::AccessRestriction {
+                allow: false, cmd: true,
+                spec: AllowDeny { all: false, subnet: v4("192.168.0.0"), subnet_bits: 16 },
+            })]
+        );
+        // Malformed spec -> command_parse_error.
+        let out = parse("allow 1.2.3.4/bogus\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse allow directive at line 1 in file <FILE>")
+        );
+    }
+
+    #[test]
+    fn initstepslew_directive() {
+        // Threshold + source host strings (resolution deferred, kept verbatim).
+        assert_eq!(
+            parse("initstepslew 30 ntp1.example ntp2.example\n").config.directives,
+            vec![(1, Directive::InitStepSlew {
+                threshold: 30.0,
+                sources: vec!["ntp1.example".into(), "ntp2.example".into()],
+            })]
+        );
+        // Threshold only, no sources.
+        assert_eq!(
+            parse("initstepslew 5.5\n").config.directives,
+            vec![(1, Directive::InitStepSlew { threshold: 5.5, sources: vec![] })]
+        );
+        // No threshold -> parse error.
+        let out = parse("initstepslew\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse initstepslew directive at line 1 in file <FILE>")
+        );
+        // Non-numeric threshold -> parse error.
+        assert!(parse("initstepslew foo ntp1\n").has_errors());
     }
 }

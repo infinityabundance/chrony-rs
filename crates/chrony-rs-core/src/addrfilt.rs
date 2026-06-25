@@ -61,7 +61,7 @@ pub enum AdfStatus {
 
 /// A subnet specifier for `allow`/`deny`: a v4 or v6 address, or `Unspec` (apply
 /// to both families, only valid with a zero subnet width — chrony's `IPADDR_UNSPEC`).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Subnet {
     V4(Ipv4Addr),
     V6(Ipv6Addr),
