@@ -37,6 +37,38 @@ pub struct SourceDirective {
     pub raw_options: Vec<String>,
 }
 
+/// `leapsecmode` value (chrony `REF_LeapMode`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum LeapSecMode {
+    System,
+    Slew,
+    Step,
+    Ignore,
+}
+
+/// `authselectmode` value (chrony `SRC_AuthSelectMode`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum AuthSelectMode {
+    Require,
+    Prefer,
+    Mix,
+    Ignore,
+}
+
+/// A `log` flag (chrony's `parse_log` keywords, matched case-sensitively). `RawMeasurements`
+/// additionally implies measurement logging in chrony.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum LogFlag {
+    RawMeasurements,
+    Measurements,
+    Selection,
+    Statistics,
+    Tracking,
+    Rtc,
+    Refclocks,
+    Tempcomp,
+}
+
 /// A modeled directive, or an unmodeled-but-preserved one.
 ///
 /// Note: only `PartialEq` (not `Eq`) because `MakeStep.threshold` is an `f64`.
@@ -68,6 +100,12 @@ pub enum Directive {
     /// `maxchange <threshold> <delay> <ignore>` — chrony reads all three with one
     /// `sscanf("%lf %d %d")`, so a malformed earlier field fails the whole directive.
     MaxChange { threshold: f64, delay: i32, ignore: i32 },
+    /// `leapsecmode <mode>`.
+    LeapSecMode(LeapSecMode),
+    /// `authselectmode <mode>`.
+    AuthSelectMode(AuthSelectMode),
+    /// `log <flag>...` — the enabled logging categories, in declaration order.
+    Log(Vec<LogFlag>),
     /// A recognized keyword whose semantics chrony-rs does not yet model. The full
     /// original token line is retained.
     Unmodeled {

@@ -16,7 +16,9 @@
 
 use super::diagnostics::Diagnostic;
 use super::lexer::{tokenize, TokenLine};
-use super::model::{Config, Directive, ServerKind, SourceDirective};
+use super::model::{
+    AuthSelectMode, Config, Directive, LeapSecMode, LogFlag, ServerKind, SourceDirective,
+};
 
 /// Result of parsing: the (best-effort) config and any diagnostics.
 #[derive(Clone, Debug, Default)]
@@ -113,6 +115,9 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "makestep" => parse_makestep(line_no, args, out),
         "maxchange" => parse_maxchange(line_no, args, out),
         "clientloglimit" => parse_clientloglimit(line_no, args, out),
+        "leapsecmode" => parse_leapsecmode(line_no, args, out),
+        "authselectmode" => parse_authselectmode(line_no, args, out),
+        "log" => parse_log(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -379,6 +384,73 @@ fn parse_maxchange(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
                 .for_directive("maxchange"),
         ),
     }
+}
+
+/// chrony `parse_leapsecmode`: a single keyword matched case-insensitively against the whole
+/// value (so extra tokens never match → parse error). chrony emits `command_parse_error`
+/// for any non-match (including wrong arity), so this is never an arity diagnostic.
+fn parse_leapsecmode(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    let mode = match args.join(" ").to_ascii_lowercase().as_str() {
+        "system" => Some(LeapSecMode::System),
+        "slew" => Some(LeapSecMode::Slew),
+        "step" => Some(LeapSecMode::Step),
+        "ignore" => Some(LeapSecMode::Ignore),
+        _ => None,
+    };
+    match mode {
+        Some(m) => out.config.directives.push((line_no, Directive::LeapSecMode(m))),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", "invalid leapsecmode".to_string())
+                .for_directive("leapsecmode"),
+        ),
+    }
+}
+
+/// chrony `parse_authselectmode`: a single keyword (case-insensitive over the whole value).
+fn parse_authselectmode(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    let mode = match args.join(" ").to_ascii_lowercase().as_str() {
+        "require" => Some(AuthSelectMode::Require),
+        "prefer" => Some(AuthSelectMode::Prefer),
+        "mix" => Some(AuthSelectMode::Mix),
+        "ignore" => Some(AuthSelectMode::Ignore),
+        _ => None,
+    };
+    match mode {
+        Some(m) => out.config.directives.push((line_no, Directive::AuthSelectMode(m))),
+        None => out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", "invalid authselectmode".to_string())
+                .for_directive("authselectmode"),
+        ),
+    }
+}
+
+/// chrony `parse_log`: a list of logging-category flags, matched **case-sensitively**
+/// (`strcmp`). A bare `log` enables nothing. An unrecognized flag is chrony's
+/// `other_parse_error("Invalid log parameter")` and stops parsing the line; the flags read
+/// before it are still kept (chrony has already set them).
+fn parse_log(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    let mut flags = Vec::new();
+    for arg in &args {
+        let flag = match arg.as_str() {
+            "rawmeasurements" => LogFlag::RawMeasurements,
+            "measurements" => LogFlag::Measurements,
+            "selection" => LogFlag::Selection,
+            "statistics" => LogFlag::Statistics,
+            "tracking" => LogFlag::Tracking,
+            "rtc" => LogFlag::Rtc,
+            "refclocks" => LogFlag::Refclocks,
+            "tempcomp" => LogFlag::Tempcomp,
+            _ => {
+                out.diagnostics.push(
+                    Diagnostic::error(line_no, "CFG_INVALID_LOG_PARAM", format!("invalid log parameter '{arg}'"))
+                        .for_directive("log"),
+                );
+                break;
+            }
+        };
+        flags.push(flag);
+    }
+    out.config.directives.push((line_no, Directive::Log(flags)));
 }
 
 /// chrony `parse_int`: exactly one argument, read with lenient `sscanf("%d")`. Wrong arity
@@ -695,6 +767,56 @@ rtcsync
         assert_eq!(
             out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
             Some("Fatal error : Missing arguments for maxchange directive at line 1 in file <FILE>")
+        );
+    }
+
+    #[test]
+    fn enum_and_log_directives() {
+        // leapsecmode: case-insensitive keyword.
+        assert_eq!(
+            parse("leapsecmode slew\n").config.directives,
+            vec![(1, Directive::LeapSecMode(LeapSecMode::Slew))]
+        );
+        assert_eq!(
+            parse("leapsecmode IGNORE\n").config.directives,
+            vec![(1, Directive::LeapSecMode(LeapSecMode::Ignore))]
+        );
+        // chrony matches the whole value, so an extra token never matches -> parse error.
+        let out = parse("leapsecmode slew extra\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse leapsecmode directive at line 1 in file <FILE>")
+        );
+        // Unknown keyword -> parse error.
+        assert!(parse("leapsecmode bogus\n").has_errors());
+
+        // authselectmode.
+        assert_eq!(
+            parse("authselectmode require\n").config.directives,
+            vec![(1, Directive::AuthSelectMode(AuthSelectMode::Require))]
+        );
+
+        // log: a list of flags, in order; a bare `log` enables nothing.
+        assert_eq!(
+            parse("log measurements statistics tracking\n").config.directives,
+            vec![(1, Directive::Log(vec![LogFlag::Measurements, LogFlag::Statistics, LogFlag::Tracking]))]
+        );
+        assert_eq!(parse("log\n").config.directives, vec![(1, Directive::Log(vec![]))]);
+        // log flags are case-SENSITIVE (chrony uses strcmp, not strcasecmp).
+        let out = parse("log Measurements\n");
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Invalid log parameter at line 1 in file <FILE>")
+        );
+        // An unknown flag stops parsing but keeps the flags read before it.
+        let out = parse("log tracking bogus rtc\n");
+        assert_eq!(
+            out.config.directives,
+            vec![(1, Directive::Log(vec![LogFlag::Tracking]))]
+        );
+        assert_eq!(
+            out.diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Invalid log parameter at line 1 in file <FILE>")
         );
     }
 }
