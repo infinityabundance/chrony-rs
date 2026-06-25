@@ -65,3 +65,42 @@ fn interleaved_reuse_rejected() {
     // Non-interleaved is unaffected by those flags.
     assert!(passes_test_a_client(0.1, 1e-6, 1e-6, 16.0, 0, 0.01, false, true, true), "basic");
 }
+
+fn sfield<'a>(line: &'a str, key: &str) -> &'a str {
+    line.split_whitespace().find_map(|t| t.strip_prefix(&format!("{key}="))).unwrap()
+}
+
+#[test]
+fn matches_real_c_test_a_active() {
+    use crate::util::ntp64_to_timespec;
+    let v = include_str!("../../../../../research/oracle/ntp_core-testa-active-c-vectors.txt");
+    // sys precision quantum the generator used; precision = sysq + 2^precision_log.
+    const SYSQ: f64 = 1e-9;
+    for tag in ["TA_ACT_PASS", "TA_ACT_CMP", "TA_ACT_POLL", "TA_ACT_DELAY"] {
+        let l = v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+        let precision_log: i32 = sfield(l, "precision_log").parse().unwrap();
+        let precision = SYSQ + crate::util::log2_to_double(precision_log);
+        let transmit_ts: u64 = sfield(l, "transmit_ts").parse().unwrap();
+        let prior_remote_ntp_tx: u64 = sfield(l, "prior_remote_ntp_tx").parse().unwrap();
+        // remote_transmit = Ntp64ToTimespec(transmit_ts); prev = Ntp64ToTimespec(prior tx). (era split 0)
+        let remote_transmit = ntp64_to_timespec((transmit_ts >> 32) as u32, transmit_ts as u32, 0);
+        let prev_remote_transmit =
+            ntp64_to_timespec((prior_remote_ntp_tx >> 32) as u32, prior_remote_ntp_tx as u32, 0);
+        let got = passes_test_a_active(
+            field(l, "peer_delay"),
+            field(l, "peer_dispersion"),
+            precision,
+            16.0,
+            0,
+            true,
+            sfield(l, "receive_ts").parse().unwrap(),
+            transmit_ts,
+            sfield(l, "remote_poll").parse().unwrap(),
+            sfield(l, "prev_local_poll").parse().unwrap(),
+            remote_transmit,
+            prev_remote_transmit,
+        );
+        let expected = sfield(l, "testA") == "1";
+        assert_eq!(got, expected, "{tag}");
+    }
+}
