@@ -22,6 +22,7 @@ pub mod ext;
 pub mod lifecycle;
 pub mod local_ts;
 mod measurements;
+pub mod ntp_report;
 pub mod opmode;
 mod packet;
 pub mod params;
