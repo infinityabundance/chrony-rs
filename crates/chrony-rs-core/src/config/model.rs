@@ -131,6 +131,9 @@ pub enum Directive {
     MakeStep { threshold: f64, limit: i32 },
     /// `rtcsync` — a bare flag directive.
     RtcSync,
+    /// A bare-flag directive (chrony `parse_null`): `lock_all`, `manual`, `noclientlog`,
+    /// `nosystemcert`, `rtconutc`. Takes no arguments.
+    Flag { keyword: String },
     /// A single-integer directive (e.g. `cmdport 0`), parsed with chrony's lenient
     /// `sscanf("%d")` semantics. The keyword is kept lowercased.
     ScalarInt { keyword: String, value: i32 },

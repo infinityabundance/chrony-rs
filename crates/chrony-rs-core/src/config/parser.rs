@@ -162,6 +162,13 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         other if SCALAR_STRING_DIRECTIVES.contains(&other) => {
             parse_scalar_string(other, keyword_raw, line_no, args, out)
         }
+        other if FLAG_DIRECTIVES.contains(&other) => {
+            // chrony parse_null: exactly zero arguments.
+            if arity_error(other, &keyword_raw, 0, line_no, &args, out) {
+                return;
+            }
+            out.config.directives.push((line_no, Directive::Flag { keyword: other.to_string() }));
+        }
         other if is_known_directive(other) => {
             // Recognized chrony keyword we have not modeled. Preserve it; do NOT
             // emit a diagnostic — a valid chrony file must still check-config clean.
@@ -323,13 +330,16 @@ fn parse_driftfile(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
 /// Single-value `int` directives (chrony `conf.c`: `parse_int(p, &global)`). Each takes
 /// exactly one argument parsed with `sscanf("%d")` (see [`crate::config::scan::scan_int`]).
 const SCALAR_INT_DIRECTIVES: &[&str] = &[
-    "cmdport", "ntpport", "ptpport", "maxsamples", "minsamples", "minsources",
+    "cmdport", "port", "ptpport", "maxsamples", "minsamples", "minsources",
+    "acquisitionport", "dscp", "logbanner", "maxntsconnections", "nocerttimecheck", "ntsport",
+    "ntsprocesses", "ntsrefresh", "ntsrotate", "refresh", "sched_priority",
 ];
 
 /// Single-value `double` directives (chrony `conf.c`: `parse_double(p, &global)`).
 const SCALAR_DOUBLE_DIRECTIVES: &[&str] = &[
     "clockprecision", "combinelimit", "corrtimeratio", "maxclockerror", "maxdistance",
-    "maxdrift", "maxjitter", "maxslewrate", "maxupdateskew", "reselectdistance", "stratumweight",
+    "maxdrift", "maxjitter", "maxslewrate", "maxupdateskew", "reselectdist", "stratumweight",
+    "hwtstimeout", "logchange", "rtcautotrim",
 ];
 
 /// Single-value string directives (chrony `conf.c`: `parse_string(p, &global)`). Each takes
@@ -338,8 +348,12 @@ const SCALAR_DOUBLE_DIRECTIVES: &[&str] = &[
 const SCALAR_STRING_DIRECTIVES: &[&str] = &[
     "bindacqdevice", "bindcmddevice", "binddevice", "dumpdir", "hwclockfile", "keyfile",
     "leapsectz", "logdir", "ntpsigndsocket", "ntsdumpdir", "pidfile", "rtcdevice", "rtcfile",
-    "user",
+    "user", "ntscachedir", "ntsntpserver",
 ];
+
+/// Bare-flag directives (chrony `conf.c`: `parse_null(p)`) — exactly zero arguments; the
+/// directive's presence is the value.
+const FLAG_DIRECTIVES: &[&str] = &["lock_all", "manual", "noclientlog", "nosystemcert", "rtconutc"];
 
 /// Emit chrony's `check_number_of_args` arity diagnostic (`Missing`/`Too many`) when
 /// `args.len() != want`. Returns `true` if the arity is wrong (caller should stop).
@@ -1150,9 +1164,9 @@ rtcsync
 
     #[test]
     fn recognized_but_unmodeled_directive_is_not_an_error() {
-        // `rtconutc` is a real chrony directive we don't model yet. A file
-        // using it must still pass check-config.
-        let out = parse("rtconutc\n");
+        // `ntsservercert` is a real chrony directive we don't model yet (parse_ntsserver,
+        // a multi-file form). A file using it must still pass check-config.
+        let out = parse("ntsservercert /etc/chrony/cert.pem\n");
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
         assert!(matches!(
             out.config.directives[0].1,
@@ -1774,6 +1788,48 @@ rtcsync
         assert_eq!(
             parse("refclock SHM 0 stratum 99\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
             Some("Fatal error : Could not parse refclock directive at line 1 in file <FILE>")
+        );
+    }
+
+    #[test]
+    fn remaining_scalars_strings_and_flags() {
+        // The real directive names are `port` and `reselectdist` (earlier dead entries
+        // `ntpport`/`reselectdistance` matched no chrony directive).
+        assert_eq!(
+            parse("port 0\n").config.directives,
+            vec![(1, Directive::ScalarInt { keyword: "port".into(), value: 0 })]
+        );
+        assert_eq!(
+            parse("reselectdist 1e-4\n").config.directives,
+            vec![(1, Directive::ScalarDouble { keyword: "reselectdist".into(), value: 1e-4 })]
+        );
+        // A few newly-modeled scalars.
+        assert_eq!(
+            parse("sched_priority 50\n").config.directives,
+            vec![(1, Directive::ScalarInt { keyword: "sched_priority".into(), value: 50 })]
+        );
+        assert_eq!(
+            parse("logchange 0.5\n").config.directives,
+            vec![(1, Directive::ScalarDouble { keyword: "logchange".into(), value: 0.5 })]
+        );
+        // New string directives.
+        assert_eq!(
+            parse("ntscachedir /var/cache/chrony\n").config.directives,
+            vec![(1, Directive::ScalarString { keyword: "ntscachedir".into(), value: "/var/cache/chrony".into() })]
+        );
+
+        // Bare flags (parse_null): exactly zero args.
+        for kw in ["lock_all", "manual", "noclientlog", "nosystemcert", "rtconutc"] {
+            assert_eq!(
+                parse(&format!("{kw}\n")).config.directives,
+                vec![(1, Directive::Flag { keyword: kw.into() })],
+                "{kw}"
+            );
+        }
+        // A flag with an argument is "Too many arguments".
+        assert_eq!(
+            parse("rtconutc yes\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Too many arguments for rtconutc directive at line 1 in file <FILE>")
         );
     }
 }
