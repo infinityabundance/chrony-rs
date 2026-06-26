@@ -138,6 +138,7 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "tempcomp" => parse_tempcomp(line_no, args, out),
         "hwtimestamp" => parse_hwtimestamp(line_no, args, out),
         "refclock" => parse_refclock(line_no, args, out),
+        "ntstrustedcerts" => parse_ntstrustedcerts(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -348,7 +349,7 @@ const SCALAR_DOUBLE_DIRECTIVES: &[&str] = &[
 const SCALAR_STRING_DIRECTIVES: &[&str] = &[
     "bindacqdevice", "bindcmddevice", "binddevice", "dumpdir", "hwclockfile", "keyfile",
     "leapsectz", "logdir", "ntpsigndsocket", "ntsdumpdir", "pidfile", "rtcdevice", "rtcfile",
-    "user", "ntscachedir", "ntsntpserver",
+    "user", "ntscachedir", "ntsntpserver", "ntsservercert", "ntsserverkey",
 ];
 
 /// Bare-flag directives (chrony `conf.c`: `parse_null(p)`) — exactly zero arguments; the
@@ -506,6 +507,38 @@ fn refclock_refid(s: &str, id: &mut u32) -> Option<usize> {
         None
     } else {
         Some(i)
+    }
+}
+
+/// chrony `parse_ntstrustedcerts`: `[<id>] <path>`. The 2-argument form is `<id> <path>`
+/// (the id parsed with `sscanf("%u")`); the 1-argument form is just `<path>` with id 0. The
+/// form is chosen by argument count; 0 args is Missing, more than 2 is Too many.
+fn parse_ntstrustedcerts(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    match args.len() {
+        2 => match crate::config::scan::scan_uint(&args[0]) {
+            Some(id) => out.config.directives.push((
+                line_no,
+                Directive::NtsTrustedCerts { id: id as u32, path: args[1].clone() },
+            )),
+            None => out.diagnostics.push(
+                Diagnostic::error(line_no, "CFG_BAD_NUMBER",
+                    format!("ntstrustedcerts id must be an unsigned integer, found '{}'", args[0]))
+                    .for_directive("ntstrustedcerts"),
+            ),
+        },
+        1 => out.config.directives.push((
+            line_no,
+            Directive::NtsTrustedCerts { id: 0, path: args[0].clone() },
+        )),
+        n => {
+            // chrony's else branch: check_number_of_args(line, 1).
+            let (code, what) = if n < 1 { ("CFG_MISSING_VALUE", "Missing") } else { ("CFG_UNEXPECTED_ARGS", "Too many") };
+            out.diagnostics.push(
+                Diagnostic::error(line_no, code,
+                    format!("{what} arguments for ntstrustedcerts: expected 1 or 2, found {n}"))
+                    .for_directive("ntstrustedcerts"),
+            );
+        }
     }
 }
 
@@ -1164,9 +1197,9 @@ rtcsync
 
     #[test]
     fn recognized_but_unmodeled_directive_is_not_an_error() {
-        // `ntsservercert` is a real chrony directive we don't model yet (parse_ntsserver,
-        // a multi-file form). A file using it must still pass check-config.
-        let out = parse("ntsservercert /etc/chrony/cert.pem\n");
+        // `dumponexit` is a real chrony directive that is silently ignored (no parse). A
+        // file using it must still pass check-config.
+        let out = parse("dumponexit\n");
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
         assert!(matches!(
             out.config.directives[0].1,
@@ -1830,6 +1863,44 @@ rtcsync
         assert_eq!(
             parse("rtconutc yes\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
             Some("Fatal error : Too many arguments for rtconutc directive at line 1 in file <FILE>")
+        );
+    }
+
+    #[test]
+    fn nts_file_directives() {
+        // ntsservercert/ntsserverkey are parse_string (one path), modeled as ScalarString
+        // so repeated lines accumulate in order (the chrony list semantics).
+        let out = parse("ntsservercert /a.pem\nntsservercert /b.pem\nntsserverkey /k.pem\n");
+        assert!(!out.has_errors());
+        assert_eq!(out.config.directives, vec![
+            (1, Directive::ScalarString { keyword: "ntsservercert".into(), value: "/a.pem".into() }),
+            (2, Directive::ScalarString { keyword: "ntsservercert".into(), value: "/b.pem".into() }),
+            (3, Directive::ScalarString { keyword: "ntsserverkey".into(), value: "/k.pem".into() }),
+        ]);
+
+        // ntstrustedcerts: 1-arg form (id 0).
+        assert_eq!(
+            parse("ntstrustedcerts /etc/chrony/certs.pem\n").config.directives,
+            vec![(1, Directive::NtsTrustedCerts { id: 0, path: "/etc/chrony/certs.pem".into() })]
+        );
+        // 2-arg form: <id> <path>.
+        assert_eq!(
+            parse("ntstrustedcerts 7 /etc/chrony/certs.pem\n").config.directives,
+            vec![(1, Directive::NtsTrustedCerts { id: 7, path: "/etc/chrony/certs.pem".into() })]
+        );
+        // Bad id in the 2-arg form -> parse error.
+        assert_eq!(
+            parse("ntstrustedcerts xyz /path\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse ntstrustedcerts directive at line 1 in file <FILE>")
+        );
+        // No args -> Missing; >2 -> Too many.
+        assert_eq!(
+            parse("ntstrustedcerts\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Missing arguments for ntstrustedcerts directive at line 1 in file <FILE>")
+        );
+        assert_eq!(
+            parse("ntstrustedcerts 1 /a /b\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Too many arguments for ntstrustedcerts directive at line 1 in file <FILE>")
         );
     }
 }

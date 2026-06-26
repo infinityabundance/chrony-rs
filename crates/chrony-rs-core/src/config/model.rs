@@ -210,6 +210,9 @@ pub enum Directive {
     /// `refclock <driver> <parameter> [option...]` — a reference clock source and its
     /// driver-specific option loop.
     Refclock(RefclockParams),
+    /// `ntstrustedcerts [<id>] <path>` — a trusted-certs file, optionally tagged with a
+    /// numeric server id (1-arg form uses id 0).
+    NtsTrustedCerts { id: u32, path: String },
     /// `ratelimit` / `cmdratelimit` / `ntsratelimit` `[interval N] [burst N] [leak N]`.
     /// The directive's presence enables it; each option is optional and may appear in any
     /// order. chrony reads the value of each option with `sscanf("%d%n")`, advancing past
