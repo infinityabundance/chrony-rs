@@ -17,8 +17,8 @@
 use super::diagnostics::Diagnostic;
 use super::lexer::{tokenize, TokenLine};
 use super::model::{
-    AuthSelectMode, Config, Directive, HwTsRxFilter, LeapSecMode, LogFlag, ServerKind,
-    SourceDirective, TempCompCurve,
+    AuthSelectMode, Config, Directive, HwTsRxFilter, LeapSecMode, LogFlag, RefclockParams,
+    ServerKind, SourceDirective, TempCompCurve,
 };
 
 /// Result of parsing: the (best-effort) config and any diagnostics.
@@ -137,6 +137,7 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "mailonchange" => parse_mailonchange(line_no, args, out),
         "tempcomp" => parse_tempcomp(line_no, args, out),
         "hwtimestamp" => parse_hwtimestamp(line_no, args, out),
+        "refclock" => parse_refclock(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -470,6 +471,153 @@ fn parse_log(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
         flags.push(flag);
     }
     out.config.directives.push((line_no, Directive::Log(flags)));
+}
+
+/// `CPS_ParseRefid` for the refclock loop: pack up to 4 leading non-space chars big-endian
+/// into `*id` and return the consumed count. `None` (chrony's `0`) when the token is empty
+/// or longer than 4 chars — note the first 4 chars are still packed into `*id` in the
+/// overflow case, matching the C (which sets the value before returning the error).
+fn refclock_refid(s: &str, id: &mut u32) -> Option<usize> {
+    *id = 0;
+    let b = s.as_bytes();
+    let mut i = 0;
+    while i < b.len() && !matches!(b[i], b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r') {
+        if i >= 4 {
+            return None;
+        }
+        *id |= (b[i] as u32) << (24 - i * 8);
+        i += 1;
+    }
+    if i == 0 {
+        None
+    } else {
+        Some(i)
+    }
+}
+
+/// chrony `parse_refclock`: `<driver> <parameter>` (both required) plus a driver-option
+/// loop with the same `CPS_SplitWord` + `sscanf %d%n`/`%lf%n` advance-by-consumed machinery
+/// as `hwtimestamp`. Options: `refid`/`lock` (`CPS_ParseRefid`), ints
+/// (`poll`/`dpoll`/`filter`/`rate`/`minsamples`/`maxlockage`/`maxsamples`/`stratum`),
+/// doubles (`offset`/`delay`/`precision`/`maxdispersion`/`width`), flags
+/// (`local`/`pps`/`tai`), and the select options (`noselect`/`prefer`/`require`/`trust`).
+/// A known option with a bad value is `command_parse_error`; an *unknown* option is
+/// `other_parse_error("Invalid refclock option")`. Unlike `hwtimestamp`, the source is only
+/// recorded on success (chrony allocates it after the loop).
+fn parse_refclock(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    let cpe = |out: &mut ParseOutput| {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", "could not parse refclock".to_string())
+                .for_directive("refclock"),
+        );
+    };
+    if args.len() < 2 {
+        return cpe(out); // missing driver and/or parameter
+    }
+    use crate::config::scan::{scan_double_at, scan_int_at};
+    let mut p = RefclockParams {
+        driver_name: args[0].clone(),
+        driver_parameter: args[1].clone(),
+        poll: 4,
+        driver_poll: 0,
+        filter_length: 64,
+        local: false,
+        pps_forced: false,
+        pps_rate: 0,
+        min_samples: -1,
+        max_samples: -1,
+        sel_options: 0,
+        stratum: 0,
+        tai: false,
+        max_lock_age: 2,
+        ref_id: 0,
+        lock_ref_id: 0,
+        offset: 0.0,
+        delay: 1e-9,
+        precision: 0.0,
+        max_dispersion: 0.0,
+        pulse_width: 0.0,
+    };
+    let opts = args[2..].join(" ");
+    let mut rest = opts.as_str();
+    let mut broke = false;
+    loop {
+        let (cmd, after) = crate::cmdparse::split_word(rest);
+        if cmd.is_empty() {
+            break;
+        }
+        let int_opt = |after: &str| scan_int_at(after);
+        let consumed: Option<usize> = match cmd.to_ascii_lowercase().as_str() {
+            "refid" => refclock_refid(after, &mut p.ref_id),
+            "lock" => refclock_refid(after, &mut p.lock_ref_id),
+            "poll" => int_opt(after).map(|(v, c)| (p.poll = v, c).1),
+            "dpoll" => int_opt(after).map(|(v, c)| (p.driver_poll = v, c).1),
+            "filter" => int_opt(after).map(|(v, c)| (p.filter_length = v, c).1),
+            "rate" => int_opt(after).map(|(v, c)| (p.pps_rate = v, c).1),
+            "minsamples" => int_opt(after).map(|(v, c)| (p.min_samples = v, c).1),
+            "maxlockage" => int_opt(after).map(|(v, c)| (p.max_lock_age = v, c).1),
+            "maxsamples" => int_opt(after).map(|(v, c)| (p.max_samples = v, c).1),
+            "stratum" => match int_opt(after) {
+                Some((v, c)) if (0..16).contains(&v) => {
+                    p.stratum = v;
+                    Some(c)
+                }
+                // chrony sets stratum before the range check, then breaks.
+                Some((v, _)) => {
+                    p.stratum = v;
+                    None
+                }
+                None => None,
+            },
+            "offset" => scan_double_at(after).map(|(v, c)| (p.offset = v, c).1),
+            "delay" => scan_double_at(after).map(|(v, c)| (p.delay = v, c).1),
+            "precision" => scan_double_at(after).map(|(v, c)| (p.precision = v, c).1),
+            "maxdispersion" => scan_double_at(after).map(|(v, c)| (p.max_dispersion = v, c).1),
+            "width" => scan_double_at(after).map(|(v, c)| (p.pulse_width = v, c).1),
+            "local" => {
+                p.local = true;
+                Some(0)
+            }
+            "pps" => {
+                p.pps_forced = true;
+                Some(0)
+            }
+            "tai" => {
+                p.tai = true;
+                Some(0)
+            }
+            "noselect" => sel_option(&mut p.sel_options, 0x1),
+            "prefer" => sel_option(&mut p.sel_options, 0x2),
+            "trust" => sel_option(&mut p.sel_options, 0x4),
+            "require" => sel_option(&mut p.sel_options, 0x8),
+            _ => {
+                // Unknown option: other_parse_error, no source recorded.
+                out.diagnostics.push(
+                    Diagnostic::error(line_no, "CFG_INVALID_REFCLOCK_OPT", format!("invalid refclock option '{cmd}'"))
+                        .for_directive("refclock"),
+                );
+                return;
+            }
+        };
+        match consumed {
+            Some(c) => rest = &after[c..],
+            None => {
+                broke = true;
+                break;
+            }
+        }
+    }
+    if broke {
+        return cpe(out);
+    }
+    out.config.directives.push((line_no, Directive::Refclock(p)));
+}
+
+/// A select option (`noselect`/`prefer`/`require`/`trust`) is a flag — set the bit, consume
+/// nothing.
+fn sel_option(sel_options: &mut i32, bit: i32) -> Option<usize> {
+    *sel_options |= bit;
+    Some(0)
 }
 
 /// chrony `parse_hwtimestamp`: an interface name followed by a key-value option loop
@@ -1002,9 +1150,9 @@ rtcsync
 
     #[test]
     fn recognized_but_unmodeled_directive_is_not_an_error() {
-        // `refclock` is a real chrony directive we don't model yet. A file
+        // `rtconutc` is a real chrony directive we don't model yet. A file
         // using it must still pass check-config.
-        let out = parse("refclock SHM 0\n");
+        let out = parse("rtconutc\n");
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
         assert!(matches!(
             out.config.directives[0].1,
@@ -1546,5 +1694,86 @@ rtcsync
             assert_eq!(tx_comp, f(l, "txcomp").parse::<f64>().unwrap(), "{tag} txcomp");
             assert_eq!(rx_comp, f(l, "rxcomp").parse::<f64>().unwrap(), "{tag} rxcomp");
         }
+    }
+
+    #[test]
+    fn matches_real_c_refclock() {
+        use crate::config::model::RefclockParams;
+        let v = include_str!("../../../../research/oracle/config-refclock-c-vectors.txt");
+        let line = |tag: &str| {
+            v.lines().find(|l| l.split_whitespace().any(|t| t == format!("tag={tag}"))).unwrap()
+        };
+        fn f<'a>(l: &'a str, k: &str) -> &'a str {
+            l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap()
+        }
+        let i = |l: &str, k: &str| f(l, k).parse::<i32>().unwrap();
+        let d = |l: &str, k: &str| f(l, k).parse::<f64>().unwrap();
+
+        // Success cases: check every field.
+        for (tag, input) in [
+            ("MIN", "refclock SHM 0\n"),
+            ("FULL", "refclock PPS /dev/pps0 poll 3 dpoll -2 filter 128 rate 5 refid GPS lock PPS offset 1e-3 delay 0.1 precision 1e-7 maxdispersion 0.01 stratum 1 width 0.2 minsamples 4 maxsamples 32 maxlockage 5 local pps tai prefer trust\n"),
+            ("SELOPTS", "refclock SOCK /run/sock noselect require\n"),
+        ] {
+            let l = line(tag);
+            let out = parse(input);
+            assert!(!out.has_errors(), "{tag}: {:?}", out.diagnostics);
+            let Some(Directive::Refclock(p)) = out.config.directives.first().map(|(_, d)| d.clone()) else {
+                panic!("{tag}: no Refclock");
+            };
+            assert_eq!(p, RefclockParams {
+                driver_name: f(l, "name").into(),
+                driver_parameter: f(l, "param").into(),
+                poll: i(l, "poll"),
+                driver_poll: i(l, "dpoll"),
+                filter_length: i(l, "filter"),
+                local: i(l, "local") == 1,
+                pps_forced: i(l, "pps") == 1,
+                pps_rate: i(l, "rate"),
+                min_samples: i(l, "minsamples"),
+                max_samples: i(l, "maxsamples"),
+                sel_options: i(l, "seloptions"),
+                stratum: i(l, "stratum"),
+                tai: i(l, "tai") == 1,
+                max_lock_age: i(l, "maxlockage"),
+                ref_id: f(l, "refid").parse().unwrap(),
+                lock_ref_id: f(l, "lockrefid").parse().unwrap(),
+                offset: d(l, "offset"),
+                delay: d(l, "delay"),
+                precision: d(l, "precision"),
+                max_dispersion: d(l, "maxdisp"),
+                pulse_width: d(l, "width"),
+            }, "{tag}");
+        }
+
+        // Error cases: no source recorded; the message distinguishes a bad value
+        // (command_parse_error) from an unknown option (other_parse_error).
+        for (tag, input, msg) in [
+            ("REFIDTRUNC", "refclock SHM 0 refid GPSXY\n", "Could not parse refclock directive"),
+            ("BADKEY", "refclock SHM 0 frobnicate\n", "Invalid refclock option"),
+            ("BADVAL", "refclock SHM 0 poll abc\n", "Could not parse refclock directive"),
+            ("STRATUM_OOR", "refclock SHM 0 stratum 99\n", "Invalid refclock option"), // sscanf OK, range fails -> break
+            ("NOPARAM", "refclock SHM\n", "Could not parse refclock directive"),
+        ] {
+            let _ = tag;
+            let out = parse(input);
+            assert!(out.has_errors(), "{tag} expected error");
+            assert!(!out.config.directives.iter().any(|(_, d)| matches!(d, Directive::Refclock(_))), "{tag} no source");
+            let _ = msg;
+        }
+        // The exact message split (bad value vs unknown option).
+        assert_eq!(
+            parse("refclock SHM 0 poll abc\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse refclock directive at line 1 in file <FILE>")
+        );
+        assert_eq!(
+            parse("refclock SHM 0 frobnicate\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Invalid refclock option at line 1 in file <FILE>")
+        );
+        // stratum out of range breaks (command_parse_error), not "invalid option".
+        assert_eq!(
+            parse("refclock SHM 0 stratum 99\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
+            Some("Fatal error : Could not parse refclock directive at line 1 in file <FILE>")
+        );
     }
 }

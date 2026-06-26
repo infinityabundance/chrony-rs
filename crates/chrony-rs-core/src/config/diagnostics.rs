@@ -97,6 +97,7 @@ impl Diagnostic {
             }
             // chrony `other_parse_error(message)`: the message itself is the full reason.
             "CFG_INVALID_LOG_PARAM" => "Invalid log parameter".to_string(),
+            "CFG_INVALID_REFCLOCK_OPT" => "Invalid refclock option".to_string(),
             _ => return None,
         };
         Some(format!(

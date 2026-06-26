@@ -88,6 +88,33 @@ pub enum HwTsRxFilter {
     All,
 }
 
+/// Parsed `refclock` parameters (chrony's `RefclockParameters`). `sel_options` is a bitmask
+/// of `SRC_SELECT_*` (noselect=1, prefer=2, trust=4, require=8).
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct RefclockParams {
+    pub driver_name: String,
+    pub driver_parameter: String,
+    pub poll: i32,
+    pub driver_poll: i32,
+    pub filter_length: i32,
+    pub local: bool,
+    pub pps_forced: bool,
+    pub pps_rate: i32,
+    pub min_samples: i32,
+    pub max_samples: i32,
+    pub sel_options: i32,
+    pub stratum: i32,
+    pub tai: bool,
+    pub max_lock_age: i32,
+    pub ref_id: u32,
+    pub lock_ref_id: u32,
+    pub offset: f64,
+    pub delay: f64,
+    pub precision: f64,
+    pub max_dispersion: f64,
+    pub pulse_width: f64,
+}
+
 /// A modeled directive, or an unmodeled-but-preserved one.
 ///
 /// Note: only `PartialEq` (not `Eq`) because `MakeStep.threshold` is an `f64`.
@@ -177,6 +204,9 @@ pub enum Directive {
         tx_comp: f64,
         rx_comp: f64,
     },
+    /// `refclock <driver> <parameter> [option...]` — a reference clock source and its
+    /// driver-specific option loop.
+    Refclock(RefclockParams),
     /// `ratelimit` / `cmdratelimit` / `ntsratelimit` `[interval N] [burst N] [leak N]`.
     /// The directive's presence enables it; each option is optional and may appear in any
     /// order. chrony reads the value of each option with `sscanf("%d%n")`, advancing past
