@@ -49,7 +49,7 @@ pub(crate) fn scan_int_at(s: &str) -> Option<(i32, usize)> {
 
 /// `sscanf("%lf")` at the start of `s`: skip leading whitespace, parse the decimal float
 /// (sign, fraction, exponent, `inf`/`infinity`/`nan`), and return `(value, end_index)`.
-fn scan_double_at(s: &str) -> Option<(f64, usize)> {
+pub(crate) fn scan_double_at(s: &str) -> Option<(f64, usize)> {
     let b = s.as_bytes();
     let start = skip_ws(b, 0);
     let mut i = start;
@@ -151,6 +151,26 @@ pub fn scan_two_double(line: &str) -> Option<(f64, f64)> {
     let (a, i) = scan_double_at(line)?;
     let (b, _) = scan_double_at(&line[i..])?;
     Some((a, b))
+}
+
+/// `sscanf("%4s%n")` at the start of `s`: skip leading whitespace, then take up to 4
+/// non-whitespace characters, returning `(slice, end_index)`. `None` when no character is
+/// present. Used by `hwtimestamp`'s `rxfilter` option — note the 4-char cap re-tokenizes a
+/// longer word (`nonex` reads `none`, leaving `x`).
+pub(crate) fn scan_str4_at(s: &str) -> Option<(&str, usize)> {
+    let b = s.as_bytes();
+    let start = skip_ws(b, 0);
+    let mut i = start;
+    while i < b.len()
+        && i - start < 4
+        && !matches!(b[i], b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
+    {
+        i += 1;
+    }
+    if i == start {
+        return None;
+    }
+    Some((&s[start..i], i))
 }
 
 /// `sscanf("%lf %lf …", line)` for `n` doubles (chrony `tempcomp`'s 5-coefficient form):

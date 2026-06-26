@@ -17,8 +17,8 @@
 use super::diagnostics::Diagnostic;
 use super::lexer::{tokenize, TokenLine};
 use super::model::{
-    AuthSelectMode, Config, Directive, LeapSecMode, LogFlag, ServerKind, SourceDirective,
-    TempCompCurve,
+    AuthSelectMode, Config, Directive, HwTsRxFilter, LeapSecMode, LogFlag, ServerKind,
+    SourceDirective, TempCompCurve,
 };
 
 /// Result of parsing: the (best-effort) config and any diagnostics.
@@ -136,6 +136,7 @@ fn parse_line(line: TokenLine, out: &mut ParseOutput) {
         "broadcast" => parse_broadcast(line_no, args, out),
         "mailonchange" => parse_mailonchange(line_no, args, out),
         "tempcomp" => parse_tempcomp(line_no, args, out),
+        "hwtimestamp" => parse_hwtimestamp(line_no, args, out),
         "rtcsync" => {
             // A bare flag. chrony tolerates trailing tokens on some flag
             // directives, but `rtcsync` takes none; extra args are a diagnostic.
@@ -469,6 +470,102 @@ fn parse_log(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
         flags.push(flag);
     }
     out.config.directives.push((line_no, Directive::Log(flags)));
+}
+
+/// chrony `parse_hwtimestamp`: an interface name followed by a key-value option loop
+/// (`CPS_SplitWord` for the key, `sscanf %d%n` / `%lf%n` / `%4s%n` for the value, advancing
+/// by only the consumed chars — so a value's trailing junk re-tokenizes into a bad key,
+/// and `rxfilter`'s 4-char cap re-tokenizes a longer word). A bad key/value or an
+/// unrecognized `rxfilter` is `command_parse_error`; options applied before the break are
+/// kept. `maxpoll` defaults to `minpoll + 1` when not set.
+fn parse_hwtimestamp(line_no: usize, args: Vec<String>, out: &mut ParseOutput) {
+    let Some((interface, rest_args)) = args.split_first() else {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", "hwtimestamp needs an interface".to_string())
+                .for_directive("hwtimestamp"),
+        );
+        return;
+    };
+    use crate::config::scan::{scan_double_at, scan_int_at, scan_str4_at};
+    // chrony's defaults.
+    let mut minpoll = 0i32;
+    let mut maxpoll = 0i32;
+    let mut maxpoll_set = false;
+    let mut min_samples = 2i32;
+    let mut max_samples = 16i32;
+    let mut nocrossts = false;
+    let mut rxfilter = HwTsRxFilter::Any;
+    let mut precision = 100.0e-9;
+    let mut tx_comp = 0.0;
+    let mut rx_comp = 0.0;
+    let mut err = false;
+
+    let opts = rest_args.join(" ");
+    let mut rest = opts.as_str();
+    loop {
+        let (key, after) = crate::cmdparse::split_word(rest);
+        if key.is_empty() {
+            break;
+        }
+        // Each arm parses the value and returns the chars consumed, or None to break.
+        let consumed: Option<usize> = match key.to_ascii_lowercase().as_str() {
+            "maxsamples" => scan_int_at(after).map(|(v, c)| (max_samples = v, c).1),
+            "minpoll" => scan_int_at(after).map(|(v, c)| (minpoll = v, c).1),
+            "maxpoll" => scan_int_at(after).map(|(v, c)| {
+                maxpoll = v;
+                maxpoll_set = true;
+                c
+            }),
+            "minsamples" => scan_int_at(after).map(|(v, c)| (min_samples = v, c).1),
+            "precision" => scan_double_at(after).map(|(v, c)| (precision = v, c).1),
+            "rxcomp" => scan_double_at(after).map(|(v, c)| (rx_comp = v, c).1),
+            "txcomp" => scan_double_at(after).map(|(v, c)| (tx_comp = v, c).1),
+            "rxfilter" => scan_str4_at(after).and_then(|(f, c)| {
+                let filter = match f.to_ascii_lowercase().as_str() {
+                    "none" => HwTsRxFilter::None,
+                    "ntp" => HwTsRxFilter::Ntp,
+                    "ptp" => HwTsRxFilter::Ptp,
+                    "all" => HwTsRxFilter::All,
+                    _ => return None,
+                };
+                rxfilter = filter;
+                Some(c)
+            }),
+            "nocrossts" => {
+                nocrossts = true;
+                Some(0)
+            }
+            _ => None,
+        };
+        match consumed {
+            Some(c) => rest = &after[c..],
+            None => {
+                err = true;
+                break;
+            }
+        }
+    }
+    if !maxpoll_set {
+        maxpoll = minpoll + 1;
+    }
+    if err {
+        out.diagnostics.push(
+            Diagnostic::error(line_no, "CFG_BAD_NUMBER", "could not parse hwtimestamp options".to_string())
+                .for_directive("hwtimestamp"),
+        );
+    }
+    out.config.directives.push((line_no, Directive::HwTimestamp {
+        interface: interface.clone(),
+        minpoll,
+        maxpoll,
+        min_samples,
+        max_samples,
+        nocrossts,
+        rxfilter,
+        precision,
+        tx_comp,
+        rx_comp,
+    }));
 }
 
 /// chrony `parse_tempcomp`: the form is chosen by argument count — 3 args is the
@@ -905,9 +1002,9 @@ rtcsync
 
     #[test]
     fn recognized_but_unmodeled_directive_is_not_an_error() {
-        // `hwtimestamp` is a real chrony directive we don't model yet. A file
+        // `refclock` is a real chrony directive we don't model yet. A file
         // using it must still pass check-config.
-        let out = parse("hwtimestamp *\n");
+        let out = parse("refclock SHM 0\n");
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
         assert!(matches!(
             out.config.directives[0].1,
@@ -1396,5 +1493,58 @@ rtcsync
             parse("tempcomp /sys/temp 30 20.0 1.0 0.1 0.01 extra\n").diagnostics.first().and_then(|d| d.chrony_message()).as_deref(),
             Some("Fatal error : Too many arguments for tempcomp directive at line 1 in file <FILE>")
         );
+    }
+
+    #[test]
+    fn matches_real_c_hwtimestamp() {
+        let v = include_str!("../../../../research/oracle/config-hwts-c-vectors.txt");
+        let line = |tag: &str| {
+            v.lines().find(|l| l.split_whitespace().any(|t| t == format!("tag={tag}"))).unwrap()
+        };
+        fn f<'a>(l: &'a str, k: &str) -> &'a str {
+            l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap()
+        }
+        let fi = |l: &str, k: &str| f(l, k).parse::<i32>().unwrap();
+        let rxf = |n: i32| match n {
+            0 => HwTsRxFilter::Any,
+            1 => HwTsRxFilter::None,
+            2 => HwTsRxFilter::Ntp,
+            3 => HwTsRxFilter::Ptp,
+            4 => HwTsRxFilter::All,
+            _ => unreachable!(),
+        };
+        let cases = [
+            ("BARE", "hwtimestamp eth0\n"),
+            ("FULL", "hwtimestamp eth0 minpoll 2 maxpoll 5 minsamples 4 maxsamples 32 precision 1e-7 txcomp 1.5e-6 rxcomp 2.5e-6 rxfilter ntp nocrossts\n"),
+            ("DEFMAXPOLL", "hwtimestamp eth0 minpoll 3\n"),
+            ("RXFILT_ALL", "hwtimestamp eth1 rxfilter all\n"),
+            ("RXFILT_BAD", "hwtimestamp eth1 rxfilter bogus\n"),
+            ("RXFILT_TRUNC", "hwtimestamp eth1 rxfilter nonex\n"),
+            ("BADKEY", "hwtimestamp eth0 frobnicate 5\n"),
+            ("NOVAL", "hwtimestamp eth0 minpoll\n"),
+            ("JUNKVAL", "hwtimestamp eth0 minpoll 2x maxsamples 32\n"),
+        ];
+        for (tag, input) in cases {
+            let l = line(tag);
+            let out = parse(input);
+            assert_eq!(out.has_errors() as i32, fi(l, "err"), "{tag} err");
+            let d = out.config.directives.iter().find_map(|(_, d)| match d {
+                Directive::HwTimestamp { .. } => Some(d.clone()),
+                _ => None,
+            }).unwrap_or_else(|| panic!("{tag}: no HwTimestamp"));
+            let Directive::HwTimestamp {
+                interface, minpoll, maxpoll, min_samples, max_samples, nocrossts, rxfilter, precision, tx_comp, rx_comp,
+            } = d else { unreachable!() };
+            assert_eq!(interface, f(l, "iface"), "{tag} iface");
+            assert_eq!(minpoll, fi(l, "minpoll"), "{tag} minpoll");
+            assert_eq!(maxpoll, fi(l, "maxpoll"), "{tag} maxpoll");
+            assert_eq!(min_samples, fi(l, "minsamples"), "{tag} minsamples");
+            assert_eq!(max_samples, fi(l, "maxsamples"), "{tag} maxsamples");
+            assert_eq!(nocrossts as i32, fi(l, "nocrossts"), "{tag} nocrossts");
+            assert_eq!(rxfilter, rxf(fi(l, "rxfilter")), "{tag} rxfilter");
+            assert_eq!(precision, f(l, "precision").parse::<f64>().unwrap(), "{tag} precision");
+            assert_eq!(tx_comp, f(l, "txcomp").parse::<f64>().unwrap(), "{tag} txcomp");
+            assert_eq!(rx_comp, f(l, "rxcomp").parse::<f64>().unwrap(), "{tag} rxcomp");
+        }
     }
 }

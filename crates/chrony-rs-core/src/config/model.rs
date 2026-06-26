@@ -78,6 +78,16 @@ pub enum TempCompCurve {
     Coefficients { t0: f64, k0: f64, k1: f64, k2: f64 },
 }
 
+/// `hwtimestamp`'s `rxfilter` option (chrony `CNF_HWTS_RXFILTER_*`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum HwTsRxFilter {
+    Any,
+    None,
+    Ntp,
+    Ptp,
+    All,
+}
+
 /// A modeled directive, or an unmodeled-but-preserved one.
 ///
 /// Note: only `PartialEq` (not `Eq`) because `MakeStep.threshold` is an `f64`.
@@ -151,6 +161,22 @@ pub enum Directive {
     /// temperature compensation. The form is chosen by argument count (3 = points file,
     /// 6 = inline coefficients).
     TempComp { sensor_file: String, interval: f64, curve: TempCompCurve },
+    /// `hwtimestamp <interface> [option...]` — hardware-timestamping settings for an
+    /// interface. The options are a key-value loop (`maxsamples`/`minpoll`/`maxpoll`/
+    /// `minsamples` ints, `precision`/`rxcomp`/`txcomp` doubles, `rxfilter` enum,
+    /// `nocrossts` flag). `maxpoll` defaults to `minpoll + 1` when not given.
+    HwTimestamp {
+        interface: String,
+        minpoll: i32,
+        maxpoll: i32,
+        min_samples: i32,
+        max_samples: i32,
+        nocrossts: bool,
+        rxfilter: HwTsRxFilter,
+        precision: f64,
+        tx_comp: f64,
+        rx_comp: f64,
+    },
     /// `ratelimit` / `cmdratelimit` / `ntsratelimit` `[interval N] [burst N] [leak N]`.
     /// The directive's presence enables it; each option is optional and may appear in any
     /// order. chrony reads the value of each option with `sscanf("%d%n")`, advancing past
