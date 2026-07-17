@@ -22,3 +22,10 @@ No live control-socket transport to a running daemon (the wire protocol is not y
 modeled); it renders from fixtures only. See
 [`docs/negative-capabilities.md`](../../docs/negative-capabilities.md). Targets
 chrony 4.5.
+
+
+## crates.io
+
+Published at [crates.io/crates/chronyc-rs](https://crates.io/crates/chronyc-rs).
+Install with `cargo install chronyc-rs`.
+Part of the [chrony-rs](https://crates.io/crates/chrony-rs) workspace.

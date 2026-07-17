@@ -101,3 +101,9 @@ matrix for the exact gap):
 Host mutation (clock, sockets, privileges) lives in the binary crates behind narrow
 boundaries; see [`chronyd-rs`](../chronyd-rs/README.md) and
 [`chronyc-rs`](../chronyc-rs/README.md).
+
+
+## crates.io
+
+Published at [crates.io/crates/chrony-rs-core](https://crates.io/crates/chrony-rs-core).
+Part of the [chrony-rs](https://crates.io/crates/chrony-rs) workspace.

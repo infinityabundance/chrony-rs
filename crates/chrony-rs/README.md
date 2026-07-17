@@ -32,3 +32,21 @@ system-clock mutation, no live control socket, no production-replacement claim.
 The boundaries are enumerated in the generated
 [negative-capabilities ledger](../../docs/negative-capabilities.md) and the
 [workspace README](../../README.md). Targets chrony 4.5.
+
+
+## Crates on crates.io
+
+This crate is part of the chrony-rs workspace. All crates are on crates.io:
+
+- [`chrony-rs`](https://crates.io/crates/chrony-rs) — this umbrella crate
+- [`chrony-rs-core`](https://crates.io/crates/chrony-rs-core) — deterministic core brain
+- [`chrony-rs-io`](https://crates.io/crates/chrony-rs-io) — real OS I/O layer
+- [`chronyd-rs`](https://crates.io/crates/chronyd-rs) — daemon/replay binary
+- [`chronyc-rs`](https://crates.io/crates/chronyc-rs) — control client
+
+## Acknowledgements
+
+chrony-rs is a **forensic reconstruction** of [chrony](https://chrony.tuxfamily.org/),
+originally written by **Richard P. Curnow** and currently maintained by
+**Miroslav Lichvar** and the chrony community. This project would not exist
+without their decades of careful engineering and open-source dedication.

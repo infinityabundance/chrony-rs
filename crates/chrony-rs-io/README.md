@@ -39,3 +39,9 @@ cargo test -p chrony-rs-io
 This crate uses `unsafe` for FFI calls to `libc`. Each block is justified with a
 `// SAFETY:` comment. The `chrony-rs-core` crate (which this depends on) is
 `unsafe`-free.
+
+
+## crates.io
+
+Published at [crates.io/crates/chrony-rs-io](https://crates.io/crates/chrony-rs-io).
+Part of the [chrony-rs](https://crates.io/crates/chrony-rs) workspace.

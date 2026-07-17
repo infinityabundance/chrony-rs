@@ -23,3 +23,10 @@ through a simulated clock and emit a reproducible decision-log hash.
 No real clock step/slew, no NTP serving, no live control socket — the boundaries
 are enumerated in [`docs/negative-capabilities.md`](../../docs/negative-capabilities.md)
 (itself generated). Targets chrony 4.5.
+
+
+## crates.io
+
+Published at [crates.io/crates/chronyd-rs](https://crates.io/crates/chronyd-rs).
+Install with `cargo install chronyd-rs`.
+Part of the [chrony-rs](https://crates.io/crates/chrony-rs) workspace.
