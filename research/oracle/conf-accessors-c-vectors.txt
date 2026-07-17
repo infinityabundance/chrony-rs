@@ -1,0 +1,107 @@
+# CNF_Get* accessor oracle: real conf.c CNF_ParseLine + CNF_GetX driven per scenario.
+# Built by #include-ing conf.c and linking real array.c + cmdparse.c + memory.c;
+# host-boundary deps (SCK/NSR/DNS/RCL/NCR/CAM/UTI_IP*/LOG) stubbed, and the oracle
+# aborts if any untested host path is reached (none are). Consumer Rust (config). NO Python.
+# Configure-time string macros use chrony's shipped defaults: USER=root, RTC_DEVICE=/dev/rtc,
+# HWCLOCK_FILE="", PID_FILE=/var/run/chrony/chronyd.pid, COMMAND_SOCKET=/var/run/chrony/chronyd.sock.
+# Enum ints: AuthSelectMode {ignore=0,mix=1,prefer=2,require=3}; LeapSecMode {system=0,slew=1,step=2,ignore=3}.
+SCEN DEFAULTS
+  ntpport=123 acqport=-1 cmdport=323 ptpport=0 dscp=0
+  logbanner=32 manual=0 rtconutc=0 rtcsync=0 noclientlog=0
+  schedprio=0 lockmem=0 maxsamples=0 minsamples=6 minsources=1
+  refresh=1209600 ntsport=4460 ntsproc=1 ntsconn=100 ntsrefresh=2419200 ntsrotate=604800
+  nosystemcert=0 nocerttimecheck=0 clientloglimit=524288
+  maxupdateskew=1000 maxdrift=500000 maxclockerror=1 corrtimeratio=3
+  maxslewrate=83333.333333333328 clockprecision=0 maxdistance=3 maxjitter=1
+  reselectdist=0.0001 stratumweight=0.001 combinelimit=3 rtcautotrim=0
+  logchange=1 initstepthr=0 hwtstimeout=0.001
+  authselect=1 leapsecmode=0
+  driftfile=(null) logdir=(null) dumpdir=(null) keysfile=(null)
+  rtcfile=(null) rtcdevice=/dev/rtc hwclockfile= pidfile=/var/run/chrony/chronyd.pid
+  leapsectz=(null) ntpsignd=(null) user=root ntsdumpdir=(null) ntsntpserver=(null)
+  bindntpif=(null) bindacqif=(null) bindcmdif=(null) bindcmdpath=/var/run/chrony/chronyd.sock
+  makestep_limit=0 makestep_thr=0
+  maxchange_delay=-1 maxchange_ignore=0 maxchange_off=0
+  fbdrift_min=0 fbdrift_max=0
+  smooth_maxfreq=0 smooth_maxwander=0 smooth_leaponly=0
+  mail_enabled=0 mail_thr=0 mail_user=(null)
+  logmeas=0 raw=0 logsel=0 logstat=0 logtrk=0 logrtc=0 logrefc=0 logtmp=0
+  ntprl_en=0 ntprl_iv=3 ntprl_bu=8 ntprl_lk=2
+  ntsrl_en=0 ntsrl_iv=6 ntsrl_bu=8 ntsrl_lk=2
+  cmdrl_en=0 cmdrl_iv=-4 cmdrl_bu=8 cmdrl_lk=2
+END DEFAULTS
+SCEN CLIENT_ONLY
+  ntpport=0 acqport=-1 cmdport=0 ptpport=0 dscp=0
+  logbanner=32 manual=0 rtconutc=0 rtcsync=0 noclientlog=0
+  schedprio=0 lockmem=0 maxsamples=0 minsamples=6 minsources=1
+  refresh=1209600 ntsport=4460 ntsproc=1 ntsconn=100 ntsrefresh=2419200 ntsrotate=604800
+  nosystemcert=0 nocerttimecheck=0 clientloglimit=524288
+  maxupdateskew=1000 maxdrift=500000 maxclockerror=1 corrtimeratio=3
+  maxslewrate=83333.333333333328 clockprecision=0 maxdistance=3 maxjitter=1
+  reselectdist=0.0001 stratumweight=0.001 combinelimit=3 rtcautotrim=0
+  logchange=1 initstepthr=0 hwtstimeout=0.001
+  authselect=1 leapsecmode=0
+  driftfile=(null) logdir=(null) dumpdir=(null) keysfile=(null)
+  rtcfile=(null) rtcdevice=/dev/rtc hwclockfile= pidfile=(null)
+  leapsectz=(null) ntpsignd=(null) user=root ntsdumpdir=(null) ntsntpserver=(null)
+  bindntpif=(null) bindacqif=(null) bindcmdif=(null) bindcmdpath=(null)
+  makestep_limit=0 makestep_thr=0
+  maxchange_delay=-1 maxchange_ignore=0 maxchange_off=0
+  fbdrift_min=0 fbdrift_max=0
+  smooth_maxfreq=0 smooth_maxwander=0 smooth_leaponly=0
+  mail_enabled=0 mail_thr=0 mail_user=(null)
+  logmeas=0 raw=0 logsel=0 logstat=0 logtrk=0 logrtc=0 logrefc=0 logtmp=0
+  ntprl_en=0 ntprl_iv=3 ntprl_bu=8 ntprl_lk=2
+  ntsrl_en=0 ntsrl_iv=6 ntsrl_bu=8 ntsrl_lk=2
+  cmdrl_en=0 cmdrl_iv=-4 cmdrl_bu=8 cmdrl_lk=2
+END CLIENT_ONLY
+SCEN OVERRIDE
+  ntpport=1123 acqport=1234 cmdport=0 ptpport=319 dscp=46
+  logbanner=10 manual=1 rtconutc=1 rtcsync=1 noclientlog=1
+  schedprio=50 lockmem=1 maxsamples=12 minsamples=3 minsources=2
+  refresh=600 ntsport=5000 ntsproc=4 ntsconn=50 ntsrefresh=100 ntsrotate=200
+  nosystemcert=1 nocerttimecheck=5 clientloglimit=1048576
+  maxupdateskew=5.5 maxdrift=100 maxclockerror=2 corrtimeratio=1.5
+  maxslewrate=83333 clockprecision=9.9999999999999995e-07 maxdistance=6 maxjitter=0.20000000000000001
+  reselectdist=0.001 stratumweight=0.5 combinelimit=4 rtcautotrim=30
+  logchange=0.5 initstepthr=30 hwtstimeout=0.01
+  authselect=3 leapsecmode=1
+  driftfile=/var/lib/chrony/drift logdir=/var/log/chrony dumpdir=/var/lib/chrony keysfile=/etc/chrony.keys
+  rtcfile=/var/lib/chrony/rtc rtcdevice=/dev/rtc1 hwclockfile=/etc/adjtime pidfile=/run/chronyd.pid
+  leapsectz=right/UTC ntpsignd=/var/run/samba/ntp_signd/socket user=chrony ntsdumpdir=/var/lib/chrony/nts ntsntpserver=ntp.example.com
+  bindntpif=eth0 bindacqif=eth1 bindcmdif=lo bindcmdpath=/var/run/chrony/chronyd.sock
+  makestep_limit=3 makestep_thr=0.10000000000000001
+  maxchange_delay=1 maxchange_ignore=2 maxchange_off=1000
+  fbdrift_min=10 fbdrift_max=16
+  smooth_maxfreq=400 smooth_maxwander=0.01 smooth_leaponly=1
+  mail_enabled=1 mail_thr=0.5 mail_user=root@localhost
+  logmeas=1 raw=1 logsel=1 logstat=1 logtrk=1 logrtc=1 logrefc=1 logtmp=1
+  ntprl_en=1 ntprl_iv=4 ntprl_bu=16 ntprl_lk=3
+  ntsrl_en=1 ntsrl_iv=5 ntsrl_bu=12 ntsrl_lk=1
+  cmdrl_en=1 cmdrl_iv=-2 cmdrl_bu=4 cmdrl_lk=2
+END OVERRIDE
+SCEN LAST_WINS
+  ntpport=123 acqport=-1 cmdport=323 ptpport=0 dscp=0
+  logbanner=32 manual=0 rtconutc=0 rtcsync=0 noclientlog=0
+  schedprio=0 lockmem=0 maxsamples=0 minsamples=6 minsources=1
+  refresh=1209600 ntsport=4460 ntsproc=1 ntsconn=100 ntsrefresh=2419200 ntsrotate=604800
+  nosystemcert=0 nocerttimecheck=0 clientloglimit=524288
+  maxupdateskew=3 maxdrift=500000 maxclockerror=1 corrtimeratio=3
+  maxslewrate=83333.333333333328 clockprecision=0 maxdistance=3 maxjitter=1
+  reselectdist=0.0001 stratumweight=0.001 combinelimit=3 rtcautotrim=0
+  logchange=1 initstepthr=0 hwtstimeout=0.001
+  authselect=1 leapsecmode=0
+  driftfile=/b logdir=(null) dumpdir=(null) keysfile=(null)
+  rtcfile=(null) rtcdevice=/dev/rtc hwclockfile= pidfile=/var/run/chrony/chronyd.pid
+  leapsectz=(null) ntpsignd=(null) user=root ntsdumpdir=(null) ntsntpserver=(null)
+  bindntpif=(null) bindacqif=(null) bindcmdif=(null) bindcmdpath=/var/run/chrony/chronyd.sock
+  makestep_limit=0 makestep_thr=0
+  maxchange_delay=-1 maxchange_ignore=0 maxchange_off=0
+  fbdrift_min=0 fbdrift_max=0
+  smooth_maxfreq=0 smooth_maxwander=0 smooth_leaponly=0
+  mail_enabled=0 mail_thr=0 mail_user=(null)
+  logmeas=0 raw=0 logsel=0 logstat=0 logtrk=0 logrtc=0 logrefc=0 logtmp=0
+  ntprl_en=0 ntprl_iv=3 ntprl_bu=8 ntprl_lk=2
+  ntsrl_en=0 ntsrl_iv=6 ntsrl_bu=8 ntsrl_lk=2
+  cmdrl_en=0 cmdrl_iv=-4 cmdrl_bu=8 cmdrl_lk=2
+END LAST_WINS

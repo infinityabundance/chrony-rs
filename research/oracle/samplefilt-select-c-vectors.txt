@@ -1,0 +1,10 @@
+# samplefilt select_samples oracle (verbatim). NO Python.
+SEL id=five_a count=3 indices=2,3,4
+SEL id=five_tight count=3 indices=2,3,4
+SEL id=eight_a count=3 indices=2,4,5
+SEL id=eight_cr0 count=1 indices=5
+SEL id=eight_cr1 count=3 indices=2,4,5
+SEL id=three count=1 indices=2
+SEL id=four count=2 indices=2,3
+SEL id=six_sorted count=4 indices=1,2,3,4
+SEL id=six_cr03 count=2 indices=2,3

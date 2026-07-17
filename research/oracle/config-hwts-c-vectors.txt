@@ -1,0 +1,10 @@
+# parse_hwtimestamp oracle (verbatim SplitWord + loop, real sscanf). Consumer Rust (config). NO Python.
+HW tag=BARE err=0 iface=eth0 minpoll=0 maxpoll=1 minsamples=2 maxsamples=16 nocrossts=0 rxfilter=0 precision=9.9999999999999995e-08 txcomp=0 rxcomp=0
+HW tag=FULL err=0 iface=eth0 minpoll=2 maxpoll=5 minsamples=4 maxsamples=32 nocrossts=1 rxfilter=2 precision=9.9999999999999995e-08 txcomp=1.5e-06 rxcomp=2.5000000000000002e-06
+HW tag=DEFMAXPOLL err=0 iface=eth0 minpoll=3 maxpoll=4 minsamples=2 maxsamples=16 nocrossts=0 rxfilter=0 precision=9.9999999999999995e-08 txcomp=0 rxcomp=0
+HW tag=RXFILT_ALL err=0 iface=eth1 minpoll=0 maxpoll=1 minsamples=2 maxsamples=16 nocrossts=0 rxfilter=4 precision=9.9999999999999995e-08 txcomp=0 rxcomp=0
+HW tag=RXFILT_BAD err=1 iface=eth1 minpoll=0 maxpoll=1 minsamples=2 maxsamples=16 nocrossts=0 rxfilter=0 precision=9.9999999999999995e-08 txcomp=0 rxcomp=0
+HW tag=RXFILT_TRUNC err=1 iface=eth1 minpoll=0 maxpoll=1 minsamples=2 maxsamples=16 nocrossts=0 rxfilter=1 precision=9.9999999999999995e-08 txcomp=0 rxcomp=0
+HW tag=BADKEY err=1 iface=eth0 minpoll=0 maxpoll=1 minsamples=2 maxsamples=16 nocrossts=0 rxfilter=0 precision=9.9999999999999995e-08 txcomp=0 rxcomp=0
+HW tag=NOVAL err=1 iface=eth0 minpoll=0 maxpoll=1 minsamples=2 maxsamples=16 nocrossts=0 rxfilter=0 precision=9.9999999999999995e-08 txcomp=0 rxcomp=0
+HW tag=JUNKVAL err=1 iface=eth0 minpoll=2 maxpoll=3 minsamples=2 maxsamples=16 nocrossts=0 rxfilter=0 precision=9.9999999999999995e-08 txcomp=0 rxcomp=0

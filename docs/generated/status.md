@@ -10,7 +10,7 @@ Machine facts rendered from the code so they cannot drift from it.
 
 - Target chrony oracle version: `4.5`
 - Trace schema: `chrony-rs-trace-v1`
-- `unsafe` blocks in `crates/*/src`: 0
+- `unsafe` blocks in `crates/*/src`: 127
 
 ## Recognized config directives (93, oracle-anchored to chrony 4.5)
 

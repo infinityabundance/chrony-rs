@@ -9,13 +9,13 @@ homepage.workspace = true
 description = "Real OS I/O layer for chrony-rs (a faithful port of chrony's socket.c syscall layer)."
 readme = "README.md"
 keywords = ["ntp", "time", "clock", "chrony", "synchronization"]
-categories = ["science::geoscience", "network-programming"]
+categories = ["science", "network-programming"]
 
 [lints]
 workspace = true
 
 [dependencies]
-chrony-rs-core = { path = "../chrony-rs-core" }
+chrony-rs-core = { version = "0.2", path = "../chrony-rs-core" }
 libc = "0.2"
 
 [dev-dependencies]

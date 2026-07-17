@@ -1,0 +1,14 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c operating-mode machine.
+# Consumer Rust (ntp/opmode.rs); NO Python.
+SC_ON_FROM_OFF start=OFFLINE conn=1 result=ONLINE action=GoOnline
+SC_ON_FROM_ON start=ONLINE conn=1 result=ONLINE action=None
+SC_ON_FROM_BON start=BURST_WAS_ONLINE conn=1 result=BURST_WAS_ONLINE action=None
+SC_ON_FROM_BOFF start=BURST_WAS_OFFLINE conn=1 result=BURST_WAS_ONLINE action=None
+SC_OFF_FROM_ON start=ONLINE conn=0 result=OFFLINE action=TakeOffline
+SC_OFF_FROM_OFF start=OFFLINE conn=0 result=OFFLINE action=None
+SC_OFF_FROM_BON start=BURST_WAS_ONLINE conn=0 result=BURST_WAS_OFFLINE action=None
+SC_OFF_FROM_BOFF start=BURST_WAS_OFFLINE conn=0 result=BURST_WAS_OFFLINE action=None
+ACT_ONLINE opmode=ONLINE online=1 offline=0 burst_online=0 burst_offline=0
+ACT_OFFLINE opmode=OFFLINE online=0 offline=1 burst_online=0 burst_offline=0
+ACT_BURST_ONLINE opmode=BURST_WAS_ONLINE online=0 offline=0 burst_online=1 burst_offline=0
+ACT_BURST_OFFLINE opmode=BURST_WAS_OFFLINE online=0 offline=0 burst_online=0 burst_offline=1

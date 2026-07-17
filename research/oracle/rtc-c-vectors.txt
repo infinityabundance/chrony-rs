@@ -1,0 +1,36 @@
+# Differential-oracle vectors: REAL chrony rtc.c (-DLINUX -DFEAT_RTC), commit
+# 120dfb8. The RTC_Linux_* driver is a recording stub (controllable returns); CNF
+# (driftfile/rtcfile/rtcsync) and LCL (cooked time / ApplyStepOffset) are
+# controllable; driftfile mtime = 1700000100, cooked time = 1700000000.
+# Scenario 0: TimePreInit ok -> driver path. Scenario 1: TimePreInit fails ->
+# driftfile-time step (cooked<drift). Scenario 2: rtcfile+rtcsync -> LOG_FATAL.
+# Lines are the driver/LCL call log + forwarded return codes. Consumer is Rust.
+SCENARIO 0
+PREINIT t=1700000100 ret=1
+INIT ret=1
+TIMEINIT
+HOOK
+START
+TRIM ret=0
+TRIMRET=0
+WRITE ret=0
+WRITERET=0
+GETREPORT
+GETRET=1
+FINI
+SCENARIO 1
+PREINIT t=1700000100 ret=0
+STEP off=-100.0
+INIT ret=1
+HOOK
+START
+TRIM ret=0
+TRIMRET=0
+WRITE ret=0
+WRITERET=0
+GETREPORT
+GETRET=1
+FINI
+SCENARIO 2
+PREINIT t=1700000100 ret=1
+FATAL

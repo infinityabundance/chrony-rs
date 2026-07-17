@@ -1,0 +1,10 @@
+# ntp_io_linux hw/sw timestamp oracle (verbatim, mock cook). Consumer Rust. NO Python.
+HW n=0 name=rx_v4_default_l2 ret=1 sec=1000 nsec=600000788 err=9.9999999999999995e-07 src=2 rxdur=1.088e-06 netcorr=1.088e-06
+HW n=1 name=rx_v6_default_l2 ret=1 sec=1000 nsec=600000948 err=9.9999999999999995e-07 src=2 rxdur=1.248e-06 netcorr=1.248e-06
+HW n=2 name=rx_explicit_l2 ret=1 sec=1000 nsec=600001632 err=9.9999999999999995e-07 src=2 rxdur=1.632e-06 netcorr=1.632e-06
+HW n=3 name=tx_txcomp ret=1 sec=1000 nsec=600000500 err=9.9999999999999995e-07 src=2 rxdur=0 netcorr=0
+HW n=4 name=rx_no_linkspeed ret=1 sec=1000 nsec=600000000 err=9.9999999999999995e-07 src=2 rxdur=0 netcorr=0
+HW n=5 name=cook_fail ret=0
+HW n=6 name=delay_reject ret=0
+SW n=7 name=accept ret=1 sec=2000 nsec=700000000 err=1.9999999999999999e-06 src=1 rxdur=0 netcorr=0
+SW n=8 name=delay_reject ret=0

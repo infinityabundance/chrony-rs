@@ -1,0 +1,19 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c poll/delay arithmetic.
+# Consumer Rust (ntp/poll.rs); NO Python.
+SEP poll=-7 sep=0.002
+SEP poll=-3 sep=0.015625
+SEP poll=0 sep=0.125
+SEP poll=3 sep=0.20000000000000001
+SEP poll=5 sep=0.20000000000000001
+SEP poll=10 sep=0.20000000000000001
+SEP poll=24 sep=0.20000000000000001
+POLLADJ1 adj=-0.125
+POLLADJ2 adj=0.0625
+POLLADJ3 adj=-2.3219280948873622
+ADJPOLL1 local_poll=7 poll_score=0.30000000000000004
+ADJPOLL2 local_poll=3 poll_score=0.5
+ADJPOLL3 local_poll=2 poll_score=0
+DELAYR1 ok=1
+DELAYR2 ok=0
+DELAYD1 ok=1
+DELAYD2 ok=0

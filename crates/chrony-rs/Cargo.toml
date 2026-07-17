@@ -19,4 +19,4 @@ unused_qualifications = "warn"
 unsafe_code = "forbid"
 
 [dependencies]
-chrony-rs-core = { version = "0.1.0", path = "../chrony-rs-core" }
+chrony-rs-core = { version = "0.2", path = "../chrony-rs-core" }

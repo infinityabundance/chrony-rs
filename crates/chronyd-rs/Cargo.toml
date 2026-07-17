@@ -22,6 +22,6 @@ path = "src/main.rs"
 nts-tls = ["chrony-rs-core/nts-tls"]
 
 [dependencies]
-chrony-rs-core = { path = "../chrony-rs-core" }
-chrony-rs-io = { path = "../chrony-rs-io" }
+chrony-rs-core = { version = "0.2", path = "../chrony-rs-core" }
+chrony-rs-io = { version = "0.2", path = "../chrony-rs-io" }
 libc = "0.2"

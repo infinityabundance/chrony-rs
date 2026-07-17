@@ -1,0 +1,147 @@
+# md5 / hash_intmd5 oracle (real chrony md5.c + hash_intmd5.c). Consumer Rust. NO Python.
+MD5 len=0 digest=d41d8cd98f00b204e9800998ecf8427e
+MD5 len=1 digest=8666683506aacd900bbd5a74ac4edf68
+MD5 len=2 digest=c950ee5a697ceb1f1feafbca1147e254
+MD5 len=3 digest=c9aee4810523ef8658121b8d492c6b41
+MD5 len=4 digest=12508583d13baad57b58e0726ea91e98
+MD5 len=5 digest=e318134e0ab2b7ab76c3876039f1c956
+MD5 len=6 digest=e9d72b73add17cc32f4cb3c8c979a7ae
+MD5 len=7 digest=cba0d4629465fa7ec898b1c04cb03904
+MD5 len=8 digest=dab7d36c74183625ebceb4b3107d7e43
+MD5 len=9 digest=94b32a20105751663116174b88c2feeb
+MD5 len=10 digest=de1951cfd0dbdefcba237c7fd286b9e0
+MD5 len=11 digest=4e20fb9e1ef5f854da04bd344092b6b5
+MD5 len=12 digest=f872e64a6563c1fbdd486519ceda7581
+MD5 len=13 digest=6580730e887f62b12a485f4ff03350ed
+MD5 len=14 digest=0d302a05ceff16256dd7a5bd9300abf1
+MD5 len=15 digest=a102af85951589c6397769d540865d4a
+MD5 len=16 digest=93498065c90c7511629efc2a676cf256
+MD5 len=17 digest=4e208ba7eda62e0fa7ce53387b02236d
+MD5 len=18 digest=b063b0549163d220de1edd8a23b7b054
+MD5 len=19 digest=ccb02c714bea290cded09732177d60b1
+MD5 len=20 digest=b8db27b9098b351f2c0e7cab19289ed9
+MD5 len=21 digest=9d51fbb3d75b7cf2c04e89615deb3921
+MD5 len=22 digest=fe2bfa4a5af2ff39513368bed61769ca
+MD5 len=23 digest=340a4188399e519adea4e7edd04c5496
+MD5 len=24 digest=e53d52b691185dac65b8b327aab3e6d1
+MD5 len=25 digest=4d13bdcb07302dddddc7ebebe5d79212
+MD5 len=26 digest=a95d97bd92e42b61b54636e1a99f4cf5
+MD5 len=27 digest=4b0da2e00a8a878848e1e8b7cecb8928
+MD5 len=28 digest=7cb900b7d359fbc78c012f4b6fae2dc7
+MD5 len=29 digest=1dc74ac243c8e8f15ab4f808c3f3df42
+MD5 len=30 digest=455a0b77b347d98d102aef299878eeb4
+MD5 len=31 digest=92d60eb7b58a4d66ad90b7935bfb33d5
+MD5 len=32 digest=37e883d2c833cc697211727308d724e7
+MD5 len=33 digest=559f842ab304a042cfcd6fad8713c61a
+MD5 len=34 digest=bb7e61e5edbf72ff13c9fa4cf39999ab
+MD5 len=35 digest=2ec00911fe3c0df28aa439f0985648dc
+MD5 len=36 digest=e98df37143bb29417de8cb9dc5a3af3b
+MD5 len=37 digest=7e5fc19c3dd2eefa0c469d1266ad28b2
+MD5 len=38 digest=4caf8c4a661fa2443851f9717e27bfb3
+MD5 len=39 digest=8fc9ad3f85168a8a79f83b9bd58b4700
+MD5 len=40 digest=37d232517ba04c6989f1d5cee71209a0
+MD5 len=41 digest=226587391a23f0454409dfa5610a0612
+MD5 len=42 digest=7e64c287a80f89d9a81f324b6c134551
+MD5 len=43 digest=73defb1b45f61588f2b0f0118f1689df
+MD5 len=44 digest=c85aa221217beedb0191eb8764398c0c
+MD5 len=45 digest=a7970086cb1f04f00782175f87507d9d
+MD5 len=46 digest=49a71debb41eeb0cc8e14deea9827011
+MD5 len=47 digest=dc081b0003ee8addefa76b0c4f465c67
+MD5 len=48 digest=5117f4269ca5456f8dd0e47ddd3e0832
+MD5 len=49 digest=84082d3a501ab9084b27c42000a2ab2d
+MD5 len=50 digest=e4533360af50a086d3dec70231442d2d
+MD5 len=51 digest=d480ff0eb166e7f0ae0199e979c950aa
+MD5 len=52 digest=9381ce04c4b7d19016af251a8034a15d
+MD5 len=53 digest=c2322828c65bcd66ec9fa1e2f6e56b5b
+MD5 len=54 digest=eb5acae65a800805a13648f23dea0327
+MD5 len=55 digest=52c0e574e1198de5fe3f8f11440dcb1b
+MD5 len=56 digest=46c9907fc908ee68b1e7b8e71286a518
+MD5 len=57 digest=1c805dd236c35cab25fcb1bc73802c51
+MD5 len=58 digest=bca54f0684135200890418305d71acac
+MD5 len=59 digest=01344f4f53fcb77c6f85b7c808411ee8
+MD5 len=60 digest=88cedcdc923e0dc7346f92cc4cee4179
+MD5 len=61 digest=0fae1a833824da26a06af17d24b5e783
+MD5 len=62 digest=8eece4c814dc5eb0d6722df349794fe0
+MD5 len=63 digest=a62f6d59e837867693f042f5b8f5a236
+MD5 len=64 digest=7160b8fb5e9e4023d549c3971fbaeead
+MD5 len=65 digest=70bd662e7aefbda85a0f7244167b7897
+MD5 len=66 digest=a7e438b4b549aeac81d58ce084a8cc82
+MD5 len=67 digest=91bbae8b4023df9d1865084b12770b41
+MD5 len=68 digest=c28d503f96863ccadd87b48683251719
+MD5 len=69 digest=8db68bc8c28f7e611403d41803363731
+MD5 len=70 digest=5c9fb9f228663ac48fc9d6d7dab17e42
+MD5 len=71 digest=26e7e113db273c68b0fc3ce4660fc5e2
+MD5 len=72 digest=f9019e69c0b288ca2b635cfa0de38932
+MD5 len=73 digest=5e422c5ded3c8a8396dfbad7d51601c0
+MD5 len=74 digest=31ba317e4f6e5232ba904d6bba662218
+MD5 len=75 digest=394aece866fa562b3a41a8e2ddf95f06
+MD5 len=76 digest=5a467d47a0008e0fe77b3f7bb253a5b6
+MD5 len=77 digest=b1e0930eb117db227c0a6c26b8b8d7e0
+MD5 len=78 digest=9c1563ad259fe66a027e326a2230ab45
+MD5 len=79 digest=87db68ef4d37224dd5046e45c90c5225
+MD5 len=80 digest=f5b2e38db29de5b31a296c40c74ec344
+MD5 len=81 digest=28e7be2dcbe1dcff632ca0efbed25d77
+MD5 len=82 digest=8f5e295eb32a428971373489fd344024
+MD5 len=83 digest=2754ef51ebf880201a029a6e9db1c6d8
+MD5 len=84 digest=8421086f83cccc468349d475d38cda0e
+MD5 len=85 digest=4d1280f4e99de07e63be0e3bcf144bf9
+MD5 len=86 digest=ef4084f1ca79ad69bd70fe495db9ac67
+MD5 len=87 digest=aa8d862a6f1357c1042ae12aba2dfc39
+MD5 len=88 digest=5b24ebccd1c2488249709661fe45bb3a
+MD5 len=89 digest=550fc67477f8007d1d5b8e7638fdb9b5
+MD5 len=90 digest=a1f38bc207e8b3e316ef8072d3a9248a
+MD5 len=91 digest=2527ae8df6f82117cc25441523944bac
+MD5 len=92 digest=990c88dfd119106f0bd06aa464b41aff
+MD5 len=93 digest=8e7b3ba41fcb83e3c85a6d9910f52832
+MD5 len=94 digest=e9a01abe4ccedb7089319eec7e9f016d
+MD5 len=95 digest=a5fdaa14db8fc0b635dbab5c72e3c178
+MD5 len=96 digest=d43267cd1eba7a9af38f0a4689c32f69
+MD5 len=97 digest=a909d98112ba19ce7e61a6bfee384151
+MD5 len=98 digest=48486757a618701bbe40c31991341658
+MD5 len=99 digest=03d21478673a8cbc41cc175cf82f4942
+MD5 len=100 digest=f85d474760cb48f459327ba2209c185d
+MD5 len=101 digest=1a30d5aeaa6b1dfdd86c7a9326a3a5d1
+MD5 len=102 digest=0617fe93a0083d59a32aa3dc527d11f1
+MD5 len=103 digest=a196bddcad45f15e5b5ecc17715a38fd
+MD5 len=104 digest=a55daca3482d9d27a7ad621b73060dd4
+MD5 len=105 digest=6e6c42ffecf0185840ec8e0db22381cf
+MD5 len=106 digest=76d55aad95f3e42ff4bd457c9dc9ac8f
+MD5 len=107 digest=38aba8bd6468a7577ef401c722d59170
+MD5 len=108 digest=3e3714728d6560752fa4266bf28857f2
+MD5 len=109 digest=5ddb36773fe9a86bc0f590e88583b807
+MD5 len=110 digest=0ccd30cfa455fae2b4a073b0a7fb9afe
+MD5 len=111 digest=13f00cb15f0c3fe588d1c17cde14b38f
+MD5 len=112 digest=5fe6a9f76b541ec645559589da9a088a
+MD5 len=113 digest=d4be13fd3019b6e959e11ff06e5671ae
+MD5 len=114 digest=0faf24d27038b7f40b10efdb45bba699
+MD5 len=115 digest=7b2107ccf358fd50d04be7572cb2a031
+MD5 len=116 digest=9da080404bb3ef7b13abc1595ca0556d
+MD5 len=117 digest=2268de7b9d7e1f34ecfdf5dc3629159b
+MD5 len=118 digest=f7ee9ac5422f3dde35ddca3d87bf365b
+MD5 len=119 digest=e84905d4214f4d1ca56c2cdcc152b143
+MD5 len=120 digest=e3eb5a6c8669ea01a8c185b8abc8a5dc
+MD5 len=121 digest=82f02aff7c685d5ef5f6abdfc38fd04f
+MD5 len=122 digest=3264d4667a3f9b010916fdae50703f40
+MD5 len=123 digest=0134c9c6cc77c9406fee9f9ab05e226f
+MD5 len=124 digest=30b6c4313c98897e504387b98777ac6d
+MD5 len=125 digest=55580346bc5457bde04f67ce8a5b0df5
+MD5 len=126 digest=5e1ada0df43aedbcf8b20751d806693e
+MD5 len=127 digest=acce2474d6cc8302120d09c818d17ef7
+MD5 len=128 digest=10b2da1a82f16d99a81a7203fe9f02cb
+MD5 len=129 digest=03fefbbcebe2959cf2270241aafe0250
+MD5 len=130 digest=4298951876af905376a025f7279651c2
+HDR hashid=0
+HSH i1=0 i2=0 out=16 ret=16 digest=d41d8cd98f00b204e9800998ecf8427e
+HSH i1=3 i2=0 out=16 ret=16 digest=c9aee4810523ef8658121b8d492c6b41
+HSH i1=0 i2=3 out=16 ret=16 digest=52118b42175d719befa330034a9c9045
+HSH i1=16 i2=16 out=16 ret=16 digest=7052c0735153604b6ff5d02f63839cc5
+HSH i1=40 i2=40 out=16 ret=16 digest=8e7db3583fcbf16df8f409418285c6ec
+HSH i1=5 i2=7 out=16 ret=16 digest=27d07639b104e6945e403237c2c220b3
+HSH i1=55 i2=1 out=16 ret=16 digest=5447228247a4c62e879d8a878662346e
+HSH i1=56 i2=0 out=16 ret=16 digest=46c9907fc908ee68b1e7b8e71286a518
+HSH i1=10 i2=0 out=4 ret=4 digest=de1951cf
+HSH i1=10 i2=0 out=8 ret=8 digest=de1951cfd0dbdefc
+HSH i1=10 i2=0 out=0 ret=0 digest=-
+HSH i1=10 i2=0 out=20 ret=16 digest=de1951cfd0dbdefcba237c7fd286b9e0
+HSH i1=63 i2=64 out=16 ret=16 digest=7f2e2437978e36223cfe29d2ed2887b9
+HSH i1=100 i2=30 out=16 ret=16 digest=2f271c785e3360d6a54965d343778904

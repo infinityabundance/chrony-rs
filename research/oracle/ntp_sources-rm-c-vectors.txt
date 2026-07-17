@@ -1,0 +1,10 @@
+# Differential-oracle vectors: REAL chrony ntp_sources.c removal + pools.
+# Consumer Rust (ntp_sources.rs); NO Python. seed=0x01010101
+RM_PRESENT status=0 nsources=2 size=4 remain=0a000003,0a000001,
+RM_ABSENT status=1 nsources=2 size=4 remain=0a000003,0a000001,
+RM_PRESENT2 status=0 nsources=1 size=2 remain=0a000003,
+RM_LAST status=0 nsources=0 size=1 remain=
+POOL_REAL_TENTATIVE sources=4 unresolved=2 confirmed=3 max=4
+POOL_CONFIRMED sources=4 unresolved=2 confirmed=2 max=4
+POOL_UNRESOLVED sources=4 unresolved=1 confirmed=3 max=4
+POOL_NOCLAMP sources=4 unresolved=2 confirmed=3 max=2

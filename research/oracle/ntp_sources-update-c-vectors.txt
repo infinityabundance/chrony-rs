@@ -1,0 +1,7 @@
+# NSR_UpdateSourceNtpAddress oracle (real ntp_sources.c). NO Python. seed=0x01010101
+UPD tag=unreal_old status=Invalid address
+UPD tag=unreal_new status=Invalid address
+UPD tag=new_ip_used status=Already in use
+UPD tag=port_change status=Success
+UPD tag=new_ip_free status=Success
+UPD tag=no_such status=No such source

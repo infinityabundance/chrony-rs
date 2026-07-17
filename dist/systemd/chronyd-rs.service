@@ -1,0 +1,26 @@
+[Unit]
+Description=chrony-rs NTP daemon
+Documentation=man:chronyd-rs(8) man:chronyc-rs(1)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/chronyd-rs -f /etc/chrony/chrony.conf
+ExecReload=/bin/kill -HUP $MAINPID
+PIDFile=/run/chronyd-rs.pid
+PrivateDevices=false
+ProtectSystem=full
+ProtectHome=read-only
+# Capabilities
+CapabilityBoundingSet=CAP_SYS_TIME CAP_NET_BIND_SERVICE CAP_SYS_RESOURCE CAP_SYS_NICE
+AmbientCapabilities=CAP_SYS_TIME
+# Sandboxing
+NoNewPrivileges=true
+RestrictNamespaces=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

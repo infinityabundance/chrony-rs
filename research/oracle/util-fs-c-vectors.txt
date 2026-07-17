@@ -1,0 +1,28 @@
+# Filesystem + address-format oracle: REAL chrony util.c.
+# Consumer Rust (util.rs); NO Python.
+JP_FULL r=1 s=/etc/chrony.conf
+JP_NOBASE r=1 s=name
+JP_NOSUF r=1 s=/var/lib/drift
+JP_OVF r=0
+JP_FIT r=1 s=/a/b.s
+SA_V4 s=192.168.1.1:123
+SA_V6 s=[2001:db8::1]:4460
+SA_ID s=ID#0000000042:7
+SA_UN s=[UNSPEC]:0
+SUB_UN s=any address
+SUB_V4_32 s=192.168.1.0
+SUB_V4_24 s=192.168.1.0/24
+SUB_V6_128 s=2001:db8::
+SUB_V6_64 s=2001:db8::/64
+DIR_OK isdir=1 mode=700 uid_match=1 gid_match=1 perm=700 verdict=1
+DIR_PERMISSIVE isdir=1 mode=700 uid_match=1 gid_match=1 perm=755 verdict=1
+DIR_EXTRA isdir=1 mode=777 uid_match=1 gid_match=1 perm=755 verdict=0
+DIR_WRONGUID isdir=1 mode=700 uid_match=0 gid_match=1 perm=700 verdict=0
+DIR_NOTDIR isreg=0 mode=700 perm=700 verdict=1
+FILE_OK isreg=1 mode=600 perm=644 verdict=1
+FILE_WWRITE isreg=1 mode=666 perm=644 verdict=0
+FILE_WREAD isreg=1 mode=604 perm=600 verdict=0
+FILE_EXACT isreg=1 mode=600 perm=600 verdict=1
+FILE_MISSING isreg=0 mode=0 perm=600 verdict=1
+FILE_ISDIR isreg=0 mode=700 perm=600 verdict=1
+DIR_ONFILE isdir=0 mode=600 uid_match=1 gid_match=1 perm=600 verdict=0

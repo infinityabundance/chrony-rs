@@ -1,0 +1,10 @@
+# parse_ratelimit oracle (verbatim CPS_SplitWord + loop, real sscanf). Consumer Rust (config). NO Python.
+RL tag=BARE enabled=1 interval=-1 burst=-1 leak=-1 err=0
+RL tag=FULL enabled=1 interval=5 burst=10 leak=2 err=0
+RL tag=ONE enabled=1 interval=3 burst=-1 leak=-1 err=0
+RL tag=REORDER enabled=1 interval=6 burst=-1 leak=4 err=0
+RL tag=CASE enabled=1 interval=7 burst=-1 leak=-1 err=0
+RL tag=NOVAL enabled=1 interval=-1 burst=-1 leak=-1 err=1
+RL tag=BADKEY enabled=1 interval=-1 burst=-1 leak=-1 err=1
+RL tag=JUNKVAL enabled=1 interval=5 burst=-1 leak=-1 err=1
+RL tag=NEG enabled=1 interval=-3 burst=-1 leak=-1 err=0

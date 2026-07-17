@@ -1,0 +1,11 @@
+# socket sockaddr codec oracle (verbatim SCK_*, real OS structs). Consumer Rust. NO Python.
+HDR AF_INET=2 AF_INET6=10 szin=16 szin6=28 szsa=16
+TOSA n=0 name=v4 ret=16 bytes=0200116cc00002070000000000000000
+TOSA n=1 name=v6 ret=28 bytes=0a00007b00000000202122232425262728292a2b2c2d2e2f00000000
+TOSA n=2 name=unspec ret=0 bytes=00000000000000000000000000000000
+TOSA n=3 name=v4_short ret=0 bytes=-
+TOSA n=4 name=v6_short ret=0 bytes=-
+TOIP n=5 name=v4 fam=1 port=443 addr=ac100009
+TOIP n=6 name=v6 fam=2 port=8080 addr=303132333435363738393a3b3c3d3e3f
+TOIP n=7 name=v4_short fam=0 port=0 addr=33323130
+TOIP n=8 name=unix fam=0 port=0 addr=0

@@ -1,0 +1,40 @@
+# ntp_ext oracle (real chrony ntp_ext.c + ntp.h). Consumer Rust. NO Python.
+HDR HDRLEN=48 MINEF=16 MACV4=24 PKTSIZE=1140
+SET n=0 buflen=64 start=0 type=260 blen=8 ret=1 tlen=12 buf=0104000ca0a1a2a3a4a5a6a700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+SET n=1 buflen=16 start=0 type=260 blen=12 ret=1 tlen=16 buf=01040010a0a1a2a3a4a5a6a7a8a9aaab
+SET n=2 buflen=64 start=1 type=260 blen=8 ret=0 tlen=-1 buf=-
+SET n=3 buflen=64 start=0 type=260 blen=5 ret=0 tlen=-1 buf=-
+SET n=4 buflen=64 start=0 type=260 blen=-4 ret=0 tlen=-1 buf=-
+SET n=5 buflen=64 start=0 type=260 blen=100 ret=0 tlen=-1 buf=-
+SET n=6 buflen=-1 start=0 type=260 blen=4 ret=0 tlen=-1 buf=-
+SET n=7 buflen=64 start=64 type=260 blen=4 ret=0 tlen=-1 buf=-
+SET n=8 buflen=6 start=4 type=260 blen=0 ret=0 tlen=-1 buf=-
+SET n=9 buflen=64 start=0 type=131071 blen=4 ret=1 tlen=8 buf=ffff0008a0a1a2a30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+SET n=10 buflen=64 start=8 type=515 blen=4 ret=1 tlen=8 buf=000000000000000002030008a0a1a2a3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+SET n=11 buflen=64 start=0 type=260 blen=0 ret=1 tlen=4 buf=01040004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+PSF n=12 buflen=64 start=0 htype=260 hlen=12 ret=1 len=12 type=260 boff=4 blen=8
+PSF n=13 buflen=64 start=0 htype=260 hlen=2 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PSF n=14 buflen=64 start=0 htype=260 hlen=13 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PSF n=15 buflen=16 start=0 htype=260 hlen=20 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PSF n=16 buflen=64 start=64 htype=260 hlen=12 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PSF n=17 buflen=6 start=4 htype=260 hlen=12 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PSF n=18 buflen=-1 start=0 htype=260 hlen=12 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PSF n=19 buflen=64 start=0 htype=43981 hlen=64 ret=1 len=64 type=43981 boff=4 blen=60
+ADD n=20 inlen=48 ver=4 type=516 blen=28 ret=1 outlen=80 ef=1 field=02040020a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babb
+ADD n=21 inlen=48 ver=3 type=516 blen=28 ret=0 outlen=48 ef=0 field=-
+ADD n=22 inlen=49 ver=4 type=516 blen=28 ret=0 outlen=49 ef=0 field=-
+ADD n=23 inlen=44 ver=4 type=516 blen=28 ret=0 outlen=44 ef=0 field=-
+ADD n=24 inlen=1140 ver=4 type=516 blen=28 ret=0 outlen=1140 ef=0 field=-
+ADD n=25 inlen=48 ver=4 type=516 blen=8 ret=0 outlen=48 ef=0 field=-
+ADD n=26 inlen=48 ver=4 type=516 blen=12 ret=1 outlen=64 ef=1 field=02040010a0a1a2a3a4a5a6a7a8a9aaab
+ADD n=27 inlen=80 ver=4 type=769 blen=20 ret=1 outlen=104 ef=1 field=03010018a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3
+ADD n=28 inlen=48 ver=4 type=516 blen=6 ret=0 outlen=48 ef=0 field=-
+PARSE n=29 lvm=35 plen=80 start=48 htype=516 hlen=32 ret=1 len=32 type=516 boff=52 blen=28
+PARSE n=30 lvm=27 plen=80 start=48 htype=516 hlen=32 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PARSE n=31 lvm=35 plen=72 start=48 htype=516 hlen=20 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PARSE n=32 lvm=35 plen=76 start=48 htype=516 hlen=28 ret=1 len=28 type=516 boff=52 blen=24
+PARSE n=33 lvm=35 plen=80 start=0 htype=516 hlen=32 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PARSE n=34 lvm=35 plen=81 start=48 htype=516 hlen=32 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PARSE n=35 lvm=35 plen=48 start=48 htype=516 hlen=32 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PARSE n=36 lvm=35 plen=80 start=80 htype=516 hlen=32 ret=0 len=-1 type=-1 boff=-1 blen=-1
+PARSE n=37 lvm=35 plen=80 start=48 htype=516 hlen=12 ret=0 len=-1 type=-1 boff=-1 blen=-1

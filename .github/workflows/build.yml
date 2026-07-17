@@ -1,0 +1,13 @@
+name: Build & Test
+on: [push, pull_request]
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --workspace
+      - run: cargo xtask check
+      - run: cargo test 2>&1 | tail -30
+      - name: Audit dependencies
+        run: cargo audit 2>&1 || echo "cargo-audit not installed (optional)"

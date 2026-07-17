@@ -1,0 +1,23 @@
+# nts_ke record codec oracle (verbatim nts_ke_session.c bodies). Consumer Rust. NO Python.
+ADD n=0 crit=1 type=1 blen=2 ret=1 len=6 data=800100024041
+ADD n=1 crit=1 type=4 blen=4 ret=1 len=14 data=8001000240418004000440414243
+ADD n=2 crit=0 type=5 blen=8 ret=1 len=26 data=8001000240418004000440414243000500084041424344454647
+ADD n=3 crit=1 type=0 blen=0 ret=1 len=30 data=800100024041800400044041424300050008404142434445464780000000
+ADD n=4 crit=1 type=32768 blen=0 ret=0 len=30 data=800100024041800400044041424300050008404142434445464780000000
+ADD n=5 crit=0 type=7 blen=4 ret=0 len=16381 data=OVERFLOW
+GET n=6 buflen=256 ret=1 crit=1 type=1 blen=2 parsed=6 body=4041
+GET n=7 buflen=256 ret=1 crit=1 type=4 blen=4 parsed=14 body=40414243
+GET n=8 buflen=256 ret=1 crit=0 type=5 blen=8 parsed=26 body=4041424344454647
+GET n=9 buflen=256 ret=1 crit=1 type=0 blen=0 parsed=30 body=-
+GET n=10 buflen=256 ret=0 crit=-1 type=-1 blen=-1 parsed=30 body=-
+GET n=11 buflen=1 ret=1 crit=0 type=5 blen=8 parsed=26 body=40
+GET n=12 buflen=0 ret=0 crit=-1 type=-1 blen=-1 parsed=8 body=- (2nd read of dangling)
+CHECK n=13 name=complete eof=1 ret=1 complete=1 msg=800100024041800400044041424380000000
+CHECK n=14 name=no_eom_eof eof=1 ret=0 complete=0 msg=800100024041
+CHECK n=15 name=no_eom_noeof eof=0 ret=1 complete=0 msg=800100024041
+CHECK n=16 name=noncritical_eom eof=1 ret=0 complete=0 msg=00000000
+CHECK n=17 name=eom_nonzero_len eof=1 ret=0 complete=0 msg=8000000440414243
+CHECK n=18 name=double_eom eof=1 ret=0 complete=0 msg=8000000080000000
+CHECK n=19 name=empty_noeof eof=0 ret=1 complete=0 msg=-
+CHECK n=20 name=empty_eof eof=1 ret=0 complete=0 msg=-
+CHECK n=21 name=partial_trailing eof=1 ret=0 complete=0 msg=8001000240418004000a4041424344

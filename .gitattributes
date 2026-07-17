@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.rs text diff=rust
+*.md text
+*.toml text
+*.yml text
+*.yaml text
+*.sh text eol=lf
+*.tar.gz binary
+*.png binary
+*.jpg binary

@@ -24,8 +24,11 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+mod capture_trace;
+mod compare_diagnostics;
 mod generate;
 mod parity;
+mod verify;
 
 fn repo_root() -> PathBuf {
     // xtask lives at <root>/xtask, so the manifest dir's parent is the repo root.
@@ -36,16 +39,63 @@ fn repo_root() -> PathBuf {
 }
 
 fn main() -> ExitCode {
-    let cmd = std::env::args().nth(1);
-    match cmd.as_deref() {
+    let args: Vec<String> = std::env::args().collect();
+    let cmd = args.get(1).map(|s| s.as_str());
+    match cmd {
         Some("gen") => gen(),
         Some("check") => check(),
+        Some("capture-trace") => {
+            let root = repo_root();
+            let mut chronyd_path = PathBuf::from("chronyd");
+            let mut config_path = root.join("tools/oracle/config-fixtures/valid_minimal.conf");
+            let mut output_path = root.join("research/oracle/captured-trace.json");
+            let mut duration_secs = 10u64;
+
+            let mut i = 2;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--chronyd" => { i += 1; chronyd_path = args[i].clone().into(); }
+                    "--config" => { i += 1; config_path = root.join(&args[i]); }
+                    "--output" => { i += 1; output_path = root.join(&args[i]); }
+                    "--duration" => { i += 1; duration_secs = args[i].parse().unwrap_or(10); }
+                    _ => {}
+                }
+                i += 1;
+            }
+
+            match capture_trace::run_capture(
+                &capture_trace::CaptureArgs {
+                    chronyd_path: &chronyd_path,
+                    config_path: &config_path,
+                    output_path: &output_path,
+                    duration_secs,
+                }
+            ) {
+                Ok((path, msg)) => {
+                    println!("{msg}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("capture-trace: {e}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        Some("verify") => {
+            let args: Vec<String> = std::env::args().skip(2).collect();
+            let output_path = args.iter().position(|a| a == "--output").and_then(|i| args.get(i + 1).map(|s| s.as_str()));
+            let court_mode = args.iter().any(|a| a == "--court");
+            let receipt = verify::run_verification(output_path, court_mode);
+            let passed = receipt.checks.iter().all(|c| c.passed);
+            eprintln!("verify: {}/{} checks passed", receipt.checks.iter().filter(|c| c.passed).count(), receipt.checks.len());
+            if passed { ExitCode::SUCCESS } else { ExitCode::FAILURE }
+        }
         Some(other) => {
-            eprintln!("xtask: unknown subcommand '{other}'\n\nUSAGE: cargo xtask [gen|check]");
+            eprintln!("xtask: unknown subcommand '{other}'\n\nUSAGE: cargo xtask [gen|check|verify|capture-trace|compare-diagnostics]\n  gen                  regenerate docs/generated/*\n  check                fail if generated docs are stale\n  verify               run verification suite and produce receipt\n  capture-trace        capture chronyd trace for oracle comparison court\n  compare-diagnostics  compare parser diagnostics against real chronyd [--chronyd <path>]");
             ExitCode::from(2)
         }
         None => {
-            eprintln!("USAGE: cargo xtask [gen|check]\n  gen    regenerate docs/generated/*\n  check  fail if generated docs are stale");
+            eprintln!("USAGE: cargo xtask [gen|check|verify|capture-trace|compare-diagnostics]\n  gen                  regenerate docs/generated/*\n  check                fail if generated docs are stale\n  verify               run verification suite and produce receipt\n  capture-trace        capture chronyd trace for oracle comparison court\n  compare-diagnostics  compare parser diagnostics against real chronyd [--chronyd <path>]");
             ExitCode::from(2)
         }
     }
@@ -64,6 +114,8 @@ fn artifacts(root: &Path) -> Vec<(PathBuf, String)> {
             root.join("docs/negative-capabilities.md"),
             generate::negative_capabilities_md(root),
         ),
+        (root.join("README.md"), generate::root_readme(root)),
+        (root.join("crates/chrony-rs/README.md"), generate::facade_readme(root)),
         (root.join("crates/chrony-rs-core/README.md"), generate::core_readme(root)),
         (root.join("crates/chronyd-rs/README.md"), generate::chronyd_readme(root)),
         (root.join("crates/chronyc-rs/README.md"), generate::chronyc_readme(root)),
@@ -119,7 +171,7 @@ fn asserted_facts(root: &Path) -> Vec<AssertedFact> {
     // research/ are deliberately NOT pinned: they are frozen snapshots of what was
     // witnessed and must keep stating the version they actually saw.)
     for doc in [
-        "README.md",
+        // (README.md is generated, so byte-gated, not pinned here.)
         "docs/README.md",
         "docs/chronyc-parity.md",
         "docs/compatibility.md",

@@ -1,0 +1,6 @@
+# Fish completions for chrony-rs
+# Pending implementation.
+
+# When complete, this directory should contain:
+#   chronyd-rs.fish  - fish completion file for chronyd-rs
+#   chronyc-rs.fish  - fish completion file for chronyc-rs

@@ -1,0 +1,9 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c access-restriction dispatch.
+# Consumer Rust (ntp/access.rs); NO Python.
+ADD_ALLOW allow=1 all=0 status=0 called=allow bits=24 ret=1
+ADD_ALLOWALL allow=1 all=1 status=0 called=allowall bits=24 ret=1
+ADD_DENY allow=0 all=0 status=0 called=deny bits=24 ret=1
+ADD_DENYALL allow=0 all=1 status=0 called=denyall bits=24 ret=1
+ADD_BADSUBNET allow=1 all=0 status=1 called=allow bits=24 ret=0
+CHK_ALLOWED is_allowed=1 ret=1
+CHK_DENIED is_allowed=0 ret=0

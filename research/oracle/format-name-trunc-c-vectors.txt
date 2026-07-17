@@ -1,0 +1,15 @@
+# format_name DNS-truncation oracle (verbatim client.c). NO Python.
+TR name=short trunc=25 |short|
+TR name=exactlytwentyfivecharsxx trunc=25 |exactlytwentyfivecharsxx|
+TR name=exactlytwentyfivecharsxxx trunc=25 |exactlytwentyfivecharsxxx|
+TR name=thisnameiswaytoolongforthecolumnwidth trunc=25 |thisnameiswaytoolongfort>|
+TR name=ab trunc=25 |ab|
+TR name=abcdef trunc=5 |abcd>|
+TR name=abcde trunc=5 |abcde|
+TR name=abcd trunc=5 |abcd|
+TR name=abc trunc=5 |abc|
+TR name=anything trunc=0 |anything|
+TR name=anything trunc=-1 |anything|
+TR name=x trunc=1 |x|
+TR name=xy trunc=1 |>|
+TR name= trunc=25 ||

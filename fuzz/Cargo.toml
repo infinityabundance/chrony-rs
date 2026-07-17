@@ -1,0 +1,49 @@
+[package]
+name = "chrony-rs-fuzz"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish = false
+description = "Fuzz targets for chrony-rs-core: packet-decode, cmdmon-validate, config-parse, and ntp-header."
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+chrony-rs-core = { version = "0.2", path = "../crates/chrony-rs-core" }
+libfuzzer-sys = { version = "0.4", optional = true }
+
+[features]
+default = []
+fuzz = ["libfuzzer-sys"]
+
+[[bin]]
+name = "packet-decode"
+path = "fuzz_targets/packet-decode.rs"
+required-features = ["fuzz"]
+test = false
+doc = false
+
+[[bin]]
+name = "cmdmon-validate"
+path = "fuzz_targets/cmdmon-validate.rs"
+required-features = ["fuzz"]
+test = false
+doc = false
+
+[[bin]]
+name = "config-parse"
+path = "fuzz_targets/config-parse.rs"
+required-features = ["fuzz"]
+test = false
+doc = false
+
+[[bin]]
+name = "ntp-header"
+path = "fuzz_targets/ntp-header.rs"
+required-features = ["fuzz"]
+test = false
+doc = false

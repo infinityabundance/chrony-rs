@@ -1,0 +1,4 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c transmit_packet (symmetric).
+# Consumer Rust (ntp/transmit.rs build_symmetric_packet); NO Python.
+SYM_ACTIVE ret=1 sends=1 length=48 lvm=33 stratum=2 poll=6 precision=-20 root_delay=656 root_dispersion=0 reference_id=167772161 reference_ts=17647972516704026624 originate_ts=12302652056939934532 receive_ts=18077469247377768448 transmit_ts=18077469248236761907
+SYM_PASSIVE ret=1 sends=1 length=48 lvm=34 stratum=2 poll=6 precision=-20 root_delay=656 root_dispersion=0 reference_id=167772161 reference_ts=17647972516704026624 originate_ts=12302652056939934532 receive_ts=18077469247377768449 transmit_ts=18077469248236761906

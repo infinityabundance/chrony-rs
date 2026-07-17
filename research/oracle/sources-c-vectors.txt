@@ -1,0 +1,16 @@
+# Differential-oracle vectors: REAL chrony sources.c Stage-1 machinery.
+# Reachability register via SRC_ReportSource; bad-source + special-mode triggers.
+# Consumer Rust (sources/registry.rs); NO Python.
+REACH_START reach=0
+REACH i=0 in=1 reach=1
+REACH i=1 in=1 reach=3
+REACH i=2 in=0 reach=6
+REACH i=3 in=1 reach=13
+REACH i=4 in=0 reach=26
+REACH i=5 in=0 reach=52
+REACH i=6 in=1 reach=105
+REACH i=7 in=1 reach=211
+REACH i=8 in=1 reach=167
+REACH i=9 in=0 reach=78
+BADSRC nsr_bad_calls=0 reach=0
+SPECIAL ref_unsync_calls_ge1=1

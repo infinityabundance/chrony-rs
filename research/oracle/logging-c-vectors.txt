@@ -1,0 +1,47 @@
+# logging.c oracle: ISO timestamp (strftime), log body, banner cadence, severity clamp, context severity. VERBATIM. Consumer Rust. NO Python.
+ISO t=0 s=1970-01-01T00:00:00Z
+ISO t=1700000000 s=2023-11-14T22:13:20Z
+ISO t=951782400 s=2000-02-29T00:00:00Z
+ISO t=86399 s=1970-01-01T23:59:59Z
+ISO t=32503680000 s=3000-01-01T00:00:00Z
+ISO t=-1 s=1969-12-31T23:59:59Z
+ISO t=1136073600 s=2006-01-01T00:00:00Z
+CLAMP in=-5 out=0
+CLAMP in=-1 out=0
+CLAMP in=0 out=0
+CLAMP in=1 out=1
+CLAMP in=2 out=2
+CLAMP in=3 out=3
+CLAMP in=5 out=3
+BANNER banner=0 writes=0 emit=0
+BANNER banner=0 writes=1 emit=0
+BANNER banner=0 writes=2 emit=0
+BANNER banner=0 writes=3 emit=0
+BANNER banner=0 writes=4 emit=0
+BANNER banner=0 writes=5 emit=0
+BANNER banner=0 writes=6 emit=0
+BANNER banner=0 writes=7 emit=0
+BANNER banner=1 writes=0 emit=1
+BANNER banner=1 writes=1 emit=1
+BANNER banner=1 writes=2 emit=1
+BANNER banner=1 writes=3 emit=1
+BANNER banner=1 writes=4 emit=1
+BANNER banner=1 writes=5 emit=1
+BANNER banner=1 writes=6 emit=1
+BANNER banner=1 writes=7 emit=1
+BANNER banner=4 writes=0 emit=1
+BANNER banner=4 writes=1 emit=0
+BANNER banner=4 writes=2 emit=0
+BANNER banner=4 writes=3 emit=0
+BANNER banner=4 writes=4 emit=1
+BANNER banner=4 writes=5 emit=0
+BANNER banner=4 writes=6 emit=0
+BANNER banner=4 writes=7 emit=0
+BANNER banner=32 writes=0 emit=1
+BANNER banner=32 writes=1 emit=0
+BANNER banner=32 writes=2 emit=0
+BANNER banner=32 writes=3 emit=0
+BANNER banner=32 writes=4 emit=0
+BANNER banner=32 writes=5 emit=0
+BANNER banner=32 writes=6 emit=0
+BANNER banner=32 writes=7 emit=0

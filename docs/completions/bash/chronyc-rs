@@ -1,0 +1,25 @@
+_chronyc_rs() {
+    local cur prev opts commands
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="-c -h -p -n -d -v --version --help"
+    commands="tracking activity sources sourcestats serverstats n_sources ntpdata clients manual rtcdata authdata smoothing selectdata reselect settime local addserver deletesource burst online offline allow deny cmdallow cmddeny accheck cmdaccheck rekey reload refresh reset smoothtime makestep dump shutdown writertc trimrtc cyclelogs dns password help version"
+    case ${prev} in
+        -h)
+            return 0
+            ;;
+        -p)
+            return 0
+            ;;
+        *)
+            if [[ ${cur} == -* ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            else
+                COMPREPLY=( $(compgen -W "${commands}" -- ${cur}) )
+            fi
+            return 0
+            ;;
+    esac
+}
+complete -F _chronyc_rs chronyc-rs

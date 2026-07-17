@@ -1,0 +1,14 @@
+_chronyd_rs() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="-f -d -n -s -r -R -t -u -4 -6 -l -L -p -q -v -h \
+          --cmdmon --lab-daemon --check-config --replay --replay-trace \
+          --version --help"
+    if [[ ${cur} == -* ]] ; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        return 0
+    fi
+}
+complete -F _chronyd_rs chronyd-rs

@@ -1,0 +1,7 @@
+# Differential-oracle vectors: REAL chrony privops.c (fork + socketpair).
+# Overridden ops: adjtime old={77,88} rc=0; settimeofday errno=13 rc=-1;
+# DNS_Name2IPAddress addrs[0].in4=0x01020304 rc=0(DNS_Success). Consumer Rust.
+ADJUSTTIME rc=0 old_sec=77 old_usec=88
+SETTIME rc=-1 errno=13
+NAME2IP rc=0 addr0_family=1 addr0_in4=0x01020304
+RELOADDNS done=1

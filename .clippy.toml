@@ -1,0 +1,4 @@
+# clippy configuration for chrony-rs
+# Forensic reconstruction requires careful numeric handling
+too-many-arguments-threshold = 12
+cognitive-complexity-threshold = 30

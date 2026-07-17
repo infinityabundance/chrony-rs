@@ -1,0 +1,30 @@
+# hwclock HCL_AccumulateSample/CookTime oracle (real hwclock.c + regress.c). NO Python.
+HCL id=clean step=0 n=1 valid=0 offset=0 freq=0
+HCL id=clean step=1 n=2 valid=1 offset=0 freq=0.99999000009999905
+HCL id=clean step=2 n=3 valid=1 offset=1.3591936465218168e-09 freq=0.99998500029295534
+HCL id=clean step=3 n=4 valid=1 offset=-9.9999237052728063e-05 freq=0.99999000009051731
+HCL id=clean step=4 n=5 valid=1 offset=0 freq=0.99998750015558113
+HCL id=clean step=5 n=6 valid=1 offset=-8.3670315120798477e-10 freq=0.99999250001441486
+HCL id=clean step=6 n=7 valid=1 offset=3.0474538448288513e-09 freq=0.9999883335202332
+HCL id=clean step=7 n=8 valid=1 offset=-6.6468075488046452e-10 freq=0.9999916667139549
+COOK id=clean ok=1 cooked=75.000641666999996 err=0.001
+HCL id=clean_ppm step=0 n=1 valid=0 offset=-6.6468075488046452e-10 freq=0.9999916667139549
+HCL id=clean_ppm step=1 n=2 valid=1 offset=0 freq=0.99999000009999905
+HCL id=clean_ppm step=2 n=3 valid=1 offset=1.3591936465218168e-09 freq=0.99998500029295523
+HCL id=clean_ppm step=3 n=4 valid=1 offset=-9.9999237056280776e-05 freq=0.99999000009051719
+HCL id=clean_ppm step=4 n=5 valid=1 offset=0 freq=0.99998750015558102
+HCL id=clean_ppm step=5 n=6 valid=1 offset=-8.3671025663534238e-10 freq=0.99999250001441442
+HCL id=clean_ppm step=6 n=7 valid=1 offset=3.0474680556835665e-09 freq=0.99998833352023331
+HCL id=clean_ppm step=7 n=8 valid=1 offset=-6.6468786030782212e-10 freq=0.99999166671395445
+COOK id=clean_ppm ok=1 cooked=75.000641666999996 err=0.001
+HCL id=short step=0 n=1 valid=0 offset=-6.6468786030782212e-10 freq=0.99999166671395445
+HCL id=short step=1 n=2 valid=1 offset=0 freq=0.99999000009999905
+HCL id=short step=2 n=3 valid=1 offset=1.3591936465218168e-09 freq=0.99998500029295534
+COOK id=short ok=1 cooked=25.000374998000002 err=0.001
+HCL id=reset step=0 n=1 valid=0 offset=1.3591936465218168e-09 freq=0.99998500029295534
+HCL id=reset step=1 n=2 valid=1 offset=0 freq=0.99999000009999905
+HCL id=reset step=2 n=1 valid=0 offset=0 freq=0.99999000009999905
+HCL id=reset step=3 n=2 valid=1 offset=0 freq=0.99998000039999202
+HCL id=reset step=4 n=3 valid=1 offset=0 freq=0.99998000039999202
+HCL id=reset step=5 n=4 valid=1 offset=-0.00029999350692477833 freq=0.99998000041971968
+COOK id=reset ok=1 cooked=40.000699992999998 err=0.001

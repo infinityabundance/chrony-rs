@@ -1,0 +1,44 @@
+# sys_linux tick/frequency arithmetic oracle (verbatim). Consumer Rust. NO Python.
+VCMP n=0 a=2.6.30 b=2.6.27 cmp=3
+VCMP n=1 a=2.6.30 b=2.6.33 cmp=-3
+VCMP n=2 a=4.19.0 b=4.19.0 cmp=0
+VCMP n=3 a=3.10.0 b=4.19.0 cmp=-1
+VCMP n=4 a=5.4.0 b=2.2.0 cmp=3
+VCMP n=5 a=2.1.0 b=2.2.0 cmp=-1
+GHZ n=6 tick=10000 hz=100
+GHZ n=7 tick=9000 hz=100
+GHZ n=8 tick=11000 hz=100
+GHZ n=9 tick=4000 hz=256
+GHZ n=10 tick=3906 hz=256
+GHZ n=11 tick=976 hz=1024
+GHZ n=12 tick=15625 hz=64
+GHZ n=13 tick=2000 hz=512
+GHZ n=14 tick=500 hz=2048
+GHZ n=15 tick=1000000 hz=-1
+VDET n=16 hz=100 ver=5.4.0 ok=1 dhz=100.0 ntick=10000 mtb=1000 tuh=100000 hso=1
+VDET n=17 hz=250 ver=3.10.0 ok=1 dhz=250.0 ntick=4000 mtb=400 tuh=100 hso=1
+VDET n=18 hz=1000 ver=2.6.30 ok=1 dhz=1000.0 ntick=1000 mtb=100 tuh=2 hso=0
+VDET n=19 hz=100 ver=2.6.39 ok=1 dhz=100.0 ntick=10000 mtb=1000 tuh=100 hso=1
+VDET n=20 hz=100 ver=2.6.38 ok=1 dhz=100.0 ntick=10000 mtb=1000 tuh=100 hso=0
+VDET n=21 hz=100 ver=2.1.0 ok=0 dhz=0.0 ntick=0 mtb=0 tuh=0 hso=0
+VDET n=22 hz=100 ver=2.6.26 ok=1 dhz=100.0 ntick=10000 mtb=1000 tuh=100 hso=0
+VDET n=23 hz=100 ver=4.18.99 ok=1 dhz=100.0 ntick=10000 mtb=1000 tuh=100 hso=1
+SPLIT n=24 fppm=0.0 hz=100 nom=10000 cdt=0 delta=0 freq=-0 tick=10000
+SPLIT n=25 fppm=250.0 hz=100 nom=10000 cdt=0 delta=3 freq=50 tick=9997
+SPLIT n=26 fppm=-250.0 hz=100 nom=10000 cdt=0 delta=-3 freq=-50 tick=10003
+SPLIT n=27 fppm=500.0 hz=100 nom=10000 cdt=0 delta=5 freq=-0 tick=9995
+SPLIT n=28 fppm=150.0 hz=100 nom=10000 cdt=2 delta=2 freq=50 tick=9998
+SPLIT n=29 fppm=250.0 hz=100 nom=10000 cdt=3 delta=3 freq=50 tick=9997
+SPLIT n=30 fppm=99.0 hz=100 nom=10000 cdt=1 delta=1 freq=1 tick=9999
+SPLIT n=31 fppm=101.0 hz=100 nom=10000 cdt=1 delta=1 freq=-1 tick=9999
+SPLIT n=32 fppm=250.0 hz=1000 nom=1000 cdt=0 delta=0 freq=-250 tick=1000
+SPLIT n=33 fppm=2500.0 hz=1000 nom=1000 cdt=3 delta=3 freq=500 tick=997
+SPLIT n=34 fppm=-2500.0 hz=1000 nom=1000 cdt=4 delta=-3 freq=-500 tick=1003
+SPLIT n=35 fppm=12.0 hz=250 nom=4000 cdt=0 delta=0 freq=-12 tick=4000
+SPLIT n=36 fppm=380.0 hz=250 nom=4000 cdt=1 delta=1 freq=-130 tick=3999
+SPLIT n=37 fppm=250.0 hz=100 nom=10000 cdt=2 delta=2 freq=-50 tick=9998
+SPLIT n=38 fppm=150.0 hz=100 nom=10000 cdt=1 delta=1 freq=-50 tick=9999
+RECON n=39 dhz=100.0 dt=3 kf=3276800 ppm=250
+RECON n=40 dhz=100.0 dt=-2 kf=-1000000 ppm=-184.7412109375
+RECON n=41 dhz=1000.0 dt=0 kf=65536 ppm=-1
+RECON n=42 dhz=250.0 dt=5 kf=0 ppm=1250

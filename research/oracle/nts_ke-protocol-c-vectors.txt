@@ -1,0 +1,23 @@
+# nts_ke protocol oracle (verbatim client/server message logic; both AEADs supported). Consumer Rust. NO Python.
+PREQ n=0 msg=80010002000080040004001e000f80000000
+RESP n=1 name=valid ok=1 next=0 aead=15 ncookies=2 port=0 server=- cookies=50515253,6061626364656667 msg=80010002000080040002000f000500045051525300050008606162636465666780000000
+RESP n=2 name=no_cookies ok=0 next=0 aead=15 ncookies=0 port=0 server=- cookies=- msg=80010002000080040002000f80000000
+RESP n=3 name=error_rec ok=0 next=-1 aead=-1 ncookies=0 port=0 server=- cookies=- msg=800200020007
+RESP n=4 name=noncrit_next ok=0 next=-1 aead=-1 ncookies=0 port=0 server=- cookies=- msg=000100020000
+RESP n=5 name=bad_aead ok=0 next=0 aead=-1 ncookies=0 port=0 server=- cookies=- msg=800100020000800400020063
+RESP n=6 name=port_server ok=1 next=0 aead=30 ncookies=1 port=4460 server=74696d652e6578616d706c65 cookies=70717273 msg=80010002000080040002001e000500047071727380070002116c8006000c74696d652e6578616d706c6580000000
+RESP n=7 name=bad_server_space ok=0 next=0 aead=15 ncookies=1 port=0 server=622064 cookies=80818283 msg=80010002000080040002000f000500048081828380060003622064
+RESP n=8 name=cookie_badlen_skip ok=1 next=0 aead=15 ncookies=1 port=0 server=- cookies=a0a1a2a3 msg=80010002000080040002000f0005000690919293949500050004a0a1a2a380000000
+RESP n=9 name=unknown_critical ok=0 next=0 aead=15 ncookies=1 port=0 server=- cookies=b0b1b2b3 msg=80010002000080040002000f00050004b0b1b2b3822b0002b0b1
+REQ n=10 name=valid error=-1 next=0 aead=30 msg=80010002000080040004001e000f80000000
+REQ n=11 name=noncrit_next error=1 next=-1 aead=-1 msg=000100020000
+REQ n=12 name=unsupported_aead error=-1 next=0 aead=-1 msg=800100020000800400020063
+REQ n=13 name=missing_aead error=1 next=0 aead=-1 msg=800100020000
+REQ n=14 name=next_not_ntpv4 error=-1 next=-1 aead=15 msg=80010002000580040002000f
+REQ n=15 name=unknown_critical error=0 next=-1 aead=-1 msg=83090000
+REQ n=16 name=cookie_in_request error=1 next=-1 aead=-1 msg=0005000411121314
+PRESP n=17 name=error msg=80020002000180000000
+PRESP n=18 name=next_lt0 msg=8001000080000000
+PRESP n=19 name=aead_lt0 msg=8001000200008004000080000000
+PRESP n=20 name=success msg=80010002000080040002000f0005000400010203000500041011121300050004202122230005000430313233000500044041424300050004505152530005000460616263000500047071727380000000
+PRESP n=21 name=success_portsrv msg=80010002000080040002000f80070002116c800600056e74702e780005000400010203000500041011121300050004202122230005000430313233000500044041424300050004505152530005000460616263000500047071727380000000

@@ -1,0 +1,14 @@
+# Differential-oracle vectors: REAL chrony nts_ntp_server.c (+ nts_ntp_auth.c,
+# ntp_ext.c, siv_nettle.c/siv_nettle_int.c over the FIPS-197 shim AES), commit
+# 120dfb8. The NTS-KE cookie codec is a deterministic reversible stub (serialises
+# the NKE_Context: algorithm + c2s + s2c keys, 4-aligned). A client request is built
+# (unique-id + cookie + placeholder + auth EF under the C2S key); the server checks
+# it and generates the response (unique-id + 2 fresh cookies + auth EF under S2C).
+# Context: alg=AES_SIV_CMAC_256, c2s=01..20, s2c=80..9f. nonce/cookies deterministic
+# (LCG seed 0x1234567890abcdef). CHECK/RESP/PKT(hex response)/TAMPER/NOCOOKIE.
+# Consumer is Rust (nts_ntp_server.rs); NO Python.
+CHECK ret=1 kod=0x0
+RESP ret=1 len=276
+PKT 24000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001040024101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f040400c0001000a84d4a6595cef16af7d278bd14bf1b0c1c4e166bb78a497a250e05480e3ebc812cc5e5c4952f4e43bcdb752dd6eb544546f55db2a01ca235935236daf606b13e6e099798ed3c91e446c787ac617f9fad906b00c783dfef4ac27dd79a18158c47cb5b9f9229cf7973cf16d38acf4f689a984dd2ee412522fee52a1b22ec7e746066b796a5cf791a2d85251229766864da9ab9ebaee83101e34d405e90fd54fc0c02b6aa356e9dc763c26316477504f702d394a927bc4863d5f2
+TAMPER ret=0 kod=0x4e54534e
+NOCOOKIE ret=0 kod=0x0

@@ -1,0 +1,13 @@
+# sys_null oracle (real chrony sys_null.c). Consumer Rust. NO Python.
+OP n=0 op=INIT arg=1000 freq=0 reg=0 lu=1000.000000000
+RF n=1 val=0
+SF n=2 now=1000 in=20 ret=20 freq=20 reg=0 lu=1000.000000000
+OP n=3 op=ACCRUE arg=0.001 freq=20 reg=0.001 lu=1000.000000000
+OC n=4 raw=1050 corr=-0.002 err=0 freq=20 reg=0.001 lu=1000.000000000
+SF n=5 now=1100 in=-5 ret=-5 freq=-5 reg=0.0030000000000000001 lu=1100.000000000
+OC n=6 raw=1100 corr=-0.0030000000000000001 err=0 freq=-5 reg=0.0030000000000000001 lu=1100.000000000
+OC n=7 raw=3100 corr=0.0069999999999999984 err=0 freq=-5 reg=-0.0069999999999999984 lu=3100.000000000
+RF n=8 val=-5
+OP n=9 op=ACCRUE arg=-0.002 freq=-5 reg=-0.0089999999999999976 lu=3100.000000000
+STEP n=10 in=1.0 ret=0
+OC n=11 raw=3100.5 corr=0.0090024999999999984 err=0 freq=-5 reg=-0.0089999999999999976 lu=3100.000000000

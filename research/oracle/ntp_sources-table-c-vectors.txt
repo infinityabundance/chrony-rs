@@ -1,0 +1,40 @@
+# Differential-oracle vectors: REAL chrony ntp_sources.c source-table internals.
+# Consumer Rust (sources/table.rs); NO Python. seed=0x01010101
+STATUS 0=Success
+STATUS 1=No such source
+STATUS 2=Already in use
+STATUS 3=Too many sources
+STATUS 4=Invalid address
+STATUS 5=Invalid name
+STATUS 6=Unresolved name
+HTS sources=0 size=1 ok=1
+HTS sources=1 size=1 ok=0
+HTS sources=1 size=2 ok=1
+HTS sources=2 size=2 ok=0
+HTS sources=2 size=4 ok=1
+HTS sources=3 size=4 ok=0
+HTS sources=4 size=8 ok=1
+HTS sources=4 size=4 ok=0
+CONFID 0=1
+CONFID 1=2
+CONFID 2=3
+CONFID 3=4
+HASH ip=0a000001 hash=2813040771
+HASH ip=0a000002 hash=2813398682
+HASH ip=0a000003 hash=2813756593
+HASH ip=c0a80001 hash=2813052881
+HASH ip=7f000001 hash=2813040888
+FINDSLOT ip=0a000001 found=1 slot=3
+FINDSLOT ip=0a000002 found=1 slot=2
+FINDSLOT ip=0a000003 found=1 slot=1
+FINDSLOT ip=c0a80001 found=1 slot=4
+FINDSLOT ip=7f000001 found=0 slot=0
+FINDSLOT ip=0a000099 found=0 slot=6
+FINDSLOT2 ip=0a000001 port=123 r=2 slot=3
+FINDSLOT2 ip=0a000001 port=999 r=1 slot=3
+FINDSLOT2 ip=0a000003 port=200 r=2 slot=1
+FINDSLOT2 ip=0a000003 port=123 r=1 slot=1
+FINDSLOT2 ip=7f000001 port=123 r=0 slot=0
+REHASH_GROW size=16 1:0a000003 3:0a000001 8:0a000004 10:0a000002
+REHASH_SAME size=8 1:0a000003 2:0a000002 3:0a000001
+REHASH_GROW2 size=8 2:0a000002 3:0a000001

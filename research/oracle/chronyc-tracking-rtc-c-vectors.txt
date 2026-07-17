@@ -1,0 +1,5 @@
+# tracking/rtcdata renderer oracle. NO Python.
+RR id=track mode=HUM |Reference ID    : 0A010203 (foo.example)\nStratum         : 3\nRef time (UTC)  : Tue Nov 14 22:13:20 2023\nSystem time     : 0.001500000 seconds slow of NTP time\nLast offset     : -0.000250000 seconds\nRMS offset      : 0.000300000 seconds\nFrequency       : 12.500 ppm slow\nResidual freq   : +0.050 ppm\nSkew            : 0.200 ppm\nRoot delay      : 0.010000000 seconds\nRoot dispersion : 0.020000000 seconds\nUpdate interval : 64.0 seconds\nLeap status     : Normal\n|
+RR id=rtc mode=HUM |RTC ref time (UTC) : Tue Nov 14 22:13:20 2023\nNumber of samples  : 40\nNumber of runs     : 8\nSample span period : 120m\nRTC is fast by     :     0.125000 seconds\nRTC gains time at  :    -1.500 ppm\n|
+RR id=track mode=CSV |0A010203,foo.example,3,1700000000.123456789,0.001500000,-0.000250000,0.000300000,-12.500,0.050,0.200,0.010000000,0.020000000,64.0,Normal\n|
+RR id=rtc mode=CSV |1700000000.123456789,40,8,7200,0.125000,-1.500\n|

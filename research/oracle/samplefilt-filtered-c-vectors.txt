@@ -1,0 +1,7 @@
+# samplefilt SPF_GetFilteredSample oracle (real samplefilt.c + regress.c). NO Python.
+FS id=five ok=1 time=30 offset=0.001 peer_disp=0.002 root_disp=0.002 peer_delay=0.012999999999999999 root_delay=0.023000000000000003
+FS id=eight ok=1 time=36.666666667000001 offset=0 peer_disp=0.001 root_disp=0.001 peer_delay=0.013666666666666667 root_delay=0.023666666666666669
+FS id=eight_cr0 ok=1 time=50 offset=0 peer_disp=0.000105 root_disp=0.00025000000000000001 peer_delay=0.014999999999999999 root_delay=0.025000000000000001
+FS id=two ok=1 time=5 offset=0.0015 peer_disp=0.0049497474683058333 root_disp=0.0049497474683058333 peer_delay=0.010499999999999999 root_delay=0.020500000000000001
+FS id=three ok=1 time=20 offset=0.001 peer_disp=0.00011 root_disp=0.00022000000000000001 peer_delay=0.012 root_delay=0.021999999999999999
+FS id=too_disp ok=0

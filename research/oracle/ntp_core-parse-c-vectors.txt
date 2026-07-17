@@ -1,0 +1,8 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c parse_packet.
+# Consumer Rust (ntp/parse.rs); NO Python.
+PLAIN ret=1 ver=4 mode=4 ef=0 efflags=0 auth=0 macstart=0 maclen=0 mackey=0x00000000
+V3MAC ret=1 ver=3 mode=3 ef=0 efflags=0 auth=1 macstart=48 maclen=20 mackey=0x11223344
+MSSNTP ret=1 ver=3 mode=4 ef=0 efflags=0 auth=2 macstart=48 maclen=20 mackey=0x00000005
+CRYPTONAK ret=1 ver=4 mode=3 ef=0 efflags=0 auth=1 macstart=48 maclen=4 mackey=0x00000000
+NTSEF ret=1 ver=4 mode=3 ef=1 efflags=0 auth=1 macstart=64 maclen=20 mackey=0xaabbccdd
+BADLEN ret=0

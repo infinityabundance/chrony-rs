@@ -1,0 +1,12 @@
+# NSR_ProcessRx/Tx routing oracle (real ntp_sources.c). NO Python. seed=0x01010101
+RX tag=known_server mode=4 known=1 unknown=0
+RX tag=known_client mode=3 known=0 unknown=1
+RX tag=known_active mode=1 known=1 unknown=0
+RX tag=known_passive mode=2 known=1 unknown=0
+RX tag=unknown_server mode=4 known=0 unknown=1
+RX tag=unknown_client mode=3 known=0 unknown=1
+TX tag=known_client mode=3 known=1 unknown=0
+TX tag=known_server mode=4 known=0 unknown=1
+TX tag=known_active mode=1 known=1 unknown=0
+TX tag=unknown_client mode=3 known=0 unknown=1
+TX tag=unknown_server mode=4 known=0 unknown=1

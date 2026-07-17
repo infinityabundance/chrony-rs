@@ -1,0 +1,47 @@
+# print_report engine oracle (verbatim client.c + real util.c). Consumer Rust. NO Python.
+R id=bool mode=HUM |a=Yes b=No|
+R id=cli mode=HUM | 5  -  -|
+R id=fo mode=HUM |f=12.50000 ppm fast o=0.00300 seconds fast|
+R id=fo2 mode=HUM |f=12.50000 ppm slow o=0.00300 seconds slow|
+R id=ivl mode=HUM | 25m|   -|
+R id=leap mode=HUM |Normal/Insert second/Delete second/Not synchronised/Invalid|
+R id=leap1 mode=HUM |N+-?|
+R id=mode mode=HUM |Symmetric active/Symmetric passive/Server/Invalid|
+R id=tss mode=HUM |Daemon/Kernel/Hardware/Invalid|
+R id=ppm mode=HUM |     1.250|    -0.500|
+R id=refid mode=HUM |0A010203|
+R id=soff mode=HUM | 123us|-3400us|
+R id=u32 mode=HUM |[      42][7]|
+R id=u64 mode=HUM |[1099511627776]|
+R id=bin mode=HUM |01010 101|
+R id=chr mode=HUM |AB|
+R id=dec mode=HUM |[   -3][7]|
+R id=dbl mode=HUM |[    3.14][-2.500]|
+R id=oct mode=HUM |[ 377]|
+R id=str mode=HUM |[        hi][yo        ]|
+R id=usr mode=HUM |[12345]|
+R id=vts mode=HUM |t=1700000000.123456789|
+R id=mix mode=HUM |Ref DEADBEEF str  3 leap Normal end|
+R id=bool mode=CSV |Yes,No\n|
+R id=cli mode=CSV |5,127,200\n|
+R id=fo mode=CSV |12.500,-0.003000000\n|
+R id=fo2 mode=CSV |-12.500,0.003000000\n|
+R id=ivl mode=CSV |1500,4294967295\n|
+R id=leap mode=CSV |Normal,Insert second,Delete second,Not synchronised,Invalid\n|
+R id=leap1 mode=CSV |Normal,Insert second,Delete second,Not synchronised\n|
+R id=mode mode=CSV |Symmetric active,Symmetric passive,Server,Invalid\n|
+R id=tss mode=CSV |Daemon,Kernel,Hardware,Invalid\n|
+R id=ppm mode=CSV |1.250,-0.500\n|
+R id=refid mode=CSV |0A010203\n|
+R id=soff mode=CSV |0.000123000,-0.003400000\n|
+R id=u32 mode=CSV |42,7\n|
+R id=u64 mode=CSV |1099511627776\n|
+R id=bin mode=CSV |01010,101\n|
+R id=chr mode=CSV |A,B\n|
+R id=dec mode=CSV |-3,7\n|
+R id=dbl mode=CSV |3.14,-2.500\n|
+R id=oct mode=CSV |377\n|
+R id=str mode=CSV |hi,yo\n|
+R id=usr mode=CSV |12345\n|
+R id=vts mode=CSV |1700000000.123456789\n|
+R id=mix mode=CSV |DEADBEEF,3,Normal\n|

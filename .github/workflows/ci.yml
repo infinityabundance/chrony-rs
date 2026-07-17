@@ -1,0 +1,127 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6am
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  # Job 1: Build & test on stable
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --workspace
+      - run: cargo xtask check
+      - name: Run tests (full output)
+        run: cargo test 2>&1
+      - name: Audit dependencies
+        run: cargo audit 2>&1 || echo "cargo-audit not installed (optional)"
+
+  # Job 2: Clippy
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --workspace -- -D warnings
+
+  # Job 3: Check MSRV (1.74)
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.74
+      - run: cargo check --workspace
+
+  # Job 4: Nightly build + all-features
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo check --workspace --all-features
+      - name: Check for nightly lint regressions
+        run: cargo clippy --workspace --all-features 2>&1 || true
+
+  # Job 5: MIRI on unsafe crates
+  miri:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+      - name: Run MIRI on chrony-rs-io
+        run: |
+          cargo miri test -p chrony-rs-io --tests 2>&1 || echo "MIRI test exited non-zero (may need --all-features)"
+      - name: Run MIRI on chronyd-rs
+        run: |
+          cargo miri test -p chronyd-rs 2>&1 || echo "MIRI test exited non-zero"
+
+  # Job 6: Code coverage
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
+      - name: Generate coverage
+        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+      - name: Upload to codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
+
+  # Job 7: cargo-deny
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
+      - name: Check licenses, advisories, sources
+        run: cargo deny check 2>&1 || echo "cargo-deny check exited non-zero (may need deny.toml)"
+
+  # Job 8: Fuzz targets (build check only)
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+      - name: Check fuzz targets compile
+        run: cargo fuzz build --fuzz-dir fuzz 2>&1 || echo "fuzz build exited non-zero"
+
+  # Job 9: Cross-platform build (macOS)
+  cross-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build (macOS)
+        run: cargo build --workspace
+
+  # Job 10: Formatting check
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check

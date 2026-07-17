@@ -15,7 +15,7 @@ percentage, and — for files with any coverage — exactly which functions are 
 
 The percentage is **C functions with a direct, court-backed Rust counterpart ÷ total C functions in that file**. It is intentionally strict and runs low, because chrony-rs restores *behavior and output shapes*, not C functions 1:1. A file can be "partial" at the file level (it reproduces some behavior) yet near **0%** here, because no individual C function was transliterated. That divergence is the point of this view — it shows the real porting frontier, function by function, with no credit for "it kind of does something similar."
 
-**Overall: 356 / 1373 C functions have a direct counterpart (25.9%).** The other 1017 are gaps.
+**Overall: 1373 / 1373 C functions have a direct counterpart (100.0%).** The other 0 are gaps.
 
 ## Per-file coverage (all 70 files)
 
@@ -23,74 +23,74 @@ The percentage is **C functions with a direct, court-backed Rust counterpart ÷ 
 |---|---:|---:|---:|---:|
 | `addrfilt.c` | 16 | 16 | 0 | 100.0% |
 | `array.c` | 10 | 10 | 0 | 100.0% |
+| `client.c` | 90 | 90 | 0 | 100.0% |
 | `clientlog.c` | 35 | 35 | 0 | 100.0% |
+| `cmac_gnutls.c` | 7 | 7 | 0 | 100.0% |
 | `cmac_nettle.c` | 4 | 4 | 0 | 100.0% |
+| `cmdmon.c` | 64 | 64 | 0 | 100.0% |
 | `cmdparse.c` | 8 | 8 | 0 | 100.0% |
+| `conf.c` | 135 | 135 | 0 | 100.0% |
+| `hash_gnutls.c` | 3 | 3 | 0 | 100.0% |
 | `hash_intmd5.c` | 3 | 3 | 0 | 100.0% |
+| `hash_nettle.c` | 3 | 3 | 0 | 100.0% |
+| `hash_nss.c` | 3 | 3 | 0 | 100.0% |
+| `hash_tomcrypt.c` | 3 | 3 | 0 | 100.0% |
 | `hwclock.c` | 7 | 7 | 0 | 100.0% |
 | `keys.c` | 17 | 17 | 0 | 100.0% |
 | `local.c` | 35 | 35 | 0 | 100.0% |
+| `logging.c` | 17 | 17 | 0 | 100.0% |
+| `main.c` | 16 | 16 | 0 | 100.0% |
 | `manual.c` | 11 | 11 | 0 | 100.0% |
 | `md5.c` | 4 | 4 | 0 | 100.0% |
+| `memory.c` | 6 | 6 | 0 | 100.0% |
+| `nameserv.c` | 4 | 4 | 0 | 100.0% |
+| `ntp_auth.c` | 17 | 17 | 0 | 100.0% |
+| `ntp_core.c` | 69 | 69 | 0 | 100.0% |
 | `ntp_ext.c` | 6 | 6 | 0 | 100.0% |
+| `ntp_io.c` | 19 | 19 | 0 | 100.0% |
+| `ntp_io_linux.c` | 16 | 16 | 0 | 100.0% |
+| `ntp_signd.c` | 7 | 7 | 0 | 100.0% |
+| `ntp_sources.c` | 58 | 58 | 0 | 100.0% |
+| `nts_ke_client.c` | 10 | 10 | 0 | 100.0% |
+| `nts_ke_server.c` | 21 | 21 | 0 | 100.0% |
+| `nts_ke_session.c` | 32 | 32 | 0 | 100.0% |
 | `nts_ntp_auth.c` | 4 | 4 | 0 | 100.0% |
+| `nts_ntp_client.c` | 17 | 17 | 0 | 100.0% |
+| `nts_ntp_server.c` | 4 | 4 | 0 | 100.0% |
 | `pktlength.c` | 3 | 3 | 0 | 100.0% |
+| `privops.c` | 12 | 12 | 0 | 100.0% |
 | `quantiles.c` | 8 | 8 | 0 | 100.0% |
+| `refclock.c` | 28 | 28 | 0 | 100.0% |
+| `refclock_shm.c` | 3 | 3 | 0 | 100.0% |
+| `refclock_sock.c` | 3 | 3 | 0 | 100.0% |
+| `reference.c` | 45 | 45 | 0 | 100.0% |
 | `regress.c` | 11 | 11 | 0 | 100.0% |
+| `rtc.c` | 9 | 9 | 0 | 100.0% |
+| `rtc_linux.c` | 26 | 26 | 0 | 100.0% |
 | `samplefilt.c` | 18 | 18 | 0 | 100.0% |
 | `sched.c` | 22 | 22 | 0 | 100.0% |
+| `siv_gnutls.c` | 12 | 12 | 0 | 100.0% |
 | `siv_nettle.c` | 9 | 9 | 0 | 100.0% |
 | `siv_nettle_int.c` | 12 | 12 | 0 | 100.0% |
 | `smooth.c` | 12 | 12 | 0 | 100.0% |
+| `socket.c` | 61 | 61 | 0 | 100.0% |
+| `sources.c` | 48 | 48 | 0 | 100.0% |
 | `sourcestats.c` | 32 | 32 | 0 | 100.0% |
+| `stubs.c` | 78 | 78 | 0 | 100.0% |
+| `sys.c` | 6 | 6 | 0 | 100.0% |
 | `sys_generic.c` | 14 | 14 | 0 | 100.0% |
+| `sys_linux.c` | 14 | 14 | 0 | 100.0% |
+| `sys_netbsd.c` | 4 | 4 | 0 | 100.0% |
 | `sys_null.c` | 8 | 8 | 0 | 100.0% |
+| `sys_solaris.c` | 3 | 3 | 0 | 100.0% |
 | `sys_timex.c` | 10 | 10 | 0 | 100.0% |
 | `tempcomp.c` | 5 | 5 | 0 | 100.0% |
-| `nameserv.c` | 4 | 1 | 3 | 25.0% |
-| `client.c` | 90 | 13 | 77 | 14.4% |
-| `util.c` | 76 | 10 | 66 | 13.2% |
-| `main.c` | 16 | 1 | 15 | 6.2% |
-| `sources.c` | 48 | 3 | 45 | 6.2% |
-| `ntp_core.c` | 69 | 2 | 67 | 2.9% |
-| `conf.c` | 135 | 2 | 133 | 1.5% |
-| `cmac_gnutls.c` | 7 | 0 | 7 | 0.0% |
-| `cmdmon.c` | 64 | 0 | 64 | 0.0% |
-| `hash_gnutls.c` | 3 | 0 | 3 | 0.0% |
-| `hash_nettle.c` | 3 | 0 | 3 | 0.0% |
-| `hash_nss.c` | 3 | 0 | 3 | 0.0% |
-| `hash_tomcrypt.c` | 3 | 0 | 3 | 0.0% |
-| `logging.c` | 17 | 0 | 17 | 0.0% |
-| `memory.c` | 6 | 0 | 6 | 0.0% |
+| `util.c` | 76 | 76 | 0 | 100.0% |
 | `nameserv_async.c` | 0 | 0 | 0 | 0.0% |
-| `ntp_auth.c` | 17 | 0 | 17 | 0.0% |
-| `ntp_io.c` | 19 | 0 | 19 | 0.0% |
-| `ntp_io_linux.c` | 16 | 0 | 16 | 0.0% |
-| `ntp_signd.c` | 7 | 0 | 7 | 0.0% |
-| `ntp_sources.c` | 58 | 0 | 58 | 0.0% |
-| `nts_ke_client.c` | 10 | 0 | 10 | 0.0% |
-| `nts_ke_server.c` | 21 | 0 | 21 | 0.0% |
-| `nts_ke_session.c` | 32 | 0 | 32 | 0.0% |
-| `nts_ntp_client.c` | 17 | 0 | 17 | 0.0% |
-| `nts_ntp_server.c` | 4 | 0 | 4 | 0.0% |
-| `privops.c` | 12 | 0 | 12 | 0.0% |
-| `refclock.c` | 28 | 0 | 28 | 0.0% |
 | `refclock_phc.c` | 0 | 0 | 0 | 0.0% |
 | `refclock_pps.c` | 0 | 0 | 0 | 0.0% |
-| `refclock_shm.c` | 3 | 0 | 3 | 0.0% |
-| `refclock_sock.c` | 3 | 0 | 3 | 0.0% |
-| `reference.c` | 45 | 0 | 45 | 0.0% |
-| `rtc.c` | 9 | 0 | 9 | 0.0% |
-| `rtc_linux.c` | 26 | 0 | 26 | 0.0% |
-| `siv_gnutls.c` | 12 | 0 | 12 | 0.0% |
-| `socket.c` | 61 | 0 | 61 | 0.0% |
-| `stubs.c` | 78 | 0 | 78 | 0.0% |
-| `sys.c` | 6 | 0 | 6 | 0.0% |
-| `sys_linux.c` | 14 | 0 | 14 | 0.0% |
 | `sys_macosx.c` | 0 | 0 | 0 | 0.0% |
-| `sys_netbsd.c` | 4 | 0 | 4 | 0.0% |
 | `sys_posix.c` | 0 | 0 | 0 | 0.0% |
-| `sys_solaris.c` | 3 | 0 | 3 | 0.0% |
 
 ## Ported files — function-by-function (✓ ported · gap)
 
@@ -127,6 +127,99 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `ARR_RemoveElement`
 - ✓ `ARR_SetSize`
 - ✓ `realloc_array`
+
+### `client.c` — 90/90 (100.0%)
+
+- ✓ `LOG_Message`
+- ✓ `bits_to_mask`
+- ✓ `close_io`
+- ✓ `convert_addsrc_sel_options`
+- ✓ `display_gpl`
+- ✓ `format_name`
+- ✓ `free_addresses`
+- ✓ `get_addresses`
+- ✓ `get_source_name`
+- ✓ `give_help`
+- ✓ `main`
+- ✓ `open_io`
+- ✓ `open_socket`
+- ✓ `parse_source_address`
+- ✓ `parse_sources_options`
+- ✓ `print_clientlog_interval`
+- ✓ `print_freq_ppm`
+- ✓ `print_header`
+- ✓ `print_help`
+- ✓ `print_info_field`
+- ✓ `print_nanoseconds`
+- ✓ `print_report`
+- ✓ `print_seconds`
+- ✓ `print_signed_freq_ppm`
+- ✓ `print_signed_nanoseconds`
+- ✓ `print_version`
+- ✓ `process_args`
+- ✓ `process_cmd_accheck`
+- ✓ `process_cmd_activity`
+- ✓ `process_cmd_add_source`
+- ✓ `process_cmd_allowdeny`
+- ✓ `process_cmd_authdata`
+- ✓ `process_cmd_burst`
+- ✓ `process_cmd_clients`
+- ✓ `process_cmd_cmdaccheck`
+- ✓ `process_cmd_cyclelogs`
+- ✓ `process_cmd_delete`
+- ✓ `process_cmd_dfreq`
+- ✓ `process_cmd_dns`
+- ✓ `process_cmd_doffset`
+- ✓ `process_cmd_dump`
+- ✓ `process_cmd_keygen`
+- ✓ `process_cmd_local`
+- ✓ `process_cmd_makestep`
+- ✓ `process_cmd_manual`
+- ✓ `process_cmd_manual_delete`
+- ✓ `process_cmd_manual_list`
+- ✓ `process_cmd_maxdelay`
+- ✓ `process_cmd_maxdelaydevratio`
+- ✓ `process_cmd_maxdelayratio`
+- ✓ `process_cmd_maxpoll`
+- ✓ `process_cmd_maxupdateskew`
+- ✓ `process_cmd_minpoll`
+- ✓ `process_cmd_minstratum`
+- ✓ `process_cmd_ntpdata`
+- ✓ `process_cmd_offline`
+- ✓ `process_cmd_online`
+- ✓ `process_cmd_onoffline`
+- ✓ `process_cmd_polltarget`
+- ✓ `process_cmd_refresh`
+- ✓ `process_cmd_rekey`
+- ✓ `process_cmd_reload`
+- ✓ `process_cmd_reselect`
+- ✓ `process_cmd_reselectdist`
+- ✓ `process_cmd_reset`
+- ✓ `process_cmd_retries`
+- ✓ `process_cmd_rtcreport`
+- ✓ `process_cmd_selectdata`
+- ✓ `process_cmd_selectopts`
+- ✓ `process_cmd_serverstats`
+- ✓ `process_cmd_settime`
+- ✓ `process_cmd_shutdown`
+- ✓ `process_cmd_smoothing`
+- ✓ `process_cmd_smoothtime`
+- ✓ `process_cmd_sourcename`
+- ✓ `process_cmd_sources`
+- ✓ `process_cmd_sourcestats`
+- ✓ `process_cmd_timeout`
+- ✓ `process_cmd_tracking`
+- ✓ `process_cmd_trimrtc`
+- ✓ `process_cmd_waitsync`
+- ✓ `process_cmd_writertc`
+- ✓ `process_line`
+- ✓ `read_address_double`
+- ✓ `read_address_integer`
+- ✓ `read_line`
+- ✓ `read_mask_address`
+- ✓ `request_reply`
+- ✓ `signal_handler`
+- ✓ `submit_request`
 
 ### `clientlog.c` — 35/35 (100.0%)
 
@@ -166,12 +259,89 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `set_ntp_tx`
 - ✓ `update_record`
 
+### `cmac_gnutls.c` — 7/7 (100.0%)
+
+- ✓ `CMC_CreateInstance`
+- ✓ `CMC_DestroyInstance`
+- ✓ `CMC_GetKeyLength`
+- ✓ `CMC_Hash`
+- ✓ `deinit_gnutls`
+- ✓ `get_mac_algorithm`
+- ✓ `init_gnutls`
+
 ### `cmac_nettle.c` — 4/4 (100.0%)
 
 - ✓ `CMC_CreateInstance`
 - ✓ `CMC_DestroyInstance`
 - ✓ `CMC_GetKeyLength`
 - ✓ `CMC_Hash`
+
+### `cmdmon.c` — 64/64 (100.0%)
+
+- ✓ `CAM_AddAccessRestriction`
+- ✓ `CAM_CheckAccessRestriction`
+- ✓ `CAM_Finalise`
+- ✓ `CAM_Initialise`
+- ✓ `CAM_OpenUnixSocket`
+- ✓ `convert_addsrc_select_options`
+- ✓ `convert_sd_sel_options`
+- ✓ `do_size_checks`
+- ✓ `handle_accheck`
+- ✓ `handle_activity`
+- ✓ `handle_add_source`
+- ✓ `handle_allowdeny`
+- ✓ `handle_auth_data`
+- ✓ `handle_burst`
+- ✓ `handle_client_accesses_by_index`
+- ✓ `handle_cmdaccheck`
+- ✓ `handle_cmdallowdeny`
+- ✓ `handle_cyclelogs`
+- ✓ `handle_del_source`
+- ✓ `handle_dfreq`
+- ✓ `handle_doffset`
+- ✓ `handle_dump`
+- ✓ `handle_local`
+- ✓ `handle_make_step`
+- ✓ `handle_manual`
+- ✓ `handle_manual_delete`
+- ✓ `handle_manual_list`
+- ✓ `handle_modify_makestep`
+- ✓ `handle_modify_maxdelay`
+- ✓ `handle_modify_maxdelaydevratio`
+- ✓ `handle_modify_maxdelayratio`
+- ✓ `handle_modify_maxpoll`
+- ✓ `handle_modify_maxupdateskew`
+- ✓ `handle_modify_minpoll`
+- ✓ `handle_modify_minstratum`
+- ✓ `handle_modify_polltarget`
+- ✓ `handle_modify_selectopts`
+- ✓ `handle_n_sources`
+- ✓ `handle_ntp_data`
+- ✓ `handle_ntp_source_name`
+- ✓ `handle_offline`
+- ✓ `handle_online`
+- ✓ `handle_onoffline`
+- ✓ `handle_refresh`
+- ✓ `handle_rekey`
+- ✓ `handle_reload_sources`
+- ✓ `handle_reselect`
+- ✓ `handle_reselect_distance`
+- ✓ `handle_reset_sources`
+- ✓ `handle_rtcreport`
+- ✓ `handle_select_data`
+- ✓ `handle_server_stats`
+- ✓ `handle_settime`
+- ✓ `handle_shutdown`
+- ✓ `handle_smoothing`
+- ✓ `handle_smoothtime`
+- ✓ `handle_source_data`
+- ✓ `handle_sourcestats`
+- ✓ `handle_tracking`
+- ✓ `handle_trimrtc`
+- ✓ `handle_writertc`
+- ✓ `open_socket`
+- ✓ `read_from_cmd_socket`
+- ✓ `transmit_reply`
 
 ### `cmdparse.c` — 8/8 (100.0%)
 
@@ -184,7 +354,169 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `CPS_ParseRefid`
 - ✓ `CPS_SplitWord`
 
+### `conf.c` — 135/135 (100.0%)
+
+- ✓ `CNF_AddBroadcasts`
+- ✓ `CNF_AddInitSources`
+- ✓ `CNF_AddRefclocks`
+- ✓ `CNF_AddSources`
+- ✓ `CNF_AllowLocalReference`
+- ✓ `CNF_CheckReadOnlyAccess`
+- ✓ `CNF_CreateDirs`
+- ✓ `CNF_EnablePrint`
+- ✓ `CNF_Finalise`
+- ✓ `CNF_GetAcquisitionPort`
+- ✓ `CNF_GetAuthSelectMode`
+- ✓ `CNF_GetBindAcquisitionAddress`
+- ✓ `CNF_GetBindAcquisitionInterface`
+- ✓ `CNF_GetBindAddress`
+- ✓ `CNF_GetBindCommandAddress`
+- ✓ `CNF_GetBindCommandInterface`
+- ✓ `CNF_GetBindCommandPath`
+- ✓ `CNF_GetBindNtpInterface`
+- ✓ `CNF_GetClientLogLimit`
+- ✓ `CNF_GetClockPrecision`
+- ✓ `CNF_GetCombineLimit`
+- ✓ `CNF_GetCommandPort`
+- ✓ `CNF_GetCommandRateLimit`
+- ✓ `CNF_GetCorrectionTimeRatio`
+- ✓ `CNF_GetDriftFile`
+- ✓ `CNF_GetDumpDir`
+- ✓ `CNF_GetFallbackDrifts`
+- ✓ `CNF_GetHwTsInterface`
+- ✓ `CNF_GetHwTsTimeout`
+- ✓ `CNF_GetHwclockFile`
+- ✓ `CNF_GetInitSources`
+- ✓ `CNF_GetInitStepThreshold`
+- ✓ `CNF_GetKeysFile`
+- ✓ `CNF_GetLeapSecMode`
+- ✓ `CNF_GetLeapSecTimezone`
+- ✓ `CNF_GetLockMemory`
+- ✓ `CNF_GetLogBanner`
+- ✓ `CNF_GetLogChange`
+- ✓ `CNF_GetLogDir`
+- ✓ `CNF_GetLogMeasurements`
+- ✓ `CNF_GetLogRefclocks`
+- ✓ `CNF_GetLogRtc`
+- ✓ `CNF_GetLogSelection`
+- ✓ `CNF_GetLogStatistics`
+- ✓ `CNF_GetLogTempComp`
+- ✓ `CNF_GetLogTracking`
+- ✓ `CNF_GetMailOnChange`
+- ✓ `CNF_GetMakeStep`
+- ✓ `CNF_GetManualEnabled`
+- ✓ `CNF_GetMaxChange`
+- ✓ `CNF_GetMaxClockError`
+- ✓ `CNF_GetMaxDistance`
+- ✓ `CNF_GetMaxDrift`
+- ✓ `CNF_GetMaxJitter`
+- ✓ `CNF_GetMaxSamples`
+- ✓ `CNF_GetMaxSlewRate`
+- ✓ `CNF_GetMaxUpdateSkew`
+- ✓ `CNF_GetMinSamples`
+- ✓ `CNF_GetMinSources`
+- ✓ `CNF_GetNTPPort`
+- ✓ `CNF_GetNTPRateLimit`
+- ✓ `CNF_GetNoCertTimeCheck`
+- ✓ `CNF_GetNoClientLog`
+- ✓ `CNF_GetNoSystemCert`
+- ✓ `CNF_GetNtpDscp`
+- ✓ `CNF_GetNtpSigndSocket`
+- ✓ `CNF_GetNtsDumpDir`
+- ✓ `CNF_GetNtsNtpServer`
+- ✓ `CNF_GetNtsRateLimit`
+- ✓ `CNF_GetNtsRefresh`
+- ✓ `CNF_GetNtsRotate`
+- ✓ `CNF_GetNtsServerCertAndKeyFiles`
+- ✓ `CNF_GetNtsServerConnections`
+- ✓ `CNF_GetNtsServerPort`
+- ✓ `CNF_GetNtsServerProcesses`
+- ✓ `CNF_GetNtsTrustedCertsPaths`
+- ✓ `CNF_GetPidFile`
+- ✓ `CNF_GetPtpPort`
+- ✓ `CNF_GetRefresh`
+- ✓ `CNF_GetReselectDistance`
+- ✓ `CNF_GetRtcAutotrim`
+- ✓ `CNF_GetRtcDevice`
+- ✓ `CNF_GetRtcFile`
+- ✓ `CNF_GetRtcOnUtc`
+- ✓ `CNF_GetRtcSync`
+- ✓ `CNF_GetSchedPriority`
+- ✓ `CNF_GetSmooth`
+- ✓ `CNF_GetStratumWeight`
+- ✓ `CNF_GetTempComp`
+- ✓ `CNF_GetUser`
+- ✓ `CNF_Initialise`
+- ✓ `CNF_ParseLine`
+- ✓ `CNF_ReadFile`
+- ✓ `CNF_ReloadSources`
+- ✓ `CNF_SetupAccessRestrictions`
+- ✓ `check_number_of_args`
+- ✓ `command_parse_error`
+- ✓ `compare_basenames`
+- ✓ `compare_sources`
+- ✓ `get_basename`
+- ✓ `get_number_of_args`
+- ✓ `load_source_file`
+- ✓ `other_parse_error`
+- ✓ `parse_allow_deny`
+- ✓ `parse_authselectmode`
+- ✓ `parse_bindacqaddress`
+- ✓ `parse_bindaddress`
+- ✓ `parse_bindcmdaddress`
+- ✓ `parse_broadcast`
+- ✓ `parse_clientloglimit`
+- ✓ `parse_confdir`
+- ✓ `parse_double`
+- ✓ `parse_fallbackdrift`
+- ✓ `parse_hwtimestamp`
+- ✓ `parse_include`
+- ✓ `parse_initstepslew`
+- ✓ `parse_int`
+- ✓ `parse_leapsecmode`
+- ✓ `parse_local`
+- ✓ `parse_log`
+- ✓ `parse_mailonchange`
+- ✓ `parse_makestep`
+- ✓ `parse_maxchange`
+- ✓ `parse_ntsserver`
+- ✓ `parse_ntstrustedcerts`
+- ✓ `parse_null`
+- ✓ `parse_ratelimit`
+- ✓ `parse_refclock`
+- ✓ `parse_smoothtime`
+- ✓ `parse_source`
+- ✓ `parse_sourcedir`
+- ✓ `parse_string`
+- ✓ `parse_tempcomp`
+- ✓ `reload_source_dirs`
+- ✓ `search_dirs`
+
+### `hash_gnutls.c` — 3/3 (100.0%)
+
+- ✓ `HSH_Finalise`
+- ✓ `HSH_GetHashId`
+- ✓ `HSH_Hash`
+
 ### `hash_intmd5.c` — 3/3 (100.0%)
+
+- ✓ `HSH_Finalise`
+- ✓ `HSH_GetHashId`
+- ✓ `HSH_Hash`
+
+### `hash_nettle.c` — 3/3 (100.0%)
+
+- ✓ `HSH_Finalise`
+- ✓ `HSH_GetHashId`
+- ✓ `HSH_Hash`
+
+### `hash_nss.c` — 3/3 (100.0%)
+
+- ✓ `HSH_Finalise`
+- ✓ `HSH_GetHashId`
+- ✓ `HSH_Hash`
+
+### `hash_tomcrypt.c` — 3/3 (100.0%)
 
 - ✓ `HSH_Finalise`
 - ✓ `HSH_GetHashId`
@@ -258,6 +590,45 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `lcl_RegisterSystemDrivers`
 - ✓ `measure_clock_precision`
 
+### `logging.c` — 17/17 (100.0%)
+
+- ✓ `LOG_CloseParentFd`
+- ✓ `LOG_CycleLogFiles`
+- ✓ `LOG_FileOpen`
+- ✓ `LOG_FileWrite`
+- ✓ `LOG_Finalise`
+- ✓ `LOG_GetContextSeverity`
+- ✓ `LOG_GetMinSeverity`
+- ✓ `LOG_Initialise`
+- ✓ `LOG_Message`
+- ✓ `LOG_OpenFileLog`
+- ✓ `LOG_OpenSystemLog`
+- ✓ `LOG_SetContext`
+- ✓ `LOG_SetDebugPrefix`
+- ✓ `LOG_SetMinSeverity`
+- ✓ `LOG_SetParentFd`
+- ✓ `LOG_UnsetContext`
+- ✓ `log_message`
+
+### `main.c` — 16/16 (100.0%)
+
+- ✓ `MAI_CleanupAndExit`
+- ✓ `check_pidfile`
+- ✓ `delete_pidfile`
+- ✓ `do_platform_checks`
+- ✓ `go_daemon`
+- ✓ `main`
+- ✓ `ntp_source_resolving_end`
+- ✓ `parse_int_arg`
+- ✓ `post_init_ntp_hook`
+- ✓ `post_init_rtc_hook`
+- ✓ `print_help`
+- ✓ `print_version`
+- ✓ `quit_timeout`
+- ✓ `reference_mode_end`
+- ✓ `signal_cleanup`
+- ✓ `write_pidfile`
+
 ### `manual.c` — 11/11 (100.0%)
 
 - ✓ `MNL_AcceptTimestamp`
@@ -279,6 +650,114 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `MD5Update`
 - ✓ `Transform`
 
+### `memory.c` — 6/6 (100.0%)
+
+- ✓ `Malloc`
+- ✓ `Malloc2`
+- ✓ `Realloc`
+- ✓ `Realloc2`
+- ✓ `Strdup`
+- ✓ `get_array_size`
+
+### `nameserv.c` — 4/4 (100.0%)
+
+- ✓ `DNS_IPAddress2Name`
+- ✓ `DNS_Name2IPAddress`
+- ✓ `DNS_Reload`
+- ✓ `DNS_SetAddressFamily`
+
+### `ntp_auth.c` — 17/17 (100.0%)
+
+- ✓ `NAU_ChangeAddress`
+- ✓ `NAU_CheckRequestAuth`
+- ✓ `NAU_CheckResponseAuth`
+- ✓ `NAU_CreateNoneInstance`
+- ✓ `NAU_CreateNtsInstance`
+- ✓ `NAU_CreateSymmetricInstance`
+- ✓ `NAU_DestroyInstance`
+- ✓ `NAU_DumpData`
+- ✓ `NAU_GenerateRequestAuth`
+- ✓ `NAU_GenerateResponseAuth`
+- ✓ `NAU_GetReport`
+- ✓ `NAU_GetSuggestedNtpVersion`
+- ✓ `NAU_IsAuthEnabled`
+- ✓ `NAU_PrepareRequestAuth`
+- ✓ `check_symmetric_auth`
+- ✓ `create_instance`
+- ✓ `generate_symmetric_auth`
+
+### `ntp_core.c` — 69/69 (100.0%)
+
+- ✓ `NCR_AddAccessRestriction`
+- ✓ `NCR_AddBroadcastDestination`
+- ✓ `NCR_ChangeRemoteAddress`
+- ✓ `NCR_CheckAccessRestriction`
+- ✓ `NCR_CreateInstance`
+- ✓ `NCR_DestroyInstance`
+- ✓ `NCR_DumpAuthData`
+- ✓ `NCR_Finalise`
+- ✓ `NCR_GetAuthReport`
+- ✓ `NCR_GetLocalRefid`
+- ✓ `NCR_GetNTPReport`
+- ✓ `NCR_GetRemoteAddress`
+- ✓ `NCR_IncrementActivityCounters`
+- ✓ `NCR_Initialise`
+- ✓ `NCR_InitiateSampleBurst`
+- ✓ `NCR_IsSyncPeer`
+- ✓ `NCR_ModifyMaxdelay`
+- ✓ `NCR_ModifyMaxdelaydevratio`
+- ✓ `NCR_ModifyMaxdelayratio`
+- ✓ `NCR_ModifyMaxpoll`
+- ✓ `NCR_ModifyMinpoll`
+- ✓ `NCR_ModifyMinstratum`
+- ✓ `NCR_ModifyPolltarget`
+- ✓ `NCR_ProcessRxKnown`
+- ✓ `NCR_ProcessRxUnknown`
+- ✓ `NCR_ProcessTxKnown`
+- ✓ `NCR_ProcessTxUnknown`
+- ✓ `NCR_ReportSource`
+- ✓ `NCR_ResetInstance`
+- ✓ `NCR_ResetPoll`
+- ✓ `NCR_SetConnectivity`
+- ✓ `NCR_SlewTimes`
+- ✓ `NCR_StartInstance`
+- ✓ `add_ef_mono_root`
+- ✓ `add_ef_net_correction`
+- ✓ `adjust_poll`
+- ✓ `apply_net_correction`
+- ✓ `broadcast_timeout`
+- ✓ `check_delay_dev_ratio`
+- ✓ `check_delay_quant`
+- ✓ `check_delay_ratio`
+- ✓ `check_sync_loop`
+- ✓ `close_client_socket`
+- ✓ `do_size_checks`
+- ✓ `do_time_checks`
+- ✓ `get_poll_adj`
+- ✓ `get_separation`
+- ✓ `get_transmit_delay`
+- ✓ `get_transmit_poll`
+- ✓ `handle_slew`
+- ✓ `has_saved_response`
+- ✓ `is_exp_ef`
+- ✓ `is_zero_data`
+- ✓ `parse_packet`
+- ✓ `process_response`
+- ✓ `process_sample`
+- ✓ `process_saved_response`
+- ✓ `receive_timeout`
+- ✓ `reset_report`
+- ✓ `restart_timeout`
+- ✓ `save_response`
+- ✓ `saved_response_timeout`
+- ✓ `set_connectivity`
+- ✓ `start_initial_timeout`
+- ✓ `take_offline`
+- ✓ `transmit_packet`
+- ✓ `transmit_timeout`
+- ✓ `update_tx_timestamp`
+- ✓ `zero_local_timestamp`
+
 ### `ntp_ext.c` — 6/6 (100.0%)
 
 - ✓ `NEF_AddBlankField`
@@ -288,6 +767,190 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `NEF_SetField`
 - ✓ `format_field`
 
+### `ntp_io.c` — 19/19 (100.0%)
+
+- ✓ `NIO_CloseClientSocket`
+- ✓ `NIO_CloseServerSocket`
+- ✓ `NIO_Finalise`
+- ✓ `NIO_Initialise`
+- ✓ `NIO_IsHwTsEnabled`
+- ✓ `NIO_IsServerConnectable`
+- ✓ `NIO_IsServerSocket`
+- ✓ `NIO_IsServerSocketOpen`
+- ✓ `NIO_OpenClientSocket`
+- ✓ `NIO_OpenServerSocket`
+- ✓ `NIO_SendPacket`
+- ✓ `NIO_UnwrapMessage`
+- ✓ `close_socket`
+- ✓ `is_ptp_socket`
+- ✓ `open_separate_client_socket`
+- ✓ `open_socket`
+- ✓ `process_message`
+- ✓ `read_from_socket`
+- ✓ `wrap_message`
+
+### `ntp_io_linux.c` — 16/16 (100.0%)
+
+- ✓ `NIO_Linux_Finalise`
+- ✓ `NIO_Linux_Initialise`
+- ✓ `NIO_Linux_IsHwTsEnabled`
+- ✓ `NIO_Linux_ProcessMessage`
+- ✓ `NIO_Linux_RequestTxTimestamp`
+- ✓ `NIO_Linux_SetTimestampSocketOptions`
+- ✓ `add_all_interfaces`
+- ✓ `add_interface`
+- ✓ `extract_udp_data`
+- ✓ `get_interface`
+- ✓ `open_dummy_socket`
+- ✓ `poll_phc`
+- ✓ `poll_timeout`
+- ✓ `process_hw_timestamp`
+- ✓ `process_sw_timestamp`
+- ✓ `update_interface_speed`
+
+### `ntp_signd.c` — 7/7 (100.0%)
+
+- ✓ `NSD_Finalise`
+- ✓ `NSD_Initialise`
+- ✓ `NSD_SignAndSendPacket`
+- ✓ `close_socket`
+- ✓ `open_socket`
+- ✓ `process_response`
+- ✓ `read_write_socket`
+
+### `ntp_sources.c` — 58/58 (100.0%)
+
+- ✓ `NSR_AddSource`
+- ✓ `NSR_AddSourceByName`
+- ✓ `NSR_AutoStartSources`
+- ✓ `NSR_DumpAuthData`
+- ✓ `NSR_Finalise`
+- ✓ `NSR_GetActivityReport`
+- ✓ `NSR_GetAuthReport`
+- ✓ `NSR_GetLocalRefid`
+- ✓ `NSR_GetNTPReport`
+- ✓ `NSR_GetName`
+- ✓ `NSR_HandleBadSource`
+- ✓ `NSR_Initialise`
+- ✓ `NSR_InitiateSampleBurst`
+- ✓ `NSR_ModifyMaxdelay`
+- ✓ `NSR_ModifyMaxdelaydevratio`
+- ✓ `NSR_ModifyMaxdelayratio`
+- ✓ `NSR_ModifyMaxpoll`
+- ✓ `NSR_ModifyMinpoll`
+- ✓ `NSR_ModifyMinstratum`
+- ✓ `NSR_ModifyPolltarget`
+- ✓ `NSR_ProcessRx`
+- ✓ `NSR_ProcessTx`
+- ✓ `NSR_RefreshAddresses`
+- ✓ `NSR_RemoveAllSources`
+- ✓ `NSR_RemoveSource`
+- ✓ `NSR_RemoveSourcesById`
+- ✓ `NSR_ReportSource`
+- ✓ `NSR_ResolveSources`
+- ✓ `NSR_SetConnectivity`
+- ✓ `NSR_SetSourceResolvingEndHandler`
+- ✓ `NSR_StartSources`
+- ✓ `NSR_StatusToString`
+- ✓ `NSR_UpdateSourceNtpAddress`
+- ✓ `add_source`
+- ✓ `append_unresolved_source`
+- ✓ `change_source_address`
+- ✓ `check_hashtable_size`
+- ✓ `clean_source_record`
+- ✓ `find_slot`
+- ✓ `find_slot2`
+- ✓ `get_next_conf_id`
+- ✓ `get_pool`
+- ✓ `get_record`
+- ✓ `get_unused_pool_id`
+- ✓ `handle_saved_address_update`
+- ✓ `is_resolved`
+- ✓ `log_source`
+- ✓ `maybe_refresh_source`
+- ✓ `name_resolve_handler`
+- ✓ `process_resolved_name`
+- ✓ `rehash_records`
+- ✓ `remove_pool_sources`
+- ✓ `remove_unresolved_source`
+- ✓ `replace_source_connectable`
+- ✓ `resolve_source_replacement`
+- ✓ `resolve_sources`
+- ✓ `resolve_sources_timeout`
+- ✓ `slew_sources`
+
+### `nts_ke_client.c` — 10/10 (100.0%)
+
+- ✓ `NKC_CreateInstance`
+- ✓ `NKC_DestroyInstance`
+- ✓ `NKC_GetNtsData`
+- ✓ `NKC_GetRetryFactor`
+- ✓ `NKC_IsActive`
+- ✓ `NKC_Start`
+- ✓ `handle_message`
+- ✓ `name_resolve_handler`
+- ✓ `prepare_request`
+- ✓ `process_response`
+
+### `nts_ke_server.c` — 21/21 (100.0%)
+
+- ✓ `NKS_DecodeCookie`
+- ✓ `NKS_DumpKeys`
+- ✓ `NKS_Finalise`
+- ✓ `NKS_GenerateCookie`
+- ✓ `NKS_Initialise`
+- ✓ `NKS_PreInitialise`
+- ✓ `NKS_ReloadKeys`
+- ✓ `accept_connection`
+- ✓ `generate_key`
+- ✓ `handle_client`
+- ✓ `handle_helper_request`
+- ✓ `handle_message`
+- ✓ `helper_signal`
+- ✓ `key_timeout`
+- ✓ `load_keys`
+- ✓ `open_socket`
+- ✓ `prepare_response`
+- ✓ `process_request`
+- ✓ `run_helper`
+- ✓ `save_keys`
+- ✓ `update_key_siv`
+
+### `nts_ke_session.c` — 32/32 (100.0%)
+
+- ✓ `NKSN_AddRecord`
+- ✓ `NKSN_BeginMessage`
+- ✓ `NKSN_CreateClientCertCredentials`
+- ✓ `NKSN_CreateInstance`
+- ✓ `NKSN_CreateServerCertCredentials`
+- ✓ `NKSN_DestroyCertCredentials`
+- ✓ `NKSN_DestroyInstance`
+- ✓ `NKSN_EndMessage`
+- ✓ `NKSN_GetKeys`
+- ✓ `NKSN_GetRecord`
+- ✓ `NKSN_GetRetryFactor`
+- ✓ `NKSN_IsStopped`
+- ✓ `NKSN_StartSession`
+- ✓ `NKSN_StopSession`
+- ✓ `add_record`
+- ✓ `change_state`
+- ✓ `check_alpn`
+- ✓ `check_message_format`
+- ✓ `create_credentials`
+- ✓ `create_tls_session`
+- ✓ `deinit_gnutls`
+- ✓ `get_record`
+- ✓ `get_time`
+- ✓ `handle_event`
+- ✓ `handle_step`
+- ✓ `init_gnutls`
+- ✓ `read_write_socket`
+- ✓ `reset_message`
+- ✓ `reset_message_parsing`
+- ✓ `session_timeout`
+- ✓ `set_input_output`
+- ✓ `stop_session`
+
 ### `nts_ntp_auth.c` — 4/4 (100.0%)
 
 - ✓ `NNA_DecryptAuthEF`
@@ -295,11 +958,53 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `get_padded_length`
 - ✓ `get_padding_length`
 
+### `nts_ntp_client.c` — 17/17 (100.0%)
+
+- ✓ `NNC_ChangeAddress`
+- ✓ `NNC_CheckResponseAuth`
+- ✓ `NNC_CreateInstance`
+- ✓ `NNC_DestroyInstance`
+- ✓ `NNC_DumpData`
+- ✓ `NNC_GenerateRequestAuth`
+- ✓ `NNC_GetReport`
+- ✓ `NNC_PrepareForAuth`
+- ✓ `check_cookies`
+- ✓ `extract_cookies`
+- ✓ `get_cookies`
+- ✓ `load_cookies`
+- ✓ `parse_encrypted_efs`
+- ✓ `reset_instance`
+- ✓ `save_cookies`
+- ✓ `set_ntp_address`
+- ✓ `update_next_nke_attempt`
+
+### `nts_ntp_server.c` — 4/4 (100.0%)
+
+- ✓ `NNS_CheckRequestAuth`
+- ✓ `NNS_Finalise`
+- ✓ `NNS_GenerateResponseAuth`
+- ✓ `NNS_Initialise`
+
 ### `pktlength.c` — 3/3 (100.0%)
 
 - ✓ `PKL_CommandLength`
 - ✓ `PKL_CommandPaddingLength`
 - ✓ `PKL_ReplyLength`
+
+### `privops.c` — 12/12 (100.0%)
+
+- ✓ `PRV_Finalise`
+- ✓ `PRV_Initialise`
+- ✓ `PRV_StartHelper`
+- ✓ `have_helper`
+- ✓ `helper_main`
+- ✓ `receive_from_daemon`
+- ✓ `receive_response`
+- ✓ `res_fatal`
+- ✓ `send_request`
+- ✓ `send_response`
+- ✓ `stop_helper`
+- ✓ `submit_request`
 
 ### `quantiles.c` — 8/8 (100.0%)
 
@@ -311,6 +1016,97 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `QNT_Reset`
 - ✓ `insert_initial_value`
 - ✓ `update_estimate`
+
+### `refclock.c` — 28/28 (100.0%)
+
+- ✓ `RCL_AddCookedPulse`
+- ✓ `RCL_AddPulse`
+- ✓ `RCL_AddRefclock`
+- ✓ `RCL_AddSample`
+- ✓ `RCL_CheckDriverOptions`
+- ✓ `RCL_Finalise`
+- ✓ `RCL_GetDriverData`
+- ✓ `RCL_GetDriverOption`
+- ✓ `RCL_GetDriverParameter`
+- ✓ `RCL_GetDriverPoll`
+- ✓ `RCL_GetPrecision`
+- ✓ `RCL_Initialise`
+- ✓ `RCL_ReportSource`
+- ✓ `RCL_SetDriverData`
+- ✓ `RCL_StartRefclocks`
+- ✓ `accumulate_sample`
+- ✓ `add_dispersion`
+- ✓ `check_pulse_edge`
+- ✓ `convert_tai_offset`
+- ✓ `follow_local`
+- ✓ `get_local_stats`
+- ✓ `get_next_driver_option`
+- ✓ `get_refclock`
+- ✓ `log_sample`
+- ✓ `poll_timeout`
+- ✓ `pps_stratum`
+- ✓ `slew_samples`
+- ✓ `valid_sample_time`
+
+### `refclock_shm.c` — 3/3 (100.0%)
+
+- ✓ `shm_finalise`
+- ✓ `shm_initialise`
+- ✓ `shm_poll`
+
+### `refclock_sock.c` — 3/3 (100.0%)
+
+- ✓ `read_sample`
+- ✓ `sock_finalise`
+- ✓ `sock_initialise`
+
+### `reference.c` — 45/45 (100.0%)
+
+- ✓ `REF_AdjustReference`
+- ✓ `REF_DisableLocal`
+- ✓ `REF_EnableLocal`
+- ✓ `REF_Finalise`
+- ✓ `REF_GetLeapMode`
+- ✓ `REF_GetMode`
+- ✓ `REF_GetOrphanStratum`
+- ✓ `REF_GetOurStratum`
+- ✓ `REF_GetReferenceParams`
+- ✓ `REF_GetSkew`
+- ✓ `REF_GetTaiOffset`
+- ✓ `REF_GetTrackingReport`
+- ✓ `REF_Initialise`
+- ✓ `REF_IsLeapSecondClose`
+- ✓ `REF_ModifyMakestep`
+- ✓ `REF_ModifyMaxupdateskew`
+- ✓ `REF_SetManualReference`
+- ✓ `REF_SetMode`
+- ✓ `REF_SetModeEndHandler`
+- ✓ `REF_SetReference`
+- ✓ `REF_SetUnsynchronised`
+- ✓ `REF_UpdateLeapStatus`
+- ✓ `end_ref_mode`
+- ✓ `fb_drift_timeout`
+- ✓ `fuzz_ref_time`
+- ✓ `get_clock_estimates`
+- ✓ `get_correction_rate`
+- ✓ `get_root_dispersion`
+- ✓ `get_tz_leap`
+- ✓ `handle_slew`
+- ✓ `is_leap_close`
+- ✓ `is_leap_second_day`
+- ✓ `is_offset_ok`
+- ✓ `is_step_limit_reached`
+- ✓ `leap_end_timeout`
+- ✓ `leap_start_timeout`
+- ✓ `maybe_log_offset`
+- ✓ `schedule_fb_drift`
+- ✓ `set_leap_timeout`
+- ✓ `special_mode_sync`
+- ✓ `update_drift_file`
+- ✓ `update_fb_drifts`
+- ✓ `update_leap_status`
+- ✓ `update_sync_status`
+- ✓ `write_log`
 
 ### `regress.c` — 11/11 (100.0%)
 
@@ -325,6 +1121,47 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `find_median`
 - ✓ `find_ordered_entry_with_flags`
 - ✓ `n_runs_from_residuals`
+
+### `rtc.c` — 9/9 (100.0%)
+
+- ✓ `RTC_Finalise`
+- ✓ `RTC_GetReport`
+- ✓ `RTC_Initialise`
+- ✓ `RTC_StartMeasurements`
+- ✓ `RTC_TimeInit`
+- ✓ `RTC_Trim`
+- ✓ `RTC_WriteParameters`
+- ✓ `apply_driftfile_time`
+- ✓ `get_driftfile_time`
+
+### `rtc_linux.c` — 26/26 (100.0%)
+
+- ✓ `RTC_Linux_Finalise`
+- ✓ `RTC_Linux_GetReport`
+- ✓ `RTC_Linux_Initialise`
+- ✓ `RTC_Linux_StartMeasurements`
+- ✓ `RTC_Linux_TimeInit`
+- ✓ `RTC_Linux_TimePreInit`
+- ✓ `RTC_Linux_Trim`
+- ✓ `RTC_Linux_WriteParameters`
+- ✓ `accumulate_sample`
+- ✓ `discard_samples`
+- ✓ `handle_initial_trim`
+- ✓ `handle_relock_after_trim`
+- ✓ `maybe_autotrim`
+- ✓ `measurement_timeout`
+- ✓ `process_reading`
+- ✓ `read_coefs_from_file`
+- ✓ `read_from_device`
+- ✓ `read_hwclock_file`
+- ✓ `rtc_from_t`
+- ✓ `run_regression`
+- ✓ `set_rtc`
+- ✓ `setup_config`
+- ✓ `slew_samples`
+- ✓ `switch_interrupts`
+- ✓ `t_from_rtc`
+- ✓ `write_coefs_to_file`
 
 ### `samplefilt.c` — 18/18 (100.0%)
 
@@ -372,6 +1209,21 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `release_tqe`
 - ✓ `update_monotonic_time`
 
+### `siv_gnutls.c` — 12/12 (100.0%)
+
+- ✓ `SIV_CreateInstance`
+- ✓ `SIV_Decrypt`
+- ✓ `SIV_DestroyInstance`
+- ✓ `SIV_Encrypt`
+- ✓ `SIV_GetKeyLength`
+- ✓ `SIV_GetMaxNonceLength`
+- ✓ `SIV_GetMinNonceLength`
+- ✓ `SIV_GetTagLength`
+- ✓ `SIV_SetKey`
+- ✓ `deinit_gnutls`
+- ✓ `get_cipher_algorithm`
+- ✓ `init_gnutls`
+
 ### `siv_nettle.c` — 9/9 (100.0%)
 
 - ✓ `SIV_CreateInstance`
@@ -414,6 +1266,121 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `update_smoothing`
 - ✓ `update_stages`
 
+### `socket.c` — 61/61 (100.0%)
+
+- ✓ `SCK_AcceptConnection`
+- ✓ `SCK_CloseReusableSockets`
+- ✓ `SCK_CloseSocket`
+- ✓ `SCK_EnableKernelRxTimestamping`
+- ✓ `SCK_Finalise`
+- ✓ `SCK_GetAnyLocalIPAddress`
+- ✓ `SCK_GetIntOption`
+- ✓ `SCK_GetLoopbackIPAddress`
+- ✓ `SCK_IPSockAddrToSockaddr`
+- ✓ `SCK_InitMessage`
+- ✓ `SCK_Initialise`
+- ✓ `SCK_IsIpFamilyEnabled`
+- ✓ `SCK_IsLinkLocalIPAddress`
+- ✓ `SCK_IsReusable`
+- ✓ `SCK_ListenOnSocket`
+- ✓ `SCK_OpenTcpSocket`
+- ✓ `SCK_OpenUdpSocket`
+- ✓ `SCK_OpenUnixDatagramSocket`
+- ✓ `SCK_OpenUnixSocketPair`
+- ✓ `SCK_OpenUnixStreamSocket`
+- ✓ `SCK_PreInitialise`
+- ✓ `SCK_Receive`
+- ✓ `SCK_ReceiveMessage`
+- ✓ `SCK_ReceiveMessages`
+- ✓ `SCK_RemoveSocket`
+- ✓ `SCK_Send`
+- ✓ `SCK_SendMessage`
+- ✓ `SCK_SetIntOption`
+- ✓ `SCK_SetPrivBind`
+- ✓ `SCK_ShutdownConnection`
+- ✓ `SCK_SockaddrToIPSockAddr`
+- ✓ `add_control_message`
+- ✓ `bind_device`
+- ✓ `bind_ip_address`
+- ✓ `bind_unix_address`
+- ✓ `connect_ip_address`
+- ✓ `connect_unix_address`
+- ✓ `domain_to_string`
+- ✓ `get_ip_socket`
+- ✓ `get_open_flags`
+- ✓ `get_recv_flags`
+- ✓ `get_reusable_socket`
+- ✓ `handle_recv_error`
+- ✓ `init_message_addresses`
+- ✓ `init_message_nonaddress`
+- ✓ `is_any_address`
+- ✓ `log_message`
+- ✓ `match_cmsg`
+- ✓ `open_ip_socket`
+- ✓ `open_socket`
+- ✓ `open_socket_pair`
+- ✓ `open_unix_socket`
+- ✓ `open_unix_socket_pair`
+- ✓ `prepare_buffers`
+- ✓ `process_header`
+- ✓ `receive_messages`
+- ✓ `send_message`
+- ✓ `set_ip_options`
+- ✓ `set_socket_flags`
+- ✓ `set_socket_nonblock`
+- ✓ `set_socket_options`
+
+### `sources.c` — 48/48 (100.0%)
+
+- ✓ `SRC_AccumulateSample`
+- ✓ `SRC_ActiveSources`
+- ✓ `SRC_CreateNewInstance`
+- ✓ `SRC_DestroyInstance`
+- ✓ `SRC_DumpSources`
+- ✓ `SRC_Finalise`
+- ✓ `SRC_GetSelectReport`
+- ✓ `SRC_GetSourcestats`
+- ✓ `SRC_GetType`
+- ✓ `SRC_Initialise`
+- ✓ `SRC_IsReachable`
+- ✓ `SRC_IsSyncPeer`
+- ✓ `SRC_ModifySelectOptions`
+- ✓ `SRC_ReadNumberOfSources`
+- ✓ `SRC_ReloadSources`
+- ✓ `SRC_RemoveDumpFiles`
+- ✓ `SRC_ReportSource`
+- ✓ `SRC_ReportSourcestats`
+- ✓ `SRC_ReselectSource`
+- ✓ `SRC_ResetInstance`
+- ✓ `SRC_ResetReachability`
+- ✓ `SRC_ResetSources`
+- ✓ `SRC_SelectSource`
+- ✓ `SRC_SetActive`
+- ✓ `SRC_SetRefid`
+- ✓ `SRC_SetReselectDistance`
+- ✓ `SRC_UnsetActive`
+- ✓ `SRC_UpdateReachability`
+- ✓ `SRC_UpdateStatus`
+- ✓ `add_dispersion`
+- ✓ `combine_sources`
+- ✓ `compare_sort_elements`
+- ✓ `find_source`
+- ✓ `get_dumpfile`
+- ✓ `get_leap_status`
+- ✓ `get_status_char`
+- ✓ `handle_bad_source`
+- ✓ `load_source`
+- ✓ `log_selection_message`
+- ✓ `log_selection_source`
+- ✓ `mark_ok_sources`
+- ✓ `mark_source`
+- ✓ `save_source`
+- ✓ `slew_sources`
+- ✓ `source_to_string`
+- ✓ `special_mode_end`
+- ✓ `unselect_selected_source`
+- ✓ `update_sel_options`
+
 ### `sourcestats.c` — 32/32 (100.0%)
 
 - ✓ `SST_AccumulateSample`
@@ -449,6 +1416,96 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `get_runsbuf_index`
 - ✓ `prune_register`
 
+### `stubs.c` — 78/78 (100.0%)
+
+- ✓ `CAM_AddAccessRestriction`
+- ✓ `CAM_Finalise`
+- ✓ `CAM_Initialise`
+- ✓ `CAM_OpenUnixSocket`
+- ✓ `CLG_Finalise`
+- ✓ `CLG_Initialise`
+- ✓ `CMC_CreateInstance`
+- ✓ `CMC_DestroyInstance`
+- ✓ `CMC_GetKeyLength`
+- ✓ `CMC_Hash`
+- ✓ `DNS_Name2IPAddress`
+- ✓ `DNS_SetAddressFamily`
+- ✓ `KEY_Finalise`
+- ✓ `KEY_Initialise`
+- ✓ `MNL_Finalise`
+- ✓ `MNL_Initialise`
+- ✓ `NCR_AddAccessRestriction`
+- ✓ `NCR_AddBroadcastDestination`
+- ✓ `NCR_CheckAccessRestriction`
+- ✓ `NCR_Finalise`
+- ✓ `NCR_Initialise`
+- ✓ `NIO_Finalise`
+- ✓ `NIO_Initialise`
+- ✓ `NKS_DumpKeys`
+- ✓ `NKS_Finalise`
+- ✓ `NKS_Initialise`
+- ✓ `NKS_PreInitialise`
+- ✓ `NKS_ReloadKeys`
+- ✓ `NNC_ChangeAddress`
+- ✓ `NNC_CheckResponseAuth`
+- ✓ `NNC_CreateInstance`
+- ✓ `NNC_DestroyInstance`
+- ✓ `NNC_DumpData`
+- ✓ `NNC_GenerateRequestAuth`
+- ✓ `NNC_GetReport`
+- ✓ `NNC_PrepareForAuth`
+- ✓ `NNS_CheckRequestAuth`
+- ✓ `NNS_Finalise`
+- ✓ `NNS_GenerateResponseAuth`
+- ✓ `NNS_Initialise`
+- ✓ `NSD_Finalise`
+- ✓ `NSD_Initialise`
+- ✓ `NSD_SignAndSendPacket`
+- ✓ `NSR_AddSource`
+- ✓ `NSR_AddSourceByName`
+- ✓ `NSR_AutoStartSources`
+- ✓ `NSR_DumpAuthData`
+- ✓ `NSR_Finalise`
+- ✓ `NSR_GetActivityReport`
+- ✓ `NSR_GetAuthReport`
+- ✓ `NSR_GetLocalRefid`
+- ✓ `NSR_GetNTPReport`
+- ✓ `NSR_GetName`
+- ✓ `NSR_HandleBadSource`
+- ✓ `NSR_Initialise`
+- ✓ `NSR_InitiateSampleBurst`
+- ✓ `NSR_ModifyMaxdelay`
+- ✓ `NSR_ModifyMaxdelaydevratio`
+- ✓ `NSR_ModifyMaxdelayratio`
+- ✓ `NSR_ModifyMaxpoll`
+- ✓ `NSR_ModifyMinpoll`
+- ✓ `NSR_ModifyMinstratum`
+- ✓ `NSR_ModifyPolltarget`
+- ✓ `NSR_RefreshAddresses`
+- ✓ `NSR_RemoveAllSources`
+- ✓ `NSR_RemoveSource`
+- ✓ `NSR_RemoveSourcesById`
+- ✓ `NSR_ReportSource`
+- ✓ `NSR_ResolveSources`
+- ✓ `NSR_SetConnectivity`
+- ✓ `NSR_SetSourceResolvingEndHandler`
+- ✓ `NSR_StartSources`
+- ✓ `NSR_StatusToString`
+- ✓ `RCL_AddRefclock`
+- ✓ `RCL_Finalise`
+- ✓ `RCL_Initialise`
+- ✓ `RCL_ReportSource`
+- ✓ `RCL_StartRefclocks`
+
+### `sys.c` — 6/6 (100.0%)
+
+- ✓ `SYS_DropRoot`
+- ✓ `SYS_EnableSystemCallFilter`
+- ✓ `SYS_Finalise`
+- ✓ `SYS_Initialise`
+- ✓ `SYS_LockMemory`
+- ✓ `SYS_SetScheduler`
+
 ### `sys_generic.c` — 14/14 (100.0%)
 
 - ✓ `SYS_Generic_CompleteFreqDriver`
@@ -466,6 +1523,30 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `stop_fastslew`
 - ✓ `update_slew`
 
+### `sys_linux.c` — 14/14 (100.0%)
+
+- ✓ `SYS_Linux_CheckKernelVersion`
+- ✓ `SYS_Linux_Finalise`
+- ✓ `SYS_Linux_Initialise`
+- ✓ `apply_step_offset`
+- ✓ `get_hz`
+- ✓ `get_kernel_version`
+- ✓ `get_version_specific_details`
+- ✓ `guess_hz`
+- ✓ `kernelvercmp`
+- ✓ `read_frequency`
+- ✓ `report_time_adjust_blockers`
+- ✓ `reset_adjtime_offset`
+- ✓ `set_frequency`
+- ✓ `test_step_offset`
+
+### `sys_netbsd.c` — 4/4 (100.0%)
+
+- ✓ `SYS_NetBSD_Finalise`
+- ✓ `SYS_NetBSD_Initialise`
+- ✓ `accrue_offset`
+- ✓ `get_offset_correction`
+
 ### `sys_null.c` — 8/8 (100.0%)
 
 - ✓ `SYS_Null_Finalise`
@@ -476,6 +1557,12 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `read_frequency`
 - ✓ `set_frequency`
 - ✓ `update_offset`
+
+### `sys_solaris.c` — 3/3 (100.0%)
+
+- ✓ `SYS_Solaris_Finalise`
+- ✓ `SYS_Solaris_Initialise`
+- ✓ `set_dosynctodr`
 
 ### `sys_timex.c` — 10/10 (100.0%)
 
@@ -498,462 +1585,82 @@ Gaps are listed explicitly here so the missing surface in a partially-ported fil
 - ✓ `read_points`
 - ✓ `read_timeout`
 
-### `nameserv.c` — 1/4 (25.0%)
+### `util.c` — 76/76 (100.0%)
 
-- · `DNS_IPAddress2Name`
-- ✓ `DNS_Name2IPAddress`
-- · `DNS_Reload`
-- · `DNS_SetAddressFamily`
-
-### `client.c` — 13/90 (14.4%)
-
-- · `LOG_Message`
-- · `bits_to_mask`
-- · `close_io`
-- · `convert_addsrc_sel_options`
-- · `display_gpl`
-- · `format_name`
-- · `free_addresses`
-- · `get_addresses`
-- · `get_source_name`
-- · `give_help`
-- · `main`
-- · `open_io`
-- · `open_socket`
-- · `parse_source_address`
-- · `parse_sources_options`
-- · `print_clientlog_interval`
-- ✓ `print_freq_ppm`
-- ✓ `print_header`
-- · `print_help`
-- ✓ `print_info_field`
-- ✓ `print_nanoseconds`
-- ✓ `print_report`
-- ✓ `print_seconds`
-- ✓ `print_signed_freq_ppm`
-- ✓ `print_signed_nanoseconds`
-- · `print_version`
-- · `process_args`
-- · `process_cmd_accheck`
-- ✓ `process_cmd_activity`
-- · `process_cmd_add_source`
-- · `process_cmd_allowdeny`
-- · `process_cmd_authdata`
-- · `process_cmd_burst`
-- · `process_cmd_clients`
-- · `process_cmd_cmdaccheck`
-- · `process_cmd_cyclelogs`
-- · `process_cmd_delete`
-- · `process_cmd_dfreq`
-- · `process_cmd_dns`
-- · `process_cmd_doffset`
-- · `process_cmd_dump`
-- · `process_cmd_keygen`
-- · `process_cmd_local`
-- · `process_cmd_makestep`
-- · `process_cmd_manual`
-- · `process_cmd_manual_delete`
-- · `process_cmd_manual_list`
-- · `process_cmd_maxdelay`
-- · `process_cmd_maxdelaydevratio`
-- · `process_cmd_maxdelayratio`
-- · `process_cmd_maxpoll`
-- · `process_cmd_maxupdateskew`
-- · `process_cmd_minpoll`
-- · `process_cmd_minstratum`
-- · `process_cmd_ntpdata`
-- · `process_cmd_offline`
-- · `process_cmd_online`
-- · `process_cmd_onoffline`
-- · `process_cmd_polltarget`
-- · `process_cmd_refresh`
-- · `process_cmd_rekey`
-- · `process_cmd_reload`
-- · `process_cmd_reselect`
-- · `process_cmd_reselectdist`
-- · `process_cmd_reset`
-- · `process_cmd_retries`
-- · `process_cmd_rtcreport`
-- · `process_cmd_selectdata`
-- · `process_cmd_selectopts`
-- ✓ `process_cmd_serverstats`
-- · `process_cmd_settime`
-- · `process_cmd_shutdown`
-- · `process_cmd_smoothing`
-- · `process_cmd_smoothtime`
-- · `process_cmd_sourcename`
-- ✓ `process_cmd_sources`
-- ✓ `process_cmd_sourcestats`
-- · `process_cmd_timeout`
-- ✓ `process_cmd_tracking`
-- · `process_cmd_trimrtc`
-- · `process_cmd_waitsync`
-- · `process_cmd_writertc`
-- · `process_line`
-- · `read_address_double`
-- · `read_address_integer`
-- · `read_line`
-- · `read_mask_address`
-- · `request_reply`
-- · `signal_handler`
-- · `submit_request`
-
-### `util.c` — 10/76 (13.2%)
-
-- · `UTI_AddDiffToTimespec`
-- · `UTI_AddDoubleToTimespec`
-- · `UTI_AdjustTimespec`
-- · `UTI_AverageDiffTimespecs`
+- ✓ `UTI_AddDiffToTimespec`
+- ✓ `UTI_AddDoubleToTimespec`
+- ✓ `UTI_AdjustTimespec`
+- ✓ `UTI_AverageDiffTimespecs`
 - ✓ `UTI_BytesToHex`
-- · `UTI_CheckDirPermissions`
-- · `UTI_CheckFilePermissions`
-- · `UTI_CheckReadOnlyAccess`
-- · `UTI_CmacNameToAlgorithm`
-- · `UTI_CompareIPs`
-- · `UTI_CompareNtp64`
-- · `UTI_CompareTimespecs`
-- · `UTI_CreateDirAndParents`
+- ✓ `UTI_CheckDirPermissions`
+- ✓ `UTI_CheckFilePermissions`
+- ✓ `UTI_CheckReadOnlyAccess`
+- ✓ `UTI_CmacNameToAlgorithm`
+- ✓ `UTI_CompareIPs`
+- ✓ `UTI_CompareNtp64`
+- ✓ `UTI_CompareTimespecs`
+- ✓ `UTI_CreateDirAndParents`
 - ✓ `UTI_DiffNtp64ToDouble`
-- · `UTI_DiffTimespecs`
-- · `UTI_DiffTimespecsToDouble`
+- ✓ `UTI_DiffTimespecs`
+- ✓ `UTI_DiffTimespecsToDouble`
 - ✓ `UTI_DoubleToNtp32`
-- · `UTI_DoubleToNtp32f28`
+- ✓ `UTI_DoubleToNtp32f28`
 - ✓ `UTI_DoubleToNtp64`
-- · `UTI_DoubleToTimespec`
-- · `UTI_DoubleToTimeval`
-- · `UTI_DropRoot`
-- · `UTI_FdSetCloexec`
-- · `UTI_FloatHostToNetwork`
-- · `UTI_FloatNetworkToHost`
-- · `UTI_GetNtp64Fuzz`
-- · `UTI_GetRandomBytes`
-- · `UTI_GetRandomBytesUrandom`
-- · `UTI_HashNameToAlgorithm`
+- ✓ `UTI_DoubleToTimespec`
+- ✓ `UTI_DoubleToTimeval`
+- ✓ `UTI_DropRoot`
+- ✓ `UTI_FdSetCloexec`
+- ✓ `UTI_FloatHostToNetwork`
+- ✓ `UTI_FloatNetworkToHost`
+- ✓ `UTI_GetNtp64Fuzz`
+- ✓ `UTI_GetRandomBytes`
+- ✓ `UTI_GetRandomBytesUrandom`
+- ✓ `UTI_HashNameToAlgorithm`
 - ✓ `UTI_HexToBytes`
-- · `UTI_IPHostToNetwork`
-- · `UTI_IPNetworkToHost`
-- · `UTI_IPSockAddrToString`
-- · `UTI_IPSubnetToString`
-- · `UTI_IPToHash`
-- · `UTI_IPToRefid`
-- · `UTI_IPToString`
-- · `UTI_Integer64HostToNetwork`
-- · `UTI_Integer64NetworkToHost`
-- · `UTI_IsEqualAnyNtp64`
-- · `UTI_IsIPReal`
-- · `UTI_IsStringIP`
+- ✓ `UTI_IPHostToNetwork`
+- ✓ `UTI_IPNetworkToHost`
+- ✓ `UTI_IPSockAddrToString`
+- ✓ `UTI_IPSubnetToString`
+- ✓ `UTI_IPToHash`
+- ✓ `UTI_IPToRefid`
+- ✓ `UTI_IPToString`
+- ✓ `UTI_Integer64HostToNetwork`
+- ✓ `UTI_Integer64NetworkToHost`
+- ✓ `UTI_IsEqualAnyNtp64`
+- ✓ `UTI_IsIPReal`
+- ✓ `UTI_IsStringIP`
 - ✓ `UTI_IsTimeOffsetSane`
-- · `UTI_IsZeroNtp64`
-- · `UTI_IsZeroTimespec`
+- ✓ `UTI_IsZeroNtp64`
+- ✓ `UTI_IsZeroTimespec`
 - ✓ `UTI_Log2ToDouble`
-- · `UTI_NormaliseTimespec`
-- · `UTI_NormaliseTimeval`
+- ✓ `UTI_NormaliseTimespec`
+- ✓ `UTI_NormaliseTimeval`
 - ✓ `UTI_Ntp32ToDouble`
-- · `UTI_Ntp32f28ToDouble`
+- ✓ `UTI_Ntp32f28ToDouble`
 - ✓ `UTI_Ntp64ToDouble`
-- · `UTI_Ntp64ToString`
-- · `UTI_Ntp64ToTimespec`
-- · `UTI_OpenFile`
-- · `UTI_PathToDir`
+- ✓ `UTI_Ntp64ToString`
+- ✓ `UTI_Ntp64ToTimespec`
+- ✓ `UTI_OpenFile`
+- ✓ `UTI_PathToDir`
 - ✓ `UTI_RefidToString`
-- · `UTI_RemoveFile`
-- · `UTI_RenameTempFile`
-- · `UTI_ResetGetRandomFunctions`
-- · `UTI_SetQuitSignalsHandler`
-- · `UTI_SplitString`
-- · `UTI_StringToIP`
-- · `UTI_StringToIdIP`
-- · `UTI_TimeToLogForm`
-- · `UTI_TimespecHostToNetwork`
-- · `UTI_TimespecNetworkToHost`
-- · `UTI_TimespecToDouble`
-- · `UTI_TimespecToNtp64`
-- · `UTI_TimespecToString`
-- · `UTI_TimespecToTimeval`
-- · `UTI_TimevalToDouble`
-- · `UTI_TimevalToTimespec`
-- · `UTI_ZeroNtp64`
-- · `UTI_ZeroTimespec`
-- · `create_dir`
-- · `join_path`
-
-### `main.c` — 1/16 (6.2%)
-
-- · `MAI_CleanupAndExit`
-- · `check_pidfile`
-- · `delete_pidfile`
-- · `do_platform_checks`
-- · `go_daemon`
-- ✓ `main`
-- · `ntp_source_resolving_end`
-- · `parse_int_arg`
-- · `post_init_ntp_hook`
-- · `post_init_rtc_hook`
-- · `print_help`
-- · `print_version`
-- · `quit_timeout`
-- · `reference_mode_end`
-- · `signal_cleanup`
-- · `write_pidfile`
-
-### `sources.c` — 3/48 (6.2%)
-
-- · `SRC_AccumulateSample`
-- · `SRC_ActiveSources`
-- · `SRC_CreateNewInstance`
-- · `SRC_DestroyInstance`
-- · `SRC_DumpSources`
-- · `SRC_Finalise`
-- · `SRC_GetSelectReport`
-- · `SRC_GetSourcestats`
-- · `SRC_GetType`
-- · `SRC_Initialise`
-- ✓ `SRC_IsReachable`
-- · `SRC_IsSyncPeer`
-- · `SRC_ModifySelectOptions`
-- · `SRC_ReadNumberOfSources`
-- · `SRC_ReloadSources`
-- · `SRC_RemoveDumpFiles`
-- · `SRC_ReportSource`
-- · `SRC_ReportSourcestats`
-- · `SRC_ReselectSource`
-- · `SRC_ResetInstance`
-- ✓ `SRC_ResetReachability`
-- · `SRC_ResetSources`
-- · `SRC_SelectSource`
-- · `SRC_SetActive`
-- · `SRC_SetRefid`
-- · `SRC_SetReselectDistance`
-- · `SRC_UnsetActive`
-- ✓ `SRC_UpdateReachability`
-- · `SRC_UpdateStatus`
-- · `add_dispersion`
-- · `combine_sources`
-- · `compare_sort_elements`
-- · `find_source`
-- · `get_dumpfile`
-- · `get_leap_status`
-- · `get_status_char`
-- · `handle_bad_source`
-- · `load_source`
-- · `log_selection_message`
-- · `log_selection_source`
-- · `mark_ok_sources`
-- · `mark_source`
-- · `save_source`
-- · `slew_sources`
-- · `source_to_string`
-- · `special_mode_end`
-- · `unselect_selected_source`
-- · `update_sel_options`
-
-### `ntp_core.c` — 2/69 (2.9%)
-
-- · `NCR_AddAccessRestriction`
-- · `NCR_AddBroadcastDestination`
-- · `NCR_ChangeRemoteAddress`
-- · `NCR_CheckAccessRestriction`
-- · `NCR_CreateInstance`
-- · `NCR_DestroyInstance`
-- · `NCR_DumpAuthData`
-- · `NCR_Finalise`
-- · `NCR_GetAuthReport`
-- · `NCR_GetLocalRefid`
-- · `NCR_GetNTPReport`
-- · `NCR_GetRemoteAddress`
-- · `NCR_IncrementActivityCounters`
-- · `NCR_Initialise`
-- · `NCR_InitiateSampleBurst`
-- · `NCR_IsSyncPeer`
-- · `NCR_ModifyMaxdelay`
-- · `NCR_ModifyMaxdelaydevratio`
-- · `NCR_ModifyMaxdelayratio`
-- · `NCR_ModifyMaxpoll`
-- · `NCR_ModifyMinpoll`
-- · `NCR_ModifyMinstratum`
-- · `NCR_ModifyPolltarget`
-- · `NCR_ProcessRxKnown`
-- · `NCR_ProcessRxUnknown`
-- · `NCR_ProcessTxKnown`
-- · `NCR_ProcessTxUnknown`
-- · `NCR_ReportSource`
-- · `NCR_ResetInstance`
-- · `NCR_ResetPoll`
-- · `NCR_SetConnectivity`
-- · `NCR_SlewTimes`
-- · `NCR_StartInstance`
-- · `add_ef_mono_root`
-- · `add_ef_net_correction`
-- · `adjust_poll`
-- · `apply_net_correction`
-- · `broadcast_timeout`
-- · `check_delay_dev_ratio`
-- · `check_delay_quant`
-- · `check_delay_ratio`
-- · `check_sync_loop`
-- · `close_client_socket`
-- · `do_size_checks`
-- · `do_time_checks`
-- · `get_poll_adj`
-- · `get_separation`
-- · `get_transmit_delay`
-- · `get_transmit_poll`
-- · `handle_slew`
-- · `has_saved_response`
-- · `is_exp_ef`
-- · `is_zero_data`
-- ✓ `parse_packet`
-- ✓ `process_response`
-- · `process_sample`
-- · `process_saved_response`
-- · `receive_timeout`
-- · `reset_report`
-- · `restart_timeout`
-- · `save_response`
-- · `saved_response_timeout`
-- · `set_connectivity`
-- · `start_initial_timeout`
-- · `take_offline`
-- · `transmit_packet`
-- · `transmit_timeout`
-- · `update_tx_timestamp`
-- · `zero_local_timestamp`
-
-### `conf.c` — 2/135 (1.5%)
-
-- · `CNF_AddBroadcasts`
-- · `CNF_AddInitSources`
-- · `CNF_AddRefclocks`
-- · `CNF_AddSources`
-- · `CNF_AllowLocalReference`
-- · `CNF_CheckReadOnlyAccess`
-- · `CNF_CreateDirs`
-- · `CNF_EnablePrint`
-- · `CNF_Finalise`
-- · `CNF_GetAcquisitionPort`
-- · `CNF_GetAuthSelectMode`
-- · `CNF_GetBindAcquisitionAddress`
-- · `CNF_GetBindAcquisitionInterface`
-- · `CNF_GetBindAddress`
-- · `CNF_GetBindCommandAddress`
-- · `CNF_GetBindCommandInterface`
-- · `CNF_GetBindCommandPath`
-- · `CNF_GetBindNtpInterface`
-- · `CNF_GetClientLogLimit`
-- · `CNF_GetClockPrecision`
-- · `CNF_GetCombineLimit`
-- · `CNF_GetCommandPort`
-- · `CNF_GetCommandRateLimit`
-- · `CNF_GetCorrectionTimeRatio`
-- · `CNF_GetDriftFile`
-- · `CNF_GetDumpDir`
-- · `CNF_GetFallbackDrifts`
-- · `CNF_GetHwTsInterface`
-- · `CNF_GetHwTsTimeout`
-- · `CNF_GetHwclockFile`
-- · `CNF_GetInitSources`
-- · `CNF_GetInitStepThreshold`
-- · `CNF_GetKeysFile`
-- · `CNF_GetLeapSecMode`
-- · `CNF_GetLeapSecTimezone`
-- · `CNF_GetLockMemory`
-- · `CNF_GetLogBanner`
-- · `CNF_GetLogChange`
-- · `CNF_GetLogDir`
-- · `CNF_GetLogMeasurements`
-- · `CNF_GetLogRefclocks`
-- · `CNF_GetLogRtc`
-- · `CNF_GetLogSelection`
-- · `CNF_GetLogStatistics`
-- · `CNF_GetLogTempComp`
-- · `CNF_GetLogTracking`
-- · `CNF_GetMailOnChange`
-- · `CNF_GetMakeStep`
-- · `CNF_GetManualEnabled`
-- · `CNF_GetMaxChange`
-- · `CNF_GetMaxClockError`
-- · `CNF_GetMaxDistance`
-- · `CNF_GetMaxDrift`
-- · `CNF_GetMaxJitter`
-- · `CNF_GetMaxSamples`
-- · `CNF_GetMaxSlewRate`
-- · `CNF_GetMaxUpdateSkew`
-- · `CNF_GetMinSamples`
-- · `CNF_GetMinSources`
-- · `CNF_GetNTPPort`
-- · `CNF_GetNTPRateLimit`
-- · `CNF_GetNoCertTimeCheck`
-- · `CNF_GetNoClientLog`
-- · `CNF_GetNoSystemCert`
-- · `CNF_GetNtpDscp`
-- · `CNF_GetNtpSigndSocket`
-- · `CNF_GetNtsDumpDir`
-- · `CNF_GetNtsNtpServer`
-- · `CNF_GetNtsRateLimit`
-- · `CNF_GetNtsRefresh`
-- · `CNF_GetNtsRotate`
-- · `CNF_GetNtsServerCertAndKeyFiles`
-- · `CNF_GetNtsServerConnections`
-- · `CNF_GetNtsServerPort`
-- · `CNF_GetNtsServerProcesses`
-- · `CNF_GetNtsTrustedCertsPaths`
-- · `CNF_GetPidFile`
-- · `CNF_GetPtpPort`
-- · `CNF_GetRefresh`
-- · `CNF_GetReselectDistance`
-- · `CNF_GetRtcAutotrim`
-- · `CNF_GetRtcDevice`
-- · `CNF_GetRtcFile`
-- · `CNF_GetRtcOnUtc`
-- · `CNF_GetRtcSync`
-- · `CNF_GetSchedPriority`
-- · `CNF_GetSmooth`
-- · `CNF_GetStratumWeight`
-- · `CNF_GetTempComp`
-- · `CNF_GetUser`
-- · `CNF_Initialise`
-- ✓ `CNF_ParseLine`
-- · `CNF_ReadFile`
-- · `CNF_ReloadSources`
-- · `CNF_SetupAccessRestrictions`
-- · `check_number_of_args`
-- · `command_parse_error`
-- · `compare_basenames`
-- · `compare_sources`
-- · `get_basename`
-- · `get_number_of_args`
-- · `load_source_file`
-- · `other_parse_error`
-- · `parse_allow_deny`
-- · `parse_authselectmode`
-- · `parse_bindacqaddress`
-- · `parse_bindaddress`
-- · `parse_bindcmdaddress`
-- · `parse_broadcast`
-- · `parse_clientloglimit`
-- · `parse_confdir`
-- · `parse_double`
-- · `parse_fallbackdrift`
-- · `parse_hwtimestamp`
-- · `parse_include`
-- · `parse_initstepslew`
-- · `parse_int`
-- · `parse_leapsecmode`
-- · `parse_local`
-- · `parse_log`
-- · `parse_mailonchange`
-- · `parse_makestep`
-- · `parse_maxchange`
-- · `parse_ntsserver`
-- · `parse_ntstrustedcerts`
-- · `parse_null`
-- · `parse_ratelimit`
-- · `parse_refclock`
-- · `parse_smoothtime`
-- ✓ `parse_source`
-- · `parse_sourcedir`
-- · `parse_string`
-- · `parse_tempcomp`
-- · `reload_source_dirs`
-- · `search_dirs`
+- ✓ `UTI_RemoveFile`
+- ✓ `UTI_RenameTempFile`
+- ✓ `UTI_ResetGetRandomFunctions`
+- ✓ `UTI_SetQuitSignalsHandler`
+- ✓ `UTI_SplitString`
+- ✓ `UTI_StringToIP`
+- ✓ `UTI_StringToIdIP`
+- ✓ `UTI_TimeToLogForm`
+- ✓ `UTI_TimespecHostToNetwork`
+- ✓ `UTI_TimespecNetworkToHost`
+- ✓ `UTI_TimespecToDouble`
+- ✓ `UTI_TimespecToNtp64`
+- ✓ `UTI_TimespecToString`
+- ✓ `UTI_TimespecToTimeval`
+- ✓ `UTI_TimevalToDouble`
+- ✓ `UTI_TimevalToTimespec`
+- ✓ `UTI_ZeroNtp64`
+- ✓ `UTI_ZeroTimespec`
+- ✓ `create_dir`
+- ✓ `join_path`
 

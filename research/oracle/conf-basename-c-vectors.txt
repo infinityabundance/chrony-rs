@@ -1,0 +1,22 @@
+# conf.c get_basename/compare_basenames/get_number_of_args oracle (VERBATIM). Consumer Rust (config). NO Python.
+BASE in=[/a/b/c.conf] out=[c.conf]
+BASE in=[c.conf] out=[c.conf]
+BASE in=[/x] out=[x]
+BASE in=[x] out=[x]
+BASE in=[/a/] out=[]
+BASE in=[/] out=[]
+BASE in=[dir/file] out=[file]
+BASE in=[] out=[]
+BASE in=[/etc/chrony/z.sources] out=[z.sources]
+CMP a=[/a/x] b=[/b/x] r=0
+CMP a=[/a/y] b=[/b/x] r=1
+CMP a=[a.conf] b=[b.conf] r=-1
+CMP a=[/p/same] b=[/q/same] r=0
+CMP a=[z] b=[a] r=1
+NARGS in=[a b c] n=3
+NARGS in=[one] n=1
+NARGS in=[] n=0
+NARGS in=[a] n=1
+NARGS in=[a b] n=2
+NARGS in=[ lead] n=1
+NARGS in=[x  y] n=3

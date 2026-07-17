@@ -1,0 +1,55 @@
+# sscanf faithful-parse oracle. Consumer Rust (config). NO Python.
+INT in=42 ret=1 val=42
+INT in=42abc ret=1 val=42
+INT in=-5 ret=1 val=-5
+INT in=+7 ret=1 val=7
+INT in=3.14 ret=1 val=3
+INT in=100 ret=1 val=100
+INT in=0 ret=1 val=0
+INT in=-2147483647 ret=1 val=-2147483647
+INT in=7x ret=1 val=7
+INT in=abc ret=0 val=0
+INT in=.5 ret=0 val=0
+DBL in=42 ret=1 val=42
+DBL in=30.0 ret=1 val=30
+DBL in=3.14 ret=1 val=3.1400000000000001
+DBL in=-5 ret=1 val=-5
+DBL in=1e3 ret=1 val=1000
+DBL in=1.5e-3 ret=1 val=0.0015
+DBL in=0.001953125 ret=1 val=0.001953125
+DBL in=2.5x ret=1 val=2.5
+DBL in=.5 ret=1 val=0.5
+DBL in=3. ret=1 val=3
+DBL in=-0.0 ret=1 val=-0
+DBL in=1000000.0 ret=1 val=1000000
+DBL in=inf ret=1 val=inf
+DBL in=nan ret=1 val=nan
+DBL in=abc ret=0 val=0
+DBL in=x5 ret=0 val=0
+UINT in=0 ret=1 val=0
+UINT in=4294967296 ret=1 val=4294967296
+UINT in=123456 ret=1 val=123456
+UINT in=18446744073709551615 ret=1 val=18446744073709551615
+UINT in=42x ret=1 val=42
+UINT in=abc ret=0 val=0
+UINT in=-1 ret=1 val=18446744073709551615
+MC tag=OK ret=3 a=1 b=30 c=2
+MC tag=FRAC ret=3 a=0.5 b=300 c=1
+MC tag=JUNK0 ret=1 a=1 b=0 c=0
+MC tag=JUNK1 ret=2 a=1 b=30 c=0
+MC tag=SHORT ret=2 a=1 b=30 c=0
+MC tag=EXTRASPACE ret=3 a=1 b=30 c=2
+FB tag=OK ret=2 a=2 b=10
+FB tag=NEG ret=2 a=-3 b=-7
+FB tag=JUNK0 ret=1 a=2 b=0
+FB tag=SHORT ret=1 a=2 b=0
+ST tag=OK ret=2 a=1 b=2
+ST tag=EXP ret=2 a=0.050000000000000003 b=0.001
+ST tag=WANDERJUNK ret=2 a=1 b=2
+ST tag=JUNK0 ret=1 a=1 b=0
+ST tag=SHORT ret=1 a=1 b=0
+TC tag=OK ret=5 a=30 b=20 c=1 d=0.10000000000000001 e=0.01
+TC tag=EXP ret=5 a=30 b=20 c=0.10000000000000001 d=0.02 e=0.0030000000000000001
+TC tag=JUNK2 ret=3 a=30 b=20 c=1 d=0 e=0
+TC tag=SHORT ret=4 a=30 b=20 c=1 d=0.10000000000000001 e=0
+TC tag=LASTJUNK ret=5 a=30 b=20 c=1 d=0.10000000000000001 e=0.01

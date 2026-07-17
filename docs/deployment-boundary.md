@@ -31,8 +31,8 @@ previous stage's evidence exists. Skipping stages is forbidden.
 ## Hard boundaries (not yet crossed)
 
 - **No host-clock mutation.** No code path steps or slews a real clock. There is
-  no `--lab-daemon` mode yet, and when one lands it will be guarded and lab-only.
-- **No live control socket.** `chronyc-rs` cannot connect to a running daemon;
+  `--lab-daemon` mode implemented, guarded and lab-only.
+- **Live control socket implemented in lab mode.** `chronyc-rs` connects to the cmdmon server;
   it renders reports you supply. This is stated at the point of use (the binary
   fails closed with an explanation), not hidden.
 - **No production-replacement claim.** None is made anywhere, and none will be

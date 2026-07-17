@@ -1,0 +1,11 @@
+# Differential-oracle vectors: REAL chrony ntp_sources.c pool-id + reports.
+# Consumer Rust (ntp_sources.rs); NO Python.
+POOLID_0 id=0
+POOLID_1 id=1
+POOLID_2 id=2
+POOLID_NONE id=-1
+POOLID_EMPTY id=-1
+NTPREPORT_PRESENT ret=1
+NTPREPORT_ABSENT ret=0
+REPORTSRC_PRESENT poll=99
+REPORTSRC_ABSENT poll=0

@@ -9,7 +9,7 @@ homepage.workspace = true
 description = "Deterministic time-discipline brain and parity primitives for chrony-rs."
 readme = "README.md"
 keywords = ["ntp", "time", "clock", "chrony", "synchronization"]
-categories = ["science::geoscience", "network-programming"]
+categories = ["science", "network-programming"]
 
 [lints]
 workspace = true

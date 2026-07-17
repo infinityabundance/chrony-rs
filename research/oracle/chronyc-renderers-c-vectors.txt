@@ -1,0 +1,7 @@
+# print_report renderer oracle (authdata/selectdata/serverstats). NO Python.
+RR id=authrow mode=HUM |ntp.example.org               SK    42    1  128  100    3    1    8  100\n|
+RR id=selrow mode=HUM |* 192.168.1.5               Y -PT-- -P---   17   1.2  -500ms  +500ms  N\n|
+RR id=srvstats mode=HUM |NTP packets received       : 1000\nNTP packets dropped        : 3\nCommand packets received   : 200\nCommand packets dropped    : 5\nClient log records dropped : 7\nNTS-KE connections accepted: 50\nNTS-KE connections dropped : 4\nAuthenticated NTP packets  : 900\nInterleaved NTP packets    : 80\nNTP timestamps held        : 111\nNTP timestamp span         : 3600\nNTP daemon RX timestamps   : 11\nNTP daemon TX timestamps   : 12\nNTP kernel RX timestamps   : 13\nNTP kernel TX timestamps   : 14\nNTP hardware RX timestamps : 15\nNTP hardware TX timestamps : 16\n|
+RR id=authrow mode=CSV |ntp.example.org,SK,42,1,128,100,3,1,8,100\n|
+RR id=selrow mode=CSV |*,192.168.1.5,Y,-,P,T,-,-,-,P,-,-,-,17,1.2,-0.500000000,0.500000000,Normal\n|
+RR id=srvstats mode=CSV |1000,3,200,5,7,50,4,900,80,111,3600,11,12,13,14,15,16\n|

@@ -1,0 +1,81 @@
+.TH CHRONYD-RS 8 "July 2026" "chrony-rs 0.1.0" "System Administration"
+.SH NAME
+chronyd-rs \- chrony-rs NTP daemon
+.SH SYNOPSIS
+.B chronyd-rs
+[\fB\-f\fR \fIfile\fR]
+[\fB\-d\fR] [\fB\-n\fR] [\fB\-s\fR] [\fB\-r\fR] [\fB\-R\fR]
+[\fB\-4\fR | \fB\-6\fR]
+[\fB\-u\fR \fIuser\fR]
+[\fB\-t\fR \fIsec\fR]
+[\fB\-l\fR \fIfile\fR] [\fB\-L\fR \fIlevel\fR]
+[\fB\-p\fR] [\fB\-q\fR]
+[\fB\-v\fR] [\fB\-h\fR]
+.SH DESCRIPTION
+chronyd-rs is an NTP daemon that synchronizes the system clock with NTP servers.
+It is a Rust port of chrony.
+.SH OPTIONS
+.TP
+.B \-f \fIfile\fR
+Configuration file (default: /etc/chrony/chrony.conf).
+.TP
+.B \-d
+Debug mode (no fork, verbose to stderr).
+.TP
+.B \-n
+No detach (don't fork to background).
+.TP
+.B \-s
+Step the system clock on start.
+.TP
+.B \-r
+Reset (don't load drift file).
+.TP
+.B \-R
+No init step (skip initial step slew).
+.TP
+.B \-t \fIsec\fR
+Initial sync timeout.
+.TP
+.B \-u \fIuser\fR
+Run as unprivileged user.
+.TP
+.B \-4
+IPv4 only.
+.TP
+.B \-6
+IPv6 only.
+.TP
+.B \-l \fIfile\fR
+Log to file.
+.TP
+.B \-L \fIlevel\fR
+Log level (0-5).
+.TP
+.B \-p
+Print parsed configuration and exit.
+.TP
+.B \-q
+Query configuration and exit.
+.TP
+.B \-v
+Print version.
+.TP
+.B \-h
+Print help.
+.SH FILES
+.TP
+.I /etc/chrony/chrony.conf
+Default configuration file.
+.TP
+.I /var/lib/chrony/drift
+Drift file.
+.SH SIGNALS
+.TP
+.B SIGTERM, SIGINT
+Graceful shutdown.
+.TP
+.B SIGHUP
+Reload configuration.
+.SH SEE ALSO
+.BR chronyc-rs (1)

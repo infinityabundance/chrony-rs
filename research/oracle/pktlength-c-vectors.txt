@@ -1,0 +1,180 @@
+# pktlength oracle (real chrony pktlength.c + candm.h). Consumer Rust. NO Python.
+HDR NREQ=73 NRPY=26 PAD=6
+REQ v=5 t=0 len=20 pad=0
+REQ v=5 t=1 len=60 pad=0
+REQ v=5 t=2 len=60 pad=0
+REQ v=5 t=3 len=68 pad=0
+REQ v=5 t=4 len=44 pad=0
+REQ v=5 t=5 len=44 pad=0
+REQ v=5 t=6 len=24 pad=0
+REQ v=5 t=7 len=44 pad=0
+REQ v=5 t=8 len=44 pad=0
+REQ v=5 t=9 len=24 pad=0
+REQ v=5 t=10 len=32 pad=0
+REQ v=5 t=11 len=32 pad=0
+REQ v=5 t=12 len=0 pad=0
+REQ v=5 t=13 len=24 pad=0
+REQ v=5 t=14 len=20 pad=0
+REQ v=5 t=15 len=24 pad=0
+REQ v=5 t=16 len=20 pad=0
+REQ v=5 t=17 len=44 pad=0
+REQ v=5 t=18 len=44 pad=0
+REQ v=5 t=19 len=44 pad=0
+REQ v=5 t=20 len=44 pad=0
+REQ v=5 t=21 len=44 pad=0
+REQ v=5 t=22 len=44 pad=0
+REQ v=5 t=23 len=44 pad=0
+REQ v=5 t=24 len=44 pad=0
+REQ v=5 t=25 len=40 pad=0
+REQ v=5 t=26 len=40 pad=0
+REQ v=5 t=27 len=0 pad=0
+REQ v=5 t=28 len=0 pad=0
+REQ v=5 t=29 len=40 pad=0
+REQ v=5 t=30 len=20 pad=0
+REQ v=5 t=31 len=24 pad=0
+REQ v=5 t=32 len=0 pad=0
+REQ v=5 t=33 len=20 pad=0
+REQ v=5 t=34 len=24 pad=0
+REQ v=5 t=35 len=20 pad=0
+REQ v=5 t=36 len=20 pad=0
+REQ v=5 t=37 len=20 pad=0
+REQ v=5 t=38 len=0 pad=0
+REQ v=5 t=39 len=0 pad=0
+REQ v=5 t=40 len=0 pad=0
+REQ v=5 t=41 len=20 pad=0
+REQ v=5 t=42 len=24 pad=0
+REQ v=5 t=43 len=20 pad=0
+REQ v=5 t=44 len=20 pad=0
+REQ v=5 t=45 len=44 pad=0
+REQ v=5 t=46 len=44 pad=0
+REQ v=5 t=47 len=44 pad=0
+REQ v=5 t=48 len=20 pad=0
+REQ v=5 t=49 len=24 pad=0
+REQ v=5 t=50 len=28 pad=0
+REQ v=5 t=51 len=20 pad=0
+REQ v=5 t=52 len=24 pad=0
+REQ v=5 t=53 len=20 pad=0
+REQ v=5 t=54 len=20 pad=0
+REQ v=5 t=55 len=0 pad=0
+REQ v=5 t=56 len=36 pad=0
+REQ v=5 t=57 len=40 pad=0
+REQ v=5 t=58 len=0 pad=0
+REQ v=5 t=59 len=0 pad=0
+REQ v=5 t=60 len=0 pad=0
+REQ v=5 t=61 len=0 pad=0
+REQ v=5 t=62 len=20 pad=0
+REQ v=5 t=63 len=20 pad=0
+REQ v=5 t=64 len=372 pad=0
+REQ v=5 t=65 len=40 pad=0
+REQ v=5 t=66 len=20 pad=0
+REQ v=5 t=67 len=40 pad=0
+REQ v=5 t=68 len=36 pad=0
+REQ v=5 t=69 len=24 pad=0
+REQ v=5 t=70 len=20 pad=0
+REQ v=5 t=71 len=24 pad=0
+REQ v=5 t=72 len=52 pad=0
+REQ v=5 t=73 len=0 pad=0
+REQ v=5 t=74 len=0 pad=0
+REQ v=6 t=0 len=28 pad=8
+REQ v=6 t=1 len=60 pad=0
+REQ v=6 t=2 len=60 pad=0
+REQ v=6 t=3 len=68 pad=0
+REQ v=6 t=4 len=44 pad=0
+REQ v=6 t=5 len=44 pad=0
+REQ v=6 t=6 len=28 pad=4
+REQ v=6 t=7 len=44 pad=0
+REQ v=6 t=8 len=44 pad=0
+REQ v=6 t=9 len=28 pad=4
+REQ v=6 t=10 len=32 pad=0
+REQ v=6 t=11 len=40 pad=8
+REQ v=6 t=12 len=0 pad=0
+REQ v=6 t=13 len=28 pad=4
+REQ v=6 t=14 len=32 pad=12
+REQ v=6 t=15 len=76 pad=52
+REQ v=6 t=16 len=28 pad=8
+REQ v=6 t=17 len=44 pad=0
+REQ v=6 t=18 len=44 pad=0
+REQ v=6 t=19 len=44 pad=0
+REQ v=6 t=20 len=44 pad=0
+REQ v=6 t=21 len=44 pad=0
+REQ v=6 t=22 len=44 pad=0
+REQ v=6 t=23 len=44 pad=0
+REQ v=6 t=24 len=44 pad=0
+REQ v=6 t=25 len=40 pad=0
+REQ v=6 t=26 len=40 pad=0
+REQ v=6 t=27 len=0 pad=0
+REQ v=6 t=28 len=0 pad=0
+REQ v=6 t=29 len=40 pad=0
+REQ v=6 t=30 len=28 pad=8
+REQ v=6 t=31 len=28 pad=4
+REQ v=6 t=32 len=0 pad=0
+REQ v=6 t=33 len=104 pad=84
+REQ v=6 t=34 len=84 pad=60
+REQ v=6 t=35 len=56 pad=36
+REQ v=6 t=36 len=28 pad=8
+REQ v=6 t=37 len=28 pad=8
+REQ v=6 t=38 len=0 pad=0
+REQ v=6 t=39 len=0 pad=0
+REQ v=6 t=40 len=0 pad=0
+REQ v=6 t=41 len=416 pad=396
+REQ v=6 t=42 len=28 pad=4
+REQ v=6 t=43 len=28 pad=8
+REQ v=6 t=44 len=48 pad=28
+REQ v=6 t=45 len=44 pad=0
+REQ v=6 t=46 len=44 pad=0
+REQ v=6 t=47 len=44 pad=0
+REQ v=6 t=48 len=28 pad=8
+REQ v=6 t=49 len=28 pad=4
+REQ v=6 t=50 len=28 pad=0
+REQ v=6 t=51 len=52 pad=32
+REQ v=6 t=52 len=28 pad=4
+REQ v=6 t=53 len=28 pad=8
+REQ v=6 t=54 len=196 pad=176
+REQ v=6 t=55 len=0 pad=0
+REQ v=6 t=56 len=36 pad=0
+REQ v=6 t=57 len=152 pad=112
+REQ v=6 t=58 len=0 pad=0
+REQ v=6 t=59 len=0 pad=0
+REQ v=6 t=60 len=0 pad=0
+REQ v=6 t=61 len=0 pad=0
+REQ v=6 t=62 len=28 pad=8
+REQ v=6 t=63 len=28 pad=8
+REQ v=6 t=64 len=372 pad=0
+REQ v=6 t=65 len=284 pad=244
+REQ v=6 t=66 len=28 pad=8
+REQ v=6 t=67 len=52 pad=12
+REQ v=6 t=68 len=520 pad=484
+REQ v=6 t=69 len=76 pad=52
+REQ v=6 t=70 len=28 pad=8
+REQ v=6 t=71 len=28 pad=4
+REQ v=6 t=72 len=52 pad=0
+REQ v=6 t=73 len=0 pad=0
+REQ v=6 t=74 len=0 pad=0
+RPY t=0 len=0
+RPY t=1 len=28
+RPY t=2 len=32
+RPY t=3 len=76
+RPY t=4 len=0
+RPY t=5 len=104
+RPY t=6 len=84
+RPY t=7 len=56
+RPY t=8 len=0
+RPY t=9 len=0
+RPY t=10 len=0
+RPY t=11 len=0
+RPY t=12 len=48
+RPY t=13 len=52
+RPY t=14 len=0
+RPY t=15 len=0
+RPY t=16 len=152
+RPY t=17 len=40
+RPY t=18 len=416
+RPY t=19 len=284
+RPY t=20 len=52
+RPY t=21 len=520
+RPY t=22 len=0
+RPY t=23 len=76
+RPY t=24 len=0
+RPY t=25 len=196
+RPY t=26 len=0
+RPY t=27 len=0

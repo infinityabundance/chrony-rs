@@ -1,0 +1,18 @@
+# rtc_linux coef/hwclock file oracle (verbatim printf/sscanf). Consumer Rust. NO Python.
+WRITE n=0 v=1 rt=1700000000 off=0.123456 rate=2.5000000000000002e-06 line=1 1700000000 0.123456 2.500|
+WRITE n=1 v=0 rt=0 off=0 rate=0 line=0 0 0.000000 0.000|
+WRITE n=2 v=1 rt=1234567890 off=-1.5 rate=-3.3330000000000001e-06 line=1 1234567890 -1.500000 -3.333|
+WRITE n=3 v=1 rt=1700000000 off=12.999999499999999 rate=0.001 line=1 1700000000 12.999999 1000.000|
+WRITE n=4 v=1 rt=999999999 off=4.9999999999999998e-07 rate=0 line=1 999999999 0.000000 0.000|
+READ n=5 in=1 1700000000 0.123456 2.500| ok=1 v=1 rt=1700000000 off=0.123456 rate=2.5
+READ n=6 in=0 0 0.000000 0.000| ok=1 v=0 rt=0 off=0 rate=0
+READ n=7 in=1 1234567890 -1.500000 -3.333| ok=1 v=1 rt=1234567890 off=-1.5 rate=-3.3330000000000002
+READ n=8 in=garbage| ok=0 v=-9 rt=0 off=0 rate=0
+READ n=9 in=1 2| ok=0 v=-9 rt=0 off=0 rate=0
+READ n=10 in=1 2 3 4 5 extra| ok=1 v=1 rt=2 off=3 rate=4
+HWCLOCK n=11 name=utc set=1 text=61646a74696d650a302e30203020302e300a5554430a
+HWCLOCK n=12 name=local set=0 text=61646a74696d650a302e30203020302e300a4c4f43414c0a
+HWCLOCK n=13 name=localtime_prefix set=0 text=780a790a4c4f43414c54494d450a
+HWCLOCK n=14 name=two_lines set=-1 text=610a620a
+HWCLOCK n=15 name=other set=-1 text=610a620a4d4152530a
+HWCLOCK n=16 name=utc_no_nl set=1 text=610a620a555443

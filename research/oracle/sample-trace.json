@@ -1,0 +1,63 @@
+{
+  "trace_schema": "chrony-rs-trace-v1",
+  "chrony_version": "4.5",
+  "platform": "x86_64-linux",
+  "kernel": "linux",
+  "config_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "events": [
+    {
+      "t_mono_ns": 0,
+      "kind": "recv_ntp",
+      "data": {
+        "peer": "192.0.2.1",
+        "packet_hex": "1c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "debug_line": "Received packet from 192.0.2.1"
+      }
+    },
+    {
+      "t_mono_ns": 500000000,
+      "kind": "recv_ntp",
+      "data": {
+        "peer": "192.0.2.1",
+        "packet_hex": "1c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "debug_line": "Received packet from 192.0.2.1"
+      }
+    },
+    {
+      "t_mono_ns": 1000000000,
+      "kind": "poll_due",
+      "data": {
+        "source": "192.0.2.1",
+        "debug_line": "poll interval for 192.0.2.1 reached"
+      }
+    },
+    {
+      "t_mono_ns": 2000000000,
+      "kind": "online_state",
+      "data": {
+        "source": "192.0.2.1",
+        "online": true,
+        "debug_line": "Source 192.0.2.1 state changed to online"
+      }
+    },
+    {
+      "t_mono_ns": 3000000000,
+      "kind": "online_state",
+      "data": {
+        "debug_line": "Selected source 192.0.2.1 as best source"
+      }
+    },
+    {
+      "t_mono_ns": 4000000000,
+      "kind": "control_query",
+      "data": {
+        "command": "tracking",
+        "debug_line": "cmdmon: received REQ_TRACKING"
+      }
+    }
+  ],
+  "expected": {
+    "selected_source": "192.0.2.1",
+    "decision_events_sha256": null
+  }
+}

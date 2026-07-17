@@ -1,0 +1,14 @@
+# gmtime %T oracle (strftime "%a %b %d %T %Y"). NO Python.
+T sec=0 |Thu Jan 01 00:00:00 1970|
+T sec=1700000000 |Tue Nov 14 22:13:20 2023|
+T sec=1600000000 |Sun Sep 13 12:26:40 2020|
+T sec=1234567890 |Fri Feb 13 23:31:30 2009|
+T sec=946684800 |Sat Jan 01 00:00:00 2000|
+T sec=951782400 |Tue Feb 29 00:00:00 2000|
+T sec=1583020800 |Sun Mar 01 00:00:00 2020|
+T sec=-1 |Wed Dec 31 23:59:59 1969|
+T sec=-86400 |Wed Dec 31 00:00:00 1969|
+T sec=253402300799 |Fri Dec 31 23:59:59 9999|
+T sec=1000000000 |Sun Sep 09 01:46:40 2001|
+T sec=2147483647 |Tue Jan 19 03:14:07 2038|
+T sec=4102444800 |Fri Jan 01 00:00:00 2100|

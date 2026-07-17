@@ -1,0 +1,7 @@
+# manual.c MNL_AcceptTimestamp oracle (real manual.c + regress.c). NO Python.
+MNL k=0 ok=1 reg_offset=0.00099999999999988987 dfreq_ppm=0 new_afreq=12.5
+MNL k=1 ok=1 reg_offset=0.0011999999999999789 dfreq_ppm=100.00000000004449 new_afreq=12.5
+MNL k=2 ok=1 reg_offset=0.0013999800000000125 dfreq_ppm=99.990000000016749 new_afreq=12.5
+MNL k=3 ok=1 reg_offset=0.0015999999999999515 dfreq_ppm=100.00000000000564 new_afreq=12.5
+MNL k=4 ok=1 reg_offset=0.0017999799999999571 dfreq_ppm=99.995000000000076 new_afreq=12.5
+MNL k=5 ok=1 reg_offset=0.0019999749999999304 dfreq_ppm=99.994999999996907 new_afreq=12.5

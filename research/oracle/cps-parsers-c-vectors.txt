@@ -1,0 +1,40 @@
+# CPS_ParseRefid/Key/Local/AllowDeny oracle (real cmdparse.c). NO Python.
+REFID id=gps ret=3 refid=1196446464
+REFID id=gps1 ret=4 refid=1196446513
+REFID id=one ret=1 refid=822083584
+REFID id=abcd ret=4 refid=1094861636
+REFID id=abcde ret=0 refid=1094861636
+REFID id=empty ret=0 refid=0
+REFID id=spc ret=2 refid=1094844416
+REFID id=pps ret=3 refid=1347441408
+KEY id=two ret=1 kid=5 type=MD5 key=mysecret
+KEY id=three ret=1 kid=7 type=SHA256 key=deadbeef
+KEY id=one_word ret=0
+KEY id=four ret=0
+KEY id=bad_id ret=0
+KEY id=id_junk ret=1 kid=42 type=MD5 key=mysecret
+LOCAL id=defaults ret=1 stratum=10 orphan=0 distance=1
+LOCAL id=stratum ret=1 stratum=5 orphan=0 distance=1
+LOCAL id=orphan ret=1 stratum=10 orphan=1 distance=1
+LOCAL id=distance ret=1 stratum=10 orphan=0 distance=0.5
+LOCAL id=combo ret=1 stratum=3 orphan=1 distance=2.5
+LOCAL id=bad_stratum0 ret=0
+LOCAL id=bad_stratum16 ret=0
+LOCAL id=stratum15 ret=1 stratum=15 orphan=0 distance=1
+LOCAL id=badopt ret=0
+LOCAL id=stratum_junk ret=1 stratum=5 orphan=1 distance=1
+AD id=ipv4 ret=1 all=0 ip=192.168.1.0 bits=24
+AD id=ipv4_nobits ret=1 all=0 ip=10.0.0.1 bits=32
+AD id=all ret=1 all=1 ip=172.16.0.0 bits=12
+AD id=empty ret=1 all=0 ip=unspec bits=0
+AD id=all_empty ret=1 all=1 ip=unspec bits=0
+AD id=short1 ret=1 all=0 ip=10.0.0.0 bits=8
+AD id=short2 ret=1 all=0 ip=192.168.0.0 bits=16
+AD id=short3 ret=1 all=0 ip=192.168.1.0 bits=24
+AD id=short_bits ret=1 all=0 ip=10.0.0.0 bits=8
+AD id=ipv6 ret=1 all=0 ip=2001:db8:: bits=32
+AD id=ipv6_nobits ret=1 all=0 ip=2001:db8::1 bits=128
+AD id=bad_bits ret=0
+AD id=extra ret=0
+AD id=bad_octet ret=0
+AD id=neg_bits ret=0

@@ -1,0 +1,13 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c TX dispatch.
+# Consumer Rust (ntp/tx_dispatch.rs); NO Python.
+TXK_CLIENT packet_mode=3 path=Known updated=1
+TXK_ACTIVE packet_mode=1 path=Known updated=1
+TXK_SERVER packet_mode=4 path=ToUnknown updated=0
+TXK_PASSIVE packet_mode=2 path=ToUnknown updated=0
+TXK_BCAST packet_mode=5 path=Known updated=0
+TXU_mode0 reached_clg=1
+TXU_mode1 reached_clg=1
+TXU_mode2 reached_clg=1
+TXU_mode3 reached_clg=1
+TXU_mode4 reached_clg=1
+TXU_mode5 reached_clg=0

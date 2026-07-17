@@ -1,0 +1,125 @@
+.TH CHRONYC-RS 1 "July 2026" "chrony-rs 0.1.0" "User Commands"
+.SH NAME
+chronyc-rs \- chrony-rs command-line control client
+.SH SYNOPSIS
+.B chronyc-rs
+[\fB\-c\fR] [\fB\-h\fR \fIhost\fR] [\fB\-p\fR \fIport\fR] [\fB\-n\fR] [\fB\-d\fR]
+\fIcommand\fR [\fIargs...\fR]
+.SH DESCRIPTION
+chronyc-rs is the command-line interface for controlling chronyd-rs.
+It communicates with the daemon via UDP port 323.
+.SH OPTIONS
+.TP
+.B \-c
+CSV output mode.
+.TP
+.B \-h \fIhost\fR
+Hostname or IP of daemon (default: 127.0.0.1).
+.TP
+.B \-p \fIport\fR
+Command port (default: 323).
+.TP
+.B \-n
+No DNS resolution (print IP addresses).
+.TP
+.B \-d
+Debug/verbose output.
+.TP
+.B \-v
+Print version.
+.SH COMMANDS
+.TP
+.B tracking
+Query daemon tracking parameters.
+.TP
+.B activity
+Query daemon activity.
+.TP
+.B sources
+Query daemon sources.
+.TP
+.B sourcestats
+Query daemon sourcestats.
+.TP
+.B serverstats
+Query daemon server stats.
+.TP
+.B ntpdata
+Query NTP data for sources.
+.TP
+.B clients
+Query client accesses.
+.TP
+.B manual
+Manual time input (list, delete, on, off, reset).
+.TP
+.B rtcdata
+Query RTC parameters.
+.TP
+.B authdata
+Query authentication data.
+.TP
+.B smoothing
+Query time smoothing.
+.TP
+.B selectdata
+Query source selection data.
+.TP
+.B reselect
+Force source reselection.
+.TP
+.B settime
+Set daemon time.
+.TP
+.B local
+Configure local reference mode.
+.TP
+.B addserver
+Add a new NTP server.
+.TP
+.B deletesource
+Remove a source.
+.TP
+.B burst
+Burst measurements.
+.TP
+.B online
+Set sources online.
+.TP
+.B offline
+Set sources offline.
+.TP
+.B allow
+Allow NTP access.
+.TP
+.B deny
+Deny NTP access.
+.TP
+.B cmdallow
+Allow command access.
+.TP
+.B cmddeny
+Deny command access.
+.TP
+.B shutdown
+Shut down daemon.
+.TP
+.B writertc
+Write RTC file.
+.TP
+.B trimrtc
+Trim RTC.
+.TP
+.B makestep
+Step the clock or configure.
+.TP
+.B password
+Send password to daemon.
+.TP
+.B help
+Print help.
+.TP
+.B version
+Print version.
+.SH SEE ALSO
+.BR chronyd-rs (8)

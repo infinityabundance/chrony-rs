@@ -1,0 +1,35 @@
+# conf keyword-parser oracle (verbatim conf.c parse_* bodies + real strcasecmp/strcmp/CPS_SplitWord). Consumer Rust. NO Python.
+LSM in="system" mode=0
+LSM in="slew" mode=1
+LSM in="step" mode=2
+LSM in="ignore" mode=3
+LSM in="SYSTEM" mode=0
+LSM in="Slew" mode=1
+LSM in="STEP" mode=2
+LSM in="Ignore" mode=3
+LSM in="system extra" mode=-1
+LSM in="" mode=-1
+LSM in="bogus" mode=-1
+LSM in="systemx" mode=-1
+ASM in="require" mode=0
+ASM in="prefer" mode=1
+ASM in="mix" mode=2
+ASM in="ignore" mode=3
+ASM in="REQUIRE" mode=0
+ASM in="Mix" mode=2
+ASM in="Ignore" mode=3
+ASM in="" mode=-1
+ASM in="bad" mode=-1
+ASM in="require x" mode=-1
+LOG in="measurements" flags=measurements err=0
+LOG in="rawmeasurements" flags=rawmeasurements err=0
+LOG in="selection statistics tracking" flags=selection,statistics,tracking err=0
+LOG in="rtc refclocks tempcomp" flags=rtc,refclocks,tempcomp err=0
+LOG in="" flags=- err=0
+LOG in="measurements bogus selection" flags=measurements err=1
+LOG in="Measurements" flags=- err=1
+LOG in="rawmeasurements measurements" flags=rawmeasurements,measurements err=0
+LOG in="tracking tracking" flags=tracking,tracking err=0
+LOG in="selection  statistics" flags=selection,statistics err=0
+LOG in="bogus" flags=- err=1
+LOG in="tempcomp rtc bad tracking" flags=tempcomp,rtc err=1

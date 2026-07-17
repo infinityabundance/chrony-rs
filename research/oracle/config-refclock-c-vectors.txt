@@ -1,0 +1,9 @@
+# parse_refclock oracle (verbatim, real sscanf). Consumer Rust (config). NO Python.
+RC tag=MIN err=0 inval=0 name=SHM param=0 poll=4 dpoll=0 filter=64 local=0 pps=0 rate=0 minsamples=-1 maxsamples=-1 seloptions=0 stratum=0 tai=0 maxlockage=2 refid=0 lockrefid=0 offset=0 delay=1.0000000000000001e-09 precision=0 maxdisp=0 width=0
+RC tag=FULL err=0 inval=0 name=PPS param=/dev/pps0 poll=3 dpoll=-2 filter=128 local=1 pps=1 rate=5 minsamples=4 maxsamples=32 seloptions=6 stratum=1 tai=1 maxlockage=5 refid=1196446464 lockrefid=1347441408 offset=0.001 delay=0.10000000000000001 precision=9.9999999999999995e-08 maxdisp=0.01 width=0.20000000000000001
+RC tag=SELOPTS err=0 inval=0 name=SOCK param=/run/sock poll=4 dpoll=0 filter=64 local=0 pps=0 rate=0 minsamples=-1 maxsamples=-1 seloptions=9 stratum=0 tai=0 maxlockage=2 refid=0 lockrefid=0 offset=0 delay=1.0000000000000001e-09 precision=0 maxdisp=0 width=0
+RC tag=REFIDTRUNC err=1 inval=0 name=SHM param=0 poll=4 dpoll=0 filter=64 local=0 pps=0 rate=0 minsamples=-1 maxsamples=-1 seloptions=0 stratum=0 tai=0 maxlockage=2 refid=1196446552 lockrefid=0 offset=0 delay=1.0000000000000001e-09 precision=0 maxdisp=0 width=0
+RC tag=BADKEY err=0 inval=1 name=SHM param=0 poll=4 dpoll=0 filter=64 local=0 pps=0 rate=0 minsamples=-1 maxsamples=-1 seloptions=0 stratum=0 tai=0 maxlockage=2 refid=0 lockrefid=0 offset=0 delay=1.0000000000000001e-09 precision=0 maxdisp=0 width=0
+RC tag=BADVAL err=1 inval=0 name=SHM param=0 poll=4 dpoll=0 filter=64 local=0 pps=0 rate=0 minsamples=-1 maxsamples=-1 seloptions=0 stratum=0 tai=0 maxlockage=2 refid=0 lockrefid=0 offset=0 delay=1.0000000000000001e-09 precision=0 maxdisp=0 width=0
+RC tag=STRATUM_OOR err=1 inval=0 name=SHM param=0 poll=4 dpoll=0 filter=64 local=0 pps=0 rate=0 minsamples=-1 maxsamples=-1 seloptions=0 stratum=99 tai=0 maxlockage=2 refid=0 lockrefid=0 offset=0 delay=1.0000000000000001e-09 precision=0 maxdisp=0 width=0
+RC tag=NOPARAM err=1

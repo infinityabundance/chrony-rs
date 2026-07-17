@@ -1,0 +1,7 @@
+# clients/manual-list row renderer oracle. NO Python.
+RR id=clirow mode=HUM |host.example                 1000      3   6  -2    30       2      0   8     0\n|
+RR id=clirownke mode=HUM |host.example                 1000      3   6  -2    30       5      1  -4   60m\n|
+RR id=mlrow mode=HUM | 3 2020-09-13 12:26:40       0.01       0.02      -0.01\n|
+RR id=clirow mode=CSV |host.example,1000,3,6,-2,30,2,0,8,0\n|
+RR id=clirownke mode=CSV |host.example,1000,3,6,-2,30,5,1,-4,3600\n|
+RR id=mlrow mode=CSV |3,2020-09-13 12:26:40,0.01,0.02,-0.01\n|

@@ -1,0 +1,6 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c NCR_ReportSource.
+# Consumer Rust (ntp/report.rs); NO Python.
+RS_CLIENT poll=6 mode=0
+RS_PEER_SHORT poll=4 mode=1
+RS_PEER_BELOWMIN poll=2 mode=1
+RS_PEER_UNREACH poll=6 mode=1

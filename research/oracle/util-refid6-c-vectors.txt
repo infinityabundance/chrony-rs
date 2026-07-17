@@ -1,0 +1,6 @@
+# UTI_IPToRefid IPv6 (MD5 of address bytes, first 4 BE). Real md5.c. NO Python.
+R6 tag=LOOP ip=::1 refid=3477097928
+R6 tag=DOC ip=2001:db8::1 refid=967547703
+R6 tag=LL ip=fe80::1 refid=2313498655
+R6 tag=MAPPED ip=::ffff:192.168.1.1 refid=3061428578
+R6 tag=FULL ip=2001:db8:85a3::8a2e:370:7334 refid=3592219074

@@ -1,0 +1,8 @@
+# Differential-oracle vectors: REAL chrony nameserv.c DNS_Name2IPAddress.
+# getaddrinfo overridden; UTI_StringToIP->0. v4 in host order. Consumer Rust; NO Python.
+UNSPEC status=0 a0_fam=1 a0_v4=0x01020304 a1_fam=2 a1_v6=202f
+INET4 status=0 a0_fam=1 a0_v4=0x0a000001 a1_fam=0
+SCOPESKIP status=2 a0_fam=0
+AGAIN status=1
+FAIL status=2
+MAX1 status=0 a0_fam=1 a0_v4=0xc0a80001

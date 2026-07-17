@@ -1,0 +1,20 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c NCR_Modify* setters.
+# Consumer Rust (ntp/params.rs); NO Python.
+MINPOLL_OK minpoll=4 maxpoll=6 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MINPOLL_BUMPS_MAX minpoll=10 maxpoll=10 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MINPOLL_RANGE minpoll=2 maxpoll=6 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MINPOLL_RANGE_HI minpoll=2 maxpoll=6 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MAXPOLL_OK minpoll=4 maxpoll=8 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MAXPOLL_LOWERS_MIN minpoll=2 maxpoll=2 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MAXPOLL_RANGE minpoll=4 maxpoll=10 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MAXDELAY_OK minpoll=0 maxpoll=0 max_delay=0.5 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MAXDELAY_NEG minpoll=0 maxpoll=0 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MAXDELAY_HI minpoll=0 maxpoll=0 max_delay=1000 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MAXDELAYRATIO_OK minpoll=0 maxpoll=0 max_delay=0 max_delay_ratio=3 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MAXDELAYRATIO_HI minpoll=0 maxpoll=0 max_delay=0 max_delay_ratio=1000000 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MAXDELAYDEVRATIO_OK minpoll=0 maxpoll=0 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=1.5 min_stratum=0 poll_target=0
+MAXDELAYDEVRATIO_NEG minpoll=0 maxpoll=0 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=0
+MINSTRATUM minpoll=0 maxpoll=0 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=3 poll_target=0
+POLLTARGET_OK minpoll=0 maxpoll=0 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=12
+POLLTARGET_FLOOR minpoll=0 maxpoll=0 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=1
+POLLTARGET_NEG minpoll=0 maxpoll=0 max_delay=0 max_delay_ratio=0 max_delay_dev_ratio=0 min_stratum=0 poll_target=1

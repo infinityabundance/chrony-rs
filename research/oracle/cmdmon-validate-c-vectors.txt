@@ -1,0 +1,15 @@
+# cmdmon request validation oracle (verbatim + real PKL_CommandLength). Consumer Rust. NO Python.
+# chosen valid command=0 expected=28
+# big command=1 expected=60
+CV tag=BADLEN read_len=30 pkt_type=1 res1=0 res2=0 version=6 command=1 outcome=1 status=19 expected=60
+CV tag=SHORT_LEN read_len=10 pkt_type=1 res1=0 res2=0 version=6 command=0 outcome=0 status=-1 expected=0
+CV tag=BIG_LEN read_len=861 pkt_type=1 res1=0 res2=0 version=6 command=0 outcome=0 status=-1 expected=0
+CV tag=BAD_TYPE read_len=28 pkt_type=2 res1=0 res2=0 version=6 command=0 outcome=0 status=-1 expected=0
+CV tag=BAD_RES1 read_len=28 pkt_type=1 res1=1 res2=0 version=6 command=0 outcome=0 status=-1 expected=0
+CV tag=BAD_RES2 read_len=28 pkt_type=1 res1=0 res2=1 version=6 command=0 outcome=0 status=-1 expected=0
+CV tag=VER_COMPAT read_len=28 pkt_type=1 res1=0 res2=0 version=5 command=0 outcome=1 status=18 expected=20
+CV tag=VER_OLD read_len=28 pkt_type=1 res1=0 res2=0 version=4 command=0 outcome=0 status=-1 expected=20
+CV tag=BAD_CMD read_len=40 pkt_type=1 res1=0 res2=0 version=6 command=200 outcome=1 status=3 expected=0
+CV tag=SHORT_PKT read_len=27 pkt_type=1 res1=0 res2=0 version=6 command=0 outcome=0 status=-1 expected=0
+CV tag=VALID read_len=28 pkt_type=1 res1=0 res2=0 version=6 command=0 outcome=2 status=-1 expected=28
+CV tag=VALID_LONG read_len=860 pkt_type=1 res1=0 res2=0 version=6 command=0 outcome=2 status=-1 expected=28

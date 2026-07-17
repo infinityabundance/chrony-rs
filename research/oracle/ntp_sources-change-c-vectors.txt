@@ -1,0 +1,6 @@
+# change_source_address oracle (real ntp_sources.c). NO Python. seed=0x01010101
+CHG tag=port_change status=Success old_present=0 new_present=1 size=8
+CHG tag=new_addr status=Success old_present=0 new_present=1 size=8
+CHG tag=already_inuse status=Already in use old_present=1 new_present=1 size=8
+CHG tag=iponly_other status=Already in use old_present=1 new_present=0 size=8
+CHG tag=no_such status=No such source old_present=0 new_present=0 size=8

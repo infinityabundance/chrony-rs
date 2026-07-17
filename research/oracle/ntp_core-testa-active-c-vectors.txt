@@ -1,0 +1,6 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c process_response test A (active).
+# Consumer Rust (ntp/test_a.rs passes_test_a_active); NO Python.
+TA_ACT_PASS mode=1 stratum=2 tests=1023 testA=1 good=1 peer_delay=0.055000000000000007 peer_dispersion=2.0449999999999999e-06 precision_log=-20 remote_poll=10 prev_local_poll=6 receive_ts=18077469245917479567 transmit_ts=18077469245874529894 prior_remote_ntp_tx=18077469245865939959
+TA_ACT_CMP mode=1 stratum=2 tests=1015 testA=0 good=0 peer_delay=0.035000000000000003 peer_dispersion=2.0449999999999999e-06 precision_log=-20 remote_poll=10 prev_local_poll=6 receive_ts=18077469245831580221 transmit_ts=18077469245874529894 prior_remote_ntp_tx=18077469245865939959
+TA_ACT_POLL mode=1 stratum=2 tests=1015 testA=0 good=0 peer_delay=0.055000000000000007 peer_dispersion=2.0449999999999999e-06 precision_log=-20 remote_poll=4 prev_local_poll=6 receive_ts=18077469245917479567 transmit_ts=18077469245874529894 prior_remote_ntp_tx=18077464950262988800
+TA_ACT_DELAY mode=1 stratum=2 tests=1015 testA=0 good=0 peer_delay=0.055000000000000007 peer_dispersion=2.0449999999999999e-06 precision_log=-20 remote_poll=-12 prev_local_poll=-12 receive_ts=18077469245917479567 transmit_ts=18077469245874529894 prior_remote_ntp_tx=18077469245865939959

@@ -1,0 +1,6 @@
+# Zsh completions for chrony-rs
+# Pending implementation.
+
+# When complete, this directory should contain:
+#   _chronyd-rs  - zsh completion function for chronyd-rs
+#   _chronyc-rs  - zsh completion function for chronyc-rs

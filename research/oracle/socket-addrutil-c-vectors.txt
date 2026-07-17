@@ -1,0 +1,22 @@
+# socket address-utils oracle (verbatim). Consumer Rust. NO Python.
+HDR AF_INET=2 AF_INET6=10 AF_UNIX=1 AF_UNSPEC=0
+DOM n=0 dom=2 s=IPv4
+DOM n=1 dom=10 s=IPv6
+DOM n=2 dom=1 s=Unix
+DOM n=3 dom=0 s=UNSPEC
+DOM n=4 dom=99 s=?
+ANY n=5 fam=1 in4=00000000
+ANY n=6 fam=2 in6=00000000000000000000000000000000
+LOOP n=7 fam=1 in4=7f000001
+LOOP n=8 fam=2 in6=00000000000000000000000000000001
+ISANY n=9 name=v4_zero r=1
+ISANY n=10 name=v4_nonzero r=0
+ISANY n=11 name=v6_zero r=1
+ISANY n=12 name=v6_one r=0
+LL n=13 name=v4_ll r=1
+LL n=14 name=v4_not r=0
+LL n=15 name=v4_pub r=0
+LL n=16 name=v6_ll r=1
+LL n=17 name=v6_ll2 r=1
+LL n=18 name=v6_fec0 r=0
+LL n=19 name=v6_pub r=0

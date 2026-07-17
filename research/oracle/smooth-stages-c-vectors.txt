@@ -1,0 +1,64 @@
+# smooth.c update_stages/get_smoothing oracle (verbatim). NO Python.
+S id=small_pos offset=0.001 freq=0 max_freq=0.0001 max_wander=9.9999999999999995e-07 st0_w=9.9999999999999995e-07 st0_l=31.622776601683796 st1_w=0 st1_l=0 st2_w=-9.9999999999999995e-07 st2_l=31.622776601683796
+G id=small_pos elapsed=0 offset=0.001 freq=0 wander=0
+G id=small_pos elapsed=1 offset=0.00099949999999999995 freq=9.9999999999999995e-07 wander=9.9999999999999995e-07
+G id=small_pos elapsed=10 offset=0.00095 freq=9.9999999999999991e-06 wander=9.9999999999999995e-07
+G id=small_pos elapsed=100 offset=-2.1684043449710089e-19 freq=0 wander=0
+G id=small_pos elapsed=1000 offset=-2.1684043449710089e-19 freq=0 wander=0
+G id=small_pos elapsed=100000 offset=-2.1684043449710089e-19 freq=0 wander=0
+S id=small_neg offset=-0.001 freq=0 max_freq=0.0001 max_wander=9.9999999999999995e-07 st0_w=-9.9999999999999995e-07 st0_l=31.622776601683796 st1_w=0 st1_l=0 st2_w=9.9999999999999995e-07 st2_l=31.622776601683796
+G id=small_neg elapsed=0 offset=-0.001 freq=0 wander=0
+G id=small_neg elapsed=1 offset=-0.00099949999999999995 freq=-9.9999999999999995e-07 wander=-9.9999999999999995e-07
+G id=small_neg elapsed=10 offset=-0.00095 freq=-9.9999999999999991e-06 wander=-9.9999999999999995e-07
+G id=small_neg elapsed=100 offset=2.1684043449710089e-19 freq=0 wander=0
+G id=small_neg elapsed=1000 offset=2.1684043449710089e-19 freq=0 wander=0
+G id=small_neg elapsed=100000 offset=2.1684043449710089e-19 freq=0 wander=0
+S id=with_freq offset=0.001 freq=5.0000000000000004e-06 max_freq=0.0001 max_wander=9.9999999999999995e-07 st0_w=9.9999999999999995e-07 st0_l=26.81980515339464 st1_w=0 st1_l=0 st2_w=-9.9999999999999995e-07 st2_l=31.81980515339464
+G id=with_freq elapsed=0 offset=0.001 freq=5.0000000000000004e-06 wander=0
+G id=with_freq elapsed=1 offset=0.00099449999999999994 freq=6.0000000000000002e-06 wander=9.9999999999999995e-07
+G id=with_freq elapsed=10 offset=0.00089999999999999998 freq=1.4999999999999999e-05 wander=9.9999999999999995e-07
+G id=with_freq elapsed=100 offset=-1.0842021724855044e-19 freq=0 wander=0
+G id=with_freq elapsed=1000 offset=-1.0842021724855044e-19 freq=0 wander=0
+G id=with_freq elapsed=100000 offset=-1.0842021724855044e-19 freq=0 wander=0
+S id=neg_freq offset=0.001 freq=-5.0000000000000004e-06 max_freq=0.0001 max_wander=9.9999999999999995e-07 st0_w=9.9999999999999995e-07 st0_l=36.81980515339464 st1_w=0 st1_l=0 st2_w=-9.9999999999999995e-07 st2_l=31.81980515339464
+G id=neg_freq elapsed=0 offset=0.001 freq=-5.0000000000000004e-06 wander=0
+G id=neg_freq elapsed=1 offset=0.0010045 freq=-4.0000000000000007e-06 wander=9.9999999999999995e-07
+G id=neg_freq elapsed=10 offset=0.001 freq=4.9999999999999987e-06 wander=9.9999999999999995e-07
+G id=neg_freq elapsed=100 offset=-1.0842021724855044e-19 freq=0 wander=0
+G id=neg_freq elapsed=1000 offset=-1.0842021724855044e-19 freq=0 wander=0
+G id=neg_freq elapsed=100000 offset=-1.0842021724855044e-19 freq=0 wander=0
+S id=limit_hit offset=1 freq=0 max_freq=0.0001 max_wander=9.9999999999999995e-07 st0_w=9.9999999999999995e-07 st0_l=100 st1_w=0 st1_l=9900 st2_w=-9.9999999999999995e-07 st2_l=100
+G id=limit_hit elapsed=0 offset=1 freq=0 wander=0
+G id=limit_hit elapsed=1 offset=0.99999950000000004 freq=9.9999999999999995e-07 wander=9.9999999999999995e-07
+G id=limit_hit elapsed=10 offset=0.99995000000000001 freq=9.9999999999999991e-06 wander=9.9999999999999995e-07
+G id=limit_hit elapsed=100 offset=0.995 freq=9.9999999999999991e-05 wander=9.9999999999999995e-07
+G id=limit_hit elapsed=1000 offset=0.90500000000000003 freq=9.9999999999999991e-05 wander=0
+G id=limit_hit elapsed=100000 offset=1.1622647289044608e-16 freq=0 wander=0
+S id=limit_hit2 offset=5 freq=2.0000000000000002e-05 max_freq=0.0001 max_wander=9.9999999999999995e-07 st0_w=9.9999999999999995e-07 st0_l=79.999999999999545 st1_w=0 st1_l=49902.000000000015 st2_w=-9.9999999999999995e-07 st2_l=99.999999999999545
+G id=limit_hit2 elapsed=0 offset=5 freq=2.0000000000000002e-05 wander=0
+G id=limit_hit2 elapsed=1 offset=4.9999795000000002 freq=2.1000000000000002e-05 wander=9.9999999999999995e-07
+G id=limit_hit2 elapsed=10 offset=4.9997499999999997 freq=3.0000000000000001e-05 wander=9.9999999999999995e-07
+G id=limit_hit2 elapsed=100 offset=4.9931999999999999 freq=9.9999999999999544e-05 wander=0
+G id=limit_hit2 elapsed=1000 offset=4.9032 freq=9.9999999999999544e-05 wander=0
+G id=limit_hit2 elapsed=100000 offset=2.1255566751143817e-14 freq=0 wander=0
+S id=tiny offset=1.0000000000000001e-09 freq=0 max_freq=0.0001 max_wander=9.9999999999999995e-07 st0_w=9.9999999999999995e-07 st0_l=0.031622776601683791 st1_w=0 st1_l=0 st2_w=-9.9999999999999995e-07 st2_l=0.031622776601683791
+G id=tiny elapsed=0 offset=1.0000000000000001e-09 freq=0 wander=0
+G id=tiny elapsed=1 offset=2.0679515313825692e-25 freq=0 wander=0
+G id=tiny elapsed=10 offset=2.0679515313825692e-25 freq=0 wander=0
+G id=tiny elapsed=100 offset=2.0679515313825692e-25 freq=0 wander=0
+G id=tiny elapsed=1000 offset=2.0679515313825692e-25 freq=0 wander=0
+G id=tiny elapsed=100000 offset=2.0679515313825692e-25 freq=0 wander=0
+S id=zero offset=0 freq=0 max_freq=0.0001 max_wander=9.9999999999999995e-07 st0_w=9.9999999999999995e-07 st0_l=0 st1_w=0 st1_l=0 st2_w=-9.9999999999999995e-07 st2_l=0
+G id=zero elapsed=0 offset=0 freq=0 wander=0
+G id=zero elapsed=1 offset=0 freq=0 wander=0
+G id=zero elapsed=10 offset=0 freq=0 wander=0
+G id=zero elapsed=100 offset=0 freq=0 wander=0
+G id=zero elapsed=1000 offset=0 freq=0 wander=0
+G id=zero elapsed=100000 offset=0 freq=0 wander=0
+S id=freq_only offset=0 freq=3.0000000000000001e-05 max_freq=0.0001 max_wander=9.9999999999999995e-07 st0_w=-9.9999999999999995e-07 st0_l=51.213203435596427 st1_w=0 st1_l=0 st2_w=9.9999999999999995e-07 st2_l=21.213203435596427
+G id=freq_only elapsed=0 offset=0 freq=3.0000000000000001e-05 wander=0
+G id=freq_only elapsed=1 offset=-2.9500000000000002e-05 freq=2.9e-05 wander=-9.9999999999999995e-07
+G id=freq_only elapsed=10 offset=-0.00025000000000000001 freq=2.0000000000000002e-05 wander=-9.9999999999999995e-07
+G id=freq_only elapsed=100 offset=-8.1315162936412833e-20 freq=0 wander=0
+G id=freq_only elapsed=1000 offset=-8.1315162936412833e-20 freq=0 wander=0
+G id=freq_only elapsed=100000 offset=-8.1315162936412833e-20 freq=0 wander=0

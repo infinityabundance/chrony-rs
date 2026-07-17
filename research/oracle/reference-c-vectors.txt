@@ -1,0 +1,8 @@
+# Differential-oracle vectors: REAL chrony reference.c discipline core.
+# No drift file / leap tz / fallback drift / tracking log. abs_freq init 5.0 ppm,
+# raw=2000000000.0, uncorrected=0.001, max_clock_error=1e-6. Consumer Rust.
+SET1 acc_n=1 freq=9.9999999999966665e-07 off=0.020005001000000001 rate=0 step_n=0 step=0 sync_n=2 synch=1 est=0.0050005001000000002 max=0.025010002004555096
+SET2 acc_n=2 freq=4.120880440771534e-07 off=0.0050010005 rate=0.192 step_n=0 step=0 sync_n=3 synch=1 est=0.0020001000500000001 max=0.025004228937491275
+SET3 acc_n=3 freq=2.692741116850315e-07 off=0.001 rate=0.95999999999999996 step_n=1 step=0.99900030029999998 sync_n=4 synch=1 est=0.010000050050000001 max=0.025001767030519595
+ADJ ret=1 accnh_n=1 freq=1.9999999999999999e-06 off=0.001 rate=1.6950000000000001
+REP stratum=3 refid=167772161 leap=0 corr=0.001 freq=5 resid=0.030725888314968485 skew=0.7345393660234234 lastoff=1.0000003003 rms=1.0000003003 interval=64 rootdelay=0.01 rootdisp=0.020001910045447147

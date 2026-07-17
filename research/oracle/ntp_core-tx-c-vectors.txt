@@ -1,0 +1,9 @@
+# Differential-oracle vectors: REAL chrony ntp_core.c transmit timing.
+# Consumer Rust (ntp/poll.rs); NO Python.
+TXPOLL_CLIENT poll=6
+TXPOLL_ACTIVE poll=4
+TXPOLL_ACTIVE2 poll=2
+TXDELAY_ONLINE delay=64
+TXDELAY_PRESEND delay=1
+TXDELAY_BURST delay=2
+TXDELAY_ACTIVE delay=69.400000000000006

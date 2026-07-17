@@ -1,0 +1,73 @@
+# addrfilt ADF subnet-trie oracle (real addrfilt.c). Consumer Rust. NO Python.
+OP s1 allow 10.0.0.0/8 st=0
+OP s1 allow 192.168.1.0/24 st=0
+Q s1 ip=10.0.0.1 allowed=1
+Q s1 ip=10.1.2.3 allowed=1
+Q s1 ip=10.255.255.255 allowed=1
+Q s1 ip=192.168.1.1 allowed=1
+Q s1 ip=192.168.1.100 allowed=1
+Q s1 ip=192.168.2.1 allowed=0
+Q s1 ip=172.16.0.1 allowed=0
+Q s1 ip=8.8.8.8 allowed=0
+Q s1 ip=127.0.0.1 allowed=0
+Q s1 ip=0.0.0.0 allowed=0
+Q s1 ip=2001:db8::1 allowed=0
+Q s1 ip=2001:db8:1::1 allowed=0
+Q s1 ip=2001:db9::1 allowed=0
+Q s1 ip=fe80::1 allowed=0
+Q s1 ip=::1 allowed=0
+ANY s1 v4=1 v6=0
+OP s2 allow 0/0 st=0
+OP s2 deny 192.168.0.0/16 st=0
+OP s2 allow 192.168.1.0/24 st=0
+Q s2 ip=10.0.0.1 allowed=1
+Q s2 ip=10.1.2.3 allowed=1
+Q s2 ip=10.255.255.255 allowed=1
+Q s2 ip=192.168.1.1 allowed=1
+Q s2 ip=192.168.1.100 allowed=1
+Q s2 ip=192.168.2.1 allowed=0
+Q s2 ip=172.16.0.1 allowed=1
+Q s2 ip=8.8.8.8 allowed=1
+Q s2 ip=127.0.0.1 allowed=1
+Q s2 ip=0.0.0.0 allowed=1
+Q s2 ip=2001:db8::1 allowed=0
+Q s2 ip=2001:db8:1::1 allowed=0
+Q s2 ip=2001:db9::1 allowed=0
+Q s2 ip=fe80::1 allowed=0
+Q s2 ip=::1 allowed=0
+OP s3 denyall 10.0.0.0/8 st=0
+Q s3 ip=10.0.0.1 allowed=0
+Q s3 ip=10.1.2.3 allowed=0
+Q s3 ip=10.255.255.255 allowed=0
+Q s3 ip=192.168.1.1 allowed=0
+Q s3 ip=192.168.1.100 allowed=0
+Q s3 ip=192.168.2.1 allowed=0
+Q s3 ip=172.16.0.1 allowed=0
+Q s3 ip=8.8.8.8 allowed=0
+Q s3 ip=127.0.0.1 allowed=0
+Q s3 ip=0.0.0.0 allowed=0
+Q s3 ip=2001:db8::1 allowed=0
+Q s3 ip=2001:db8:1::1 allowed=0
+Q s3 ip=2001:db9::1 allowed=0
+Q s3 ip=fe80::1 allowed=0
+Q s3 ip=::1 allowed=0
+OP s4 allow 2001:db8::/32 st=0
+OP s4 deny 2001:db8:1::/48 st=0
+Q s4 ip=10.0.0.1 allowed=0
+Q s4 ip=10.1.2.3 allowed=0
+Q s4 ip=10.255.255.255 allowed=0
+Q s4 ip=192.168.1.1 allowed=0
+Q s4 ip=192.168.1.100 allowed=0
+Q s4 ip=192.168.2.1 allowed=0
+Q s4 ip=172.16.0.1 allowed=0
+Q s4 ip=8.8.8.8 allowed=0
+Q s4 ip=127.0.0.1 allowed=0
+Q s4 ip=0.0.0.0 allowed=0
+Q s4 ip=2001:db8::1 allowed=1
+Q s4 ip=2001:db8:1::1 allowed=0
+Q s4 ip=2001:db9::1 allowed=0
+Q s4 ip=fe80::1 allowed=0
+Q s4 ip=::1 allowed=0
+ANY s4 v4=0 v6=1
+OP s5 allow 10.0.0.0/33 st=1
+OP s5 allow 2001:db8::/129 st=1

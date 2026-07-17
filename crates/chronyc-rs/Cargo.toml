@@ -19,6 +19,6 @@ name = "chronyc-rs"
 path = "src/main.rs"
 
 [dependencies]
-chrony-rs-core = { path = "../chrony-rs-core" }
+chrony-rs-core = { version = "0.2", path = "../chrony-rs-core" }
 serde = { workspace = true }
 serde_json = { workspace = true }
