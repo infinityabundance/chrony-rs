@@ -5,8 +5,33 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 description = "Deterministic time-discipline brain and parity primitives for chrony-rs."
+readme = "README.md"
+keywords = ["ntp", "time", "clock", "chrony", "synchronization"]
+categories = ["science::geoscience", "network-programming"]
+
+[lints]
+workspace = true
 
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
+rustls = { version = "0.23", optional = true }
+webpki-roots = { version = "0.26", optional = true }
+libc = "0.2"
+
+[dev-dependencies]
+proptest = "1"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "parity_bench"
+harness = false
+
+[features]
+default = []
+nts-tls = ["rustls", "webpki-roots"]
+
+[package.metadata.docs.rs]
+features = ["nts-tls"]

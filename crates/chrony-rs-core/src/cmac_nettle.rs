@@ -37,6 +37,7 @@ pub const CMAC128_DIGEST_SIZE: usize = 16;
 
 /// chrony `CMC_Algorithm` (`cmac.h`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum CmcAlgorithm {
     /// Not a CMAC algorithm.
     Invalid = 0,
@@ -75,6 +76,7 @@ fn xtime(x: u8) -> u8 {
 }
 
 /// AES-256 encryption (14 rounds), for AES-256-CMAC.
+#[derive(Debug)]
 pub struct Aes256 {
     round_keys: [[u8; 16]; 15],
 }
@@ -166,12 +168,14 @@ fn mix_columns(s: &mut [u8; 16]) {
 // ===================== CMC_* instance API =====================
 
 /// The keyed cipher behind a CMAC instance (chrony's `union` of cmac contexts).
+#[derive(Debug)]
 enum CmacCipher {
     Aes128(Aes128),
     Aes256(Aes256),
 }
 
 /// A keyed CMAC instance (chrony's `CMC_Instance_Record`).
+#[derive(Debug)]
 pub struct CmcInstance {
     key_length: i32,
     cmac: Cmac128,
@@ -204,7 +208,7 @@ impl CmcInstance {
                 let c = Aes256::new(key.try_into().expect("len 32"));
                 (Cmac128::set_key(&c), CmacCipher::Aes256(c))
             }
-            _ => unreachable!(),
+            _ => return None,
         };
         Some(CmcInstance { key_length: length, cmac, cipher })
     }

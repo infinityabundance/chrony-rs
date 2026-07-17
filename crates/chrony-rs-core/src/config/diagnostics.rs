@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 /// startup (`--check-config` exits non-zero), so `Error` is the common case;
 /// `Warning` is reserved for things chrony tolerates but reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+    #[non_exhaustive]
 pub enum Severity {
     Warning,
     Error,
@@ -95,6 +96,9 @@ impl Diagnostic {
             "CFG_UNEXPECTED_ARGS" => {
                 format!("Too many arguments for {} directive", self.directive.as_ref()?)
             }
+            // chrony `other_parse_error(message)`: the message itself is the full reason.
+            "CFG_INVALID_LOG_PARAM" => "Invalid log parameter".to_string(),
+            "CFG_INVALID_REFCLOCK_OPT" => "Invalid refclock option".to_string(),
             _ => return None,
         };
         Some(format!(

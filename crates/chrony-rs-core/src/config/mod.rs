@@ -22,10 +22,12 @@
 //! `docs/config-atlas.md`. Recognizing the keyword is not the same as admitting
 //! its semantics, and the two must not be conflated.
 
+pub mod accessors;
 pub mod diagnostics;
 pub mod lexer;
 pub mod model;
 pub mod parser;
+pub mod scan;
 
 pub use diagnostics::{Diagnostic, Severity};
 pub use model::{Config, Directive, ServerKind, SourceDirective};

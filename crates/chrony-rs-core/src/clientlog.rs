@@ -57,11 +57,14 @@
 //! same inputs and must match every output. A second, independent Rust reference
 //! cross-checks the token-bucket refill/spend logic. See the tests below.
 
+use std::fmt;
+
 /// Number of distinguished services, chrony `MAX_SERVICES`.
 pub const MAX_SERVICES: usize = 3;
 
 /// The services chrony rate-limits independently (`CLG_Service`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum Service {
     /// NTP server responses.
     Ntp = 0,
@@ -185,6 +188,7 @@ impl Timespec {
 
 /// chrony `LCL_ChangeType`: the kind of clock correction reported to handlers.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum ChangeType {
     /// A frequency/offset slew (`LCL_ChangeAdjust`).
     Adjust,
@@ -196,6 +200,7 @@ pub enum ChangeType {
 
 /// chrony `NTP_Timestamp_Source`: which layer captured a timestamp.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum TimestampSource {
     /// Captured in the daemon (`NTP_TS_DAEMON`).
     Daemon = 0,
@@ -218,6 +223,7 @@ impl TimestampSource {
 /// A client address. Mirrors chrony's `IPAddr` family tag so the hash and
 /// comparison ports behave identically.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum ClientIp {
     /// chrony `IPADDR_UNSPEC`: an empty record slot.
     Unspec,
@@ -241,7 +247,7 @@ impl ClientIp {
 }
 
 /// Per-client record, chrony's `Record`.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct Record {
     ip_addr: ClientIp,
     last_hit: [u32; MAX_SERVICES],
@@ -271,6 +277,7 @@ impl Record {
 /// chrony `NtpTimestamps`: an RX timestamp and the TX timestamp (as an offset) for
 /// interleaved-mode responses.
 #[derive(Clone, Copy)]
+#[derive(Debug)]
 struct NtpTimestamps {
     rx_ts: u64,
     flags: u8,
@@ -286,6 +293,7 @@ impl NtpTimestamps {
 }
 
 /// chrony `NtpTimestampMap`: ordered circular buffer of RX→TX timestamps.
+#[derive(Debug)]
 struct NtpTimestampMap {
     timestamps: Option<Vec<NtpTimestamps>>,
     first: u32,
@@ -423,6 +431,24 @@ pub struct ClientLog {
     leak_bits_left: i32,
     /// Injected random byte source (chrony's `UTI_GetRandomBytes`).
     rng: Box<dyn FnMut() -> u8>,
+}
+
+impl fmt::Debug for ClientLog {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ClientLog")
+            .field("records", &self.records.len())
+            .field("slots", &self.slots)
+            .field("max_slots", &self.max_slots)
+            .field("ts_offset", &self.ts_offset)
+            .field("hash_seed", &self.hash_seed)
+            .field("active", &self.active)
+            .field("total_hits", &self.total_hits)
+            .field("total_drops", &self.total_drops)
+            .field("total_ntp_auth_hits", &self.total_ntp_auth_hits)
+            .field("total_ntp_interleaved_hits", &self.total_ntp_interleaved_hits)
+            .field("total_record_drops", &self.total_record_drops)
+            .finish()
+    }
 }
 
 #[inline]
@@ -588,7 +614,7 @@ impl ClientLog {
                 0 => config.ntp_ratelimit,
                 1 => config.nts_ratelimit,
                 2 => config.cmd_ratelimit,
-                _ => unreachable!(),
+                _ => continue,
             };
             let Some(rl) = rl else { continue };
 
@@ -973,7 +999,9 @@ impl ClientLog {
 
         let mut lo = 0u32;
         let mut hi = self.ntp_ts_map.size - 1;
-        let ts = self.ntp_ts_map.timestamps.as_ref().unwrap();
+        let Some(ref ts) = self.ntp_ts_map.timestamps else {
+            return (false, 0);
+        };
         let mut rx_lo = ts[self.ntp_tss_index(lo)].rx_ts;
         let mut rx_hi = ts[self.ntp_tss_index(hi)].rx_ts;
 
@@ -1015,7 +1043,10 @@ impl ClientLog {
                 x = hi - 1;
             }
 
-            let rx_x = self.ntp_ts_map.timestamps.as_ref().unwrap()[self.ntp_tss_index(x)].rx_ts;
+            let Some(ref ts) = self.ntp_ts_map.timestamps else {
+                return (false, 0);
+            };
+            let rx_x = ts[self.ntp_tss_index(x)].rx_ts;
 
             if (rx_x.wrapping_sub(rx_ts) as i64) <= 0 {
                 lo = x;
@@ -1107,7 +1138,9 @@ impl ClientLog {
         let (found, mut index) = self.find_ntp_rx_ts(rx);
         if found {
             let i = self.ntp_tss_index(index);
-            self.ntp_ts_map.timestamps.as_mut().unwrap()[i].flags |= NTPTS_DISABLED;
+            if let Some(ref mut timestamps) = self.ntp_ts_map.timestamps {
+                timestamps[i].flags |= NTPTS_DISABLED;
+            }
             return;
         }
 
@@ -1117,11 +1150,15 @@ impl ClientLog {
             index = self.push_ntp_tss(index);
         } else {
             // Trim timestamps in the distant future after a backward step.
-            while index < self.ntp_ts_map.size && {
-                let last = self.ntp_tss_index(self.ntp_ts_map.size - 1);
-                self.ntp_ts_map.timestamps.as_ref().unwrap()[last].rx_ts.wrapping_sub(rx)
-                    > NTPTS_FUTURE_LIMIT
-            } {
+            while index < self.ntp_ts_map.size {
+                let too_far = match self.ntp_ts_map.timestamps.as_ref() {
+                    Some(t) => {
+                        let last = self.ntp_tss_index(self.ntp_ts_map.size - 1);
+                        t[last].rx_ts.wrapping_sub(rx) > NTPTS_FUTURE_LIMIT
+                    }
+                    None => false,
+                };
+                if !too_far { break; }
                 self.ntp_ts_map.size -= 1;
             }
 
@@ -1129,10 +1166,12 @@ impl ClientLog {
                 index = self.push_ntp_tss(index);
                 let mut i = self.ntp_ts_map.size - 1;
                 while i > index {
-                    let dst = self.ntp_tss_index(i);
-                    let src = self.ntp_tss_index(i - 1);
-                    let v = self.ntp_ts_map.timestamps.as_ref().unwrap()[src];
-                    self.ntp_ts_map.timestamps.as_mut().unwrap()[dst] = v;
+                    let Some(ref timestamps) = self.ntp_ts_map.timestamps else { break; };
+                    let src_idx = self.ntp_tss_index(i - 1);
+                    let dst_idx = self.ntp_tss_index(i);
+                    let src_val = timestamps[src_idx];
+                    let Some(ref mut timestamps_mut) = self.ntp_ts_map.timestamps else { break; };
+                    timestamps_mut[dst_idx] = src_val;
                     i -= 1;
                 }
             } else {
@@ -1145,7 +1184,8 @@ impl ClientLog {
 
         let slot = self.ntp_tss_index(index);
         let slew_epoch = self.ntp_ts_map.slew_epoch;
-        let tss = &mut self.ntp_ts_map.timestamps.as_mut().unwrap()[slot];
+        let Some(ref mut timestamps) = self.ntp_ts_map.timestamps else { return; };
+        let tss = &mut timestamps[slot];
         tss.rx_ts = rx;
         tss.flags = 0;
         tss.slew_epoch = slew_epoch;
@@ -1174,7 +1214,8 @@ impl ClientLog {
             return tx_ts;
         }
         let slot = self.ntp_tss_index(index);
-        let epoch = self.ntp_ts_map.timestamps.as_ref().unwrap()[slot].slew_epoch;
+        let Some(ref timestamps) = self.ntp_ts_map.timestamps else { return tx_ts; };
+        let epoch = timestamps[slot].slew_epoch;
         if epoch.wrapping_add(1) == self.ntp_ts_map.slew_epoch {
             return tx_ts.add_double(self.ntp_ts_map.slew_offset);
         }
@@ -1196,7 +1237,8 @@ impl ClientLog {
             return;
         }
         let slot = self.ntp_tss_index(index);
-        let tss = &mut self.ntp_ts_map.timestamps.as_mut().unwrap()[slot];
+        let Some(ref mut timestamps) = self.ntp_ts_map.timestamps else { return; };
+        let tss = &mut timestamps[slot];
         Self::set_ntp_tx(tss, rx_ts, tx_ts, tx_src);
     }
 
@@ -1209,7 +1251,8 @@ impl ClientLog {
             return None;
         }
         let slot = self.ntp_tss_index(index);
-        let tss = self.ntp_ts_map.timestamps.as_ref().unwrap()[slot];
+        let Some(ref timestamps) = self.ntp_ts_map.timestamps else { return None; };
+        let tss = timestamps[slot];
         if tss.flags & NTPTS_DISABLED != 0 {
             return None;
         }
@@ -1222,7 +1265,9 @@ impl ClientLog {
             let (found, index) = self.find_ntp_rx_ts(rx_ts);
             if found {
                 let slot = self.ntp_tss_index(index);
-                self.ntp_ts_map.timestamps.as_mut().unwrap()[slot].flags |= NTPTS_DISABLED;
+                if let Some(ref mut timestamps) = self.ntp_ts_map.timestamps {
+                    timestamps[slot].flags |= NTPTS_DISABLED;
+                }
             }
         }
         self.total_ntp_interleaved_hits += 1;
@@ -1314,11 +1359,13 @@ impl ClientLog {
 
     /// chrony `CLG_GetServerStatsReport`.
     pub fn get_server_stats_report(&self) -> ServerStatsReport {
-        let ntp_span_seconds = if self.ntp_ts_map.size > 1 {
+            let ntp_span_seconds = if self.ntp_ts_map.size > 1 {
             let last = self.ntp_tss_index(self.ntp_ts_map.size - 1);
             let first = self.ntp_tss_index(0);
-            let ts = self.ntp_ts_map.timestamps.as_ref().unwrap();
-            (ts[last].rx_ts.wrapping_sub(ts[first].rx_ts)) >> 32
+            match self.ntp_ts_map.timestamps.as_ref() {
+                Some(timestamps) => (timestamps[last].rx_ts.wrapping_sub(timestamps[first].rx_ts)) >> 32,
+                None => 0,
+            }
         } else {
             0
         };
@@ -1368,6 +1415,7 @@ const NSEC_PER_NTP64: f64 = 4.294967296;
 /// allocation (the hash iterates 4 or 16 bytes).
 mod heapless_bytes {
     /// 4- or 16-byte address bytes.
+    #[non_exhaustive]
     pub enum Bytes {
         /// IPv4 / id (4 bytes).
         Four([u8; 4]),

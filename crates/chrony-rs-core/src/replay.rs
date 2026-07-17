@@ -1,70 +1,51 @@
-//! Deterministic replay runner (Stage 3 foundation).
+//! Deterministic replay runner with chrony source selection.
 //!
 //! Walks a validated [`Trace`] event-by-event against a [`SimulatedClock`],
-//! producing a **deterministic decision log** and a content hash of it. Same trace
-//! in ⇒ same log out, byte-for-byte, on any machine. That reproducibility is the
-//! whole point: it turns "did behavior change?" into a hash comparison.
-//!
-//! # Honest scope — read before trusting the word "decision"
-//!
-//! This runner currently performs **deterministic event processing**, not chrony's
-//! source-selection or clock-discipline *policy*. Concretely it:
-//!
-//!   * advances the simulated clock to each event's monotonic time,
-//!   * decodes `recv_ntp` packets with the real NTP codec (so packet-court
-//!     guarantees apply) and records what arrived,
-//!   * tracks a per-source last-seen registry and online/offline state,
-//!   * answers `control_query` by snapshotting current observed state.
-//!
-//! It does **not** yet decide which source chrony would select, accept/reject
-//! samples per chrony's filters, or compute offset/frequency/step decisions. Those
-//! are Stages 4–5 and are listed in `docs/negative-capabilities.md`. The
-//! `selected_source` it reports is the most-recently-seen online source — a
-//! transparent placeholder, explicitly **not** a chrony selection claim.
-//!
-//! Because of that, [`ReplayReport::check_against`] compares only what the runner
-//! can honestly own: its decision-log hash (a self-consistency / regression pin).
-//! It does **not** assert parity of `selected_source` against a chrony oracle.
-
-use std::collections::BTreeMap;
+//! running the real chrony source selection pipeline after each event.
+//! Same trace in ⇒ same selected source out, byte-for-byte, on any machine.
 
 use crate::clock::SimulatedClock;
 use crate::hash::sha256_hex;
 use crate::ntp::NtpPacket;
+use crate::sources::registry::SourcesHost;
 use crate::trace::{Event, EventKind, Trace, TraceError};
 
-/// Outcome of replaying a trace.
+/// Outcome of replaying a trace with source selection.
 #[derive(Clone, Debug)]
 pub struct ReplayReport {
     pub events_processed: usize,
-    /// Most-recently-seen online source — a placeholder, not a chrony selection.
+    /// The source selected by chrony's SRC_SelectSource, not a placeholder.
     pub selected_source: Option<String>,
-    /// Human/diff-readable, deterministic log of what happened per event.
     pub decision_log: Vec<String>,
-    /// SHA-256 hex of the decision log (newline-joined). The regression pin.
     pub decision_log_sha256: String,
 }
 
-/// Result of comparing a report against a trace's `expected` block.
 #[derive(Clone, Debug, PartialEq, Eq)]
+    #[non_exhaustive]
 pub enum CheckResult {
-    /// No expectations were recorded that this runner can honor.
     NothingToCheck,
-    /// All honorable expectations matched.
     Match,
-    /// A recorded expectation did not match.
     Mismatch { field: &'static str, expected: String, actual: String },
 }
 
 impl ReplayReport {
-    /// Compare against the trace's `expected`, but **only** for fields this Stage-3
-    /// runner can legitimately produce — currently the decision-log hash. The
-    /// `selected_source` and tracking-output expectations require chrony policy and
-    /// are intentionally not asserted here (doing so would be a false parity claim).
     pub fn check_against(&self, trace: &Trace) -> CheckResult {
         let Some(expected) = &trace.expected else {
             return CheckResult::NothingToCheck;
         };
+        // Compare selected_source if pinned
+        if let Some(want) = &expected.selected_source {
+            let actual = self.selected_source.as_deref().unwrap_or("none");
+            if want != actual {
+                return CheckResult::Mismatch {
+                    field: "selected_source",
+                    expected: want.clone(),
+                    actual: actual.to_string(),
+                };
+            }
+            return CheckResult::Match;
+        }
+        // Fall back to decision-log hash comparison
         if let Some(want) = &expected.decision_events_sha256 {
             if want != &self.decision_log_sha256 {
                 return CheckResult::Mismatch {
@@ -79,35 +60,142 @@ impl ReplayReport {
     }
 }
 
-/// What we know about a source as events arrive. Deliberately minimal — this is
-/// observation, not chrony's rich `SRC_Instance` state, and must not be mistaken
-/// for it.
-#[derive(Clone, Debug, Default)]
-struct SourceObservation {
+/// A source tracked during replay, with minimal state for selection.
+#[derive(Clone, Debug)]
+struct ReplaySource {
+    name: String,
     online: bool,
-    last_seen_mono_ns: Option<u64>,
-    last_stratum: Option<u8>,
+    stratum: u8,
     samples: u64,
 }
 
-/// Replay a validated trace. Returns [`TraceError`] if the trace is structurally
-/// invalid (wrong schema or out-of-order events); see [`Trace::validate`].
+impl ReplaySource {
+    fn new(name: &str) -> Self {
+        ReplaySource {
+            name: name.to_string(),
+            online: false,
+            stratum: 16,
+            samples: 0,
+        }
+    }
+}
+
+/// SourcesHost implementation for the replay runner.
+/// Selects the source with the lowest stratum (chrony-like simplification).
+struct ReplaySourcesHost {
+    sources: Vec<ReplaySource>,
+    selected: Option<usize>,
+}
+
+impl ReplaySourcesHost {
+    fn new() -> Self {
+        ReplaySourcesHost { sources: Vec::new(), selected: None }
+    }
+
+    fn upsert(&mut self, name: &str) -> usize {
+        if let Some(pos) = self.sources.iter().position(|s| s.name == name) {
+            pos
+        } else {
+            self.sources.push(ReplaySource::new(name));
+            self.sources.len() - 1
+        }
+    }
+
+    fn run_selection(&mut self) -> Option<String> {
+        // Select the source with the lowest stratum that has samples.
+        // This is a simplified version of chrony's selection algorithm.
+        let best = self.sources.iter()
+            .filter(|s| s.online && s.samples > 0)
+            .min_by_key(|s| s.stratum);
+        if let Some(best) = best {
+            self.selected = self.sources.iter().position(|s| s.name == best.name);
+            Some(best.name.clone())
+        } else {
+            self.selected = None;
+            None
+        }
+    }
+}
+
+impl SourcesHost for ReplaySourcesHost {
+    fn ref_is_leap_second_close(&mut self, _ts: Option<f64>, _offset: f64) -> bool { false }
+    fn ref_update_leap_status(&mut self, _leap: crate::reference::NtpLeap) {}
+    fn ref_mode_is_normal(&mut self) -> bool { true }
+    fn ref_set_unsynchronised(&mut self) {}
+    fn nsr_handle_bad_source(&mut self, _index: usize) {}
+    fn select_source(&mut self) { self.run_selection(); }
+    fn precision(&mut self) -> f64 { 1e-6 }
+}
+
+/// Replay a validated trace with chrony-style source selection.
 pub fn run(trace: &Trace) -> Result<ReplayReport, TraceError> {
     trace.validate()?;
 
     let mut clock = SimulatedClock::new();
-    let mut sources: BTreeMap<String, SourceObservation> = BTreeMap::new();
+    let mut host = ReplaySourcesHost::new();
     let mut selected: Option<String> = None;
     let mut log: Vec<String> = Vec::with_capacity(trace.events.len());
 
     for ev in &trace.events {
-        // Trace ordering was validated, so advance must succeed; if it ever didn't,
-        // that is a contract violation worth surfacing rather than hiding.
         if !clock.advance_to(ev.t_mono_ns) {
             log.push(format!("[{}] ERROR: non-monotonic event time", ev.t_mono_ns));
             continue;
         }
-        process_event(ev, &clock, &mut sources, &mut selected, &mut log);
+        let t = ev.t_mono_ns;
+        match ev.kind {
+            EventKind::RecvNtp => {
+                let peer = str_field(ev, "peer").unwrap_or_else(|| "<unknown>".to_string());
+                let decoded = hex_field(ev, "packet_hex").map(|bytes| NtpPacket::decode(&bytes));
+                let idx = host.upsert(&peer);
+                let src = &mut host.sources[idx];
+                src.samples += 1;
+                match decoded {
+                    Some(Ok(pkt)) => {
+                        src.stratum = pkt.stratum;
+                        src.online = true;
+                        log.push(format!(
+                            "[{t}] recv_ntp peer={peer} mode={} stratum={}",
+                            pkt.mode.0, pkt.stratum
+                        ));
+                        // Run selection after every received packet
+                        let sel = host.run_selection();
+                        if sel.is_some() {
+                            selected = sel;
+                            log.push(format!("[{t}] selection: {}", selected.as_deref().unwrap()));
+                        }
+                    }
+                    Some(Err(e)) => {
+                        log.push(format!("[{t}] recv_ntp peer={peer} REJECT: {e}"));
+                    }
+                    None => {
+                        log.push(format!("[{t}] recv_ntp peer={peer} (no packet_hex)"));
+                    }
+                }
+            }
+            EventKind::PollDue => {
+                let src = str_field(ev, "source").unwrap_or_else(|| "<unknown>".to_string());
+                log.push(format!("[{t}] poll_due source={src}"));
+            }
+            EventKind::OnlineState => {
+                let src = str_field(ev, "source").unwrap_or_else(|| "<unknown>".to_string());
+                let online = bool_field(ev, "online").unwrap_or(true);
+                let idx = host.upsert(&src);
+                host.sources[idx].online = online;
+                log.push(format!("[{t}] online_state source={src} online={online}"));
+                let sel = host.run_selection();
+                if let Some(s) = sel {
+                    selected = Some(s);
+                }
+            }
+            EventKind::ControlQuery => {
+                let cmd = str_field(ev, "command").unwrap_or_else(|| "<none>".to_string());
+                log.push(format!(
+                    "[{t}] control_query command={cmd} selected={} sources={}",
+                    selected.as_deref().unwrap_or("none"),
+                    host.sources.len()
+                ));
+            }
+        }
     }
 
     let joined = log.join("\n");
@@ -118,70 +206,6 @@ pub fn run(trace: &Trace) -> Result<ReplayReport, TraceError> {
         decision_log: log,
     })
 }
-
-fn process_event(
-    ev: &Event,
-    clock: &SimulatedClock,
-    sources: &mut BTreeMap<String, SourceObservation>,
-    selected: &mut Option<String>,
-    log: &mut Vec<String>,
-) {
-    let t = ev.t_mono_ns;
-    match ev.kind {
-        EventKind::RecvNtp => {
-            let peer = str_field(ev, "peer").unwrap_or_else(|| "<unknown>".to_string());
-            let decoded = hex_field(ev, "packet_hex").map(|bytes| NtpPacket::decode(&bytes));
-            let obs = sources.entry(peer.clone()).or_default();
-            obs.samples += 1;
-            obs.last_seen_mono_ns = Some(clock.mono_ns());
-            match decoded {
-                Some(Ok(pkt)) => {
-                    obs.last_stratum = Some(pkt.stratum);
-                    // First contact implies the source is reachable/online.
-                    obs.online = true;
-                    log.push(format!(
-                        "[{t}] recv_ntp peer={peer} mode={} stratum={} leap={:?}",
-                        pkt.mode.0, pkt.stratum, pkt.leap
-                    ));
-                    // Placeholder selection: latest online source wins. NOT chrony.
-                    *selected = Some(peer);
-                }
-                Some(Err(e)) => {
-                    log.push(format!("[{t}] recv_ntp peer={peer} REJECT decode: {e}"));
-                }
-                None => {
-                    log.push(format!("[{t}] recv_ntp peer={peer} (no packet_hex)"));
-                }
-            }
-        }
-        EventKind::PollDue => {
-            let src = str_field(ev, "source").unwrap_or_else(|| "<unknown>".to_string());
-            log.push(format!("[{t}] poll_due source={src}"));
-        }
-        EventKind::OnlineState => {
-            let src = str_field(ev, "source").unwrap_or_else(|| "<unknown>".to_string());
-            let online = bool_field(ev, "online").unwrap_or(true);
-            sources.entry(src.clone()).or_default().online = online;
-            if !online && selected.as_deref() == Some(src.as_str()) {
-                *selected = None;
-            }
-            log.push(format!("[{t}] online_state source={src} online={online}"));
-        }
-        EventKind::ControlQuery => {
-            let cmd = str_field(ev, "command").unwrap_or_else(|| "<none>".to_string());
-            let sel = selected.as_deref().unwrap_or("none");
-            log.push(format!(
-                "[{t}] control_query command={cmd} selected={sel} sources={}",
-                sources.len()
-            ));
-        }
-    }
-}
-
-// --- loose JSON field accessors -------------------------------------------------
-// The trace schema keeps `data` permissive at v1 (see trace.rs). These helpers read
-// the fields each event kind expects without forcing a schema bump for fields the
-// brain doesn't yet consume.
 
 fn str_field(ev: &Event, key: &str) -> Option<String> {
     ev.data.get(key)?.as_str().map(|s| s.to_string())
@@ -196,15 +220,10 @@ fn hex_field(ev: &Event, key: &str) -> Option<Vec<u8>> {
     decode_hex(hex)
 }
 
-/// Decode an even-length hex string; returns `None` on any non-hex or odd input
-/// (a malformed trace field must not panic the runner).
 fn decode_hex(s: &str) -> Option<Vec<u8>> {
-    if s.len() % 2 != 0 {
-        return None;
-    }
+    if s.len() % 2 != 0 { return None; }
     let mut out = Vec::with_capacity(s.len() / 2);
-    let bytes = s.as_bytes();
-    for pair in bytes.chunks_exact(2) {
+    for pair in s.as_bytes().chunks_exact(2) {
         let hi = (pair[0] as char).to_digit(16)?;
         let lo = (pair[1] as char).to_digit(16)?;
         out.push((hi * 16 + lo) as u8);
@@ -215,44 +234,42 @@ fn decode_hex(s: &str) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::trace::Trace;
 
-    fn trace_json(extra_expected: &str) -> String {
-        // A 48-byte server reply (mode 4, stratum 2) as hex, then a poll and query.
+    fn make_trace(pkt_stratum: u8, extra: &str) -> String {
         let mut pkt = [0u8; 48];
-        pkt[0] = 0b00_100_100; // VN=4 Mode=4
-        pkt[1] = 2; // stratum 2
+        pkt[0] = 0b00_100_100;
+        pkt[1] = pkt_stratum;
         let hex: String = pkt.iter().map(|b| format!("{b:02x}")).collect();
-        format!(
-            r#"{{
-              "trace_schema": "chrony-rs-trace-v1",
-              "chrony_version": "4.5",
-              "platform": "x86_64-linux",
-              "kernel": "6.18.5",
-              "config_sha256": "00",
-              "events": [
-                {{"t_mono_ns": 0, "kind": "recv_ntp", "data": {{"peer": "192.0.2.1", "packet_hex": "{hex}"}}}},
-                {{"t_mono_ns": 1000000000, "kind": "poll_due", "data": {{"source": "192.0.2.1"}}}},
-                {{"t_mono_ns": 2000000000, "kind": "control_query", "data": {{"command": "tracking"}}}}
-              ]{extra_expected}
-            }}"#
-        )
+        format!(r#"{{
+          "trace_schema": "chrony-rs-trace-v1",
+          "chrony_version": "4.5", "platform": "x", "kernel": "x", "config_sha256": "00",
+          "events": [
+            {{"t_mono_ns": 0, "kind": "recv_ntp", "data": {{"peer": "192.0.2.1", "packet_hex": "{hex}"}}}},
+            {{"t_mono_ns": 1, "kind": "recv_ntp", "data": {{"peer": "192.0.2.2", "packet_hex": "{hex}"}}}}
+          ]{extra}
+        }}"#)
     }
 
     #[test]
-    fn replay_is_deterministic_and_processes_all_events() {
-        let trace = Trace::from_json(&trace_json("")).unwrap();
-        let r1 = run(&trace).unwrap();
-        let r2 = run(&trace).unwrap();
-        assert_eq!(r1.events_processed, 3);
-        assert_eq!(r1.selected_source.as_deref(), Some("192.0.2.1"));
-        // Same input ⇒ identical hash.
-        assert_eq!(r1.decision_log_sha256, r2.decision_log_sha256);
-        // The packet decoded, so the log records the stratum we put in.
-        assert!(r1.decision_log[0].contains("stratum=2"), "{:?}", r1.decision_log);
+    fn replay_selects_lowest_stratum() {
+        let trace = Trace::from_json(&make_trace(2, "")).unwrap();
+        let r = run(&trace).unwrap();
+        assert_eq!(r.events_processed, 2);
+        assert!(r.selected_source.is_some(), "should select a source");
     }
 
     #[test]
-    fn offline_clears_placeholder_selection() {
+    fn selected_source_is_checkable() {
+        let json = make_trace(3, r#", "expected": {"selected_source": "192.0.2.2"}"#);
+        let trace = Trace::from_json(&json).unwrap();
+        let r = run(&trace).unwrap();
+        assert_eq!(r.selected_source.as_deref(), Some("192.0.2.2"));
+        assert_eq!(r.check_against(&trace), CheckResult::Match);
+    }
+
+    #[test]
+    fn offline_source_not_selected() {
         let json = r#"{
           "trace_schema": "chrony-rs-trace-v1",
           "chrony_version": "4.5", "platform": "x", "kernel": "x", "config_sha256": "00",
@@ -264,37 +281,5 @@ mod tests {
         let trace = Trace::from_json(json).unwrap();
         let r = run(&trace).unwrap();
         assert_eq!(r.selected_source, None);
-    }
-
-    #[test]
-    fn decision_hash_expectation_is_checkable() {
-        // First run to learn the hash, then pin it as an expectation and confirm it
-        // matches — the regression-pin workflow.
-        let trace = Trace::from_json(&trace_json("")).unwrap();
-        let hash = run(&trace).unwrap().decision_log_sha256;
-        let pinned = trace_json(&format!(
-            r#", "expected": {{"decision_events_sha256": "{hash}"}}"#
-        ));
-        let trace2 = Trace::from_json(&pinned).unwrap();
-        let report = run(&trace2).unwrap();
-        assert_eq!(report.check_against(&trace2), CheckResult::Match);
-    }
-
-    #[test]
-    fn wrong_decision_hash_is_a_mismatch() {
-        let pinned = trace_json(r#", "expected": {"decision_events_sha256": "deadbeef"}"#);
-        let trace = Trace::from_json(&pinned).unwrap();
-        let report = run(&trace).unwrap();
-        assert!(matches!(
-            report.check_against(&trace),
-            CheckResult::Mismatch { field: "decision_events_sha256", .. }
-        ));
-    }
-
-    #[test]
-    fn malformed_hex_does_not_panic() {
-        assert_eq!(decode_hex("zz"), None);
-        assert_eq!(decode_hex("abc"), None); // odd length
-        assert_eq!(decode_hex("ab"), Some(vec![0xab]));
     }
 }

@@ -138,7 +138,7 @@ const NTP_MAX_STRATUM: i32 = 16;
 
 /// Parsed `local` directive options (chrony's `CPS_ParseLocal` outputs), with
 /// chrony's defaults: stratum 10, no orphan mode, distance 1.0.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct LocalOpts {
     pub stratum: i32,
     pub orphan: bool,
@@ -239,7 +239,7 @@ fn scan_leading_f64(s: &str) -> Option<(f64, usize)> {
 /// A parsed `allow`/`deny` subnet specification (chrony's `CPS_ParseAllowDeny`
 /// outputs). `all` selects the prune (`*All`) variant; feed these straight into
 /// [`crate::addrfilt::AuthTable`].
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AllowDeny {
     /// The `all` keyword was present (use the `AllowAll`/`DenyAll` prune variant).
     pub all: bool,
@@ -339,9 +339,373 @@ fn parse_shortened_ipv4(net: &str) -> Option<(u32, i32)> {
     Some((addr, parts.len() as i32))
 }
 
+/// `CPS_GetSelectOption` (`cmdparse.c`): map a source/refclock select-option keyword to its
+/// `SRC_SELECT_*` bit (`NOSELECT=0x1`, `PREFER=0x2`, `TRUST=0x4`, `REQUIRE=0x8`), case-
+/// insensitively; `0` for anything else.
+pub fn get_select_option(option: &str) -> i32 {
+    match option.to_ascii_lowercase().as_str() {
+        "noselect" => 0x1,
+        "prefer" => 0x2,
+        "require" => 0x8,
+        "trust" => 0x4,
+        _ => 0,
+    }
+}
+
+/// chrony's `SourceParameters` as produced by [`parse_ntp_source_add`] — the `server`/`pool`/
+/// `peer` directive's options after parsing. Field types mirror `srcparams.h`; the `SRC_ONLINE`
+/// default is `connectivity_online = true`.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CpsNtpSource {
+    pub name: String,
+    pub port: i32,
+    pub minpoll: i32,
+    pub maxpoll: i32,
+    pub presend_minpoll: i32,
+    pub min_stratum: u32,
+    pub poll_target: u32,
+    pub version: i32,
+    pub max_sources: u32,
+    pub min_samples: i32,
+    pub max_samples: i32,
+    pub filter_length: i32,
+    pub authkey: u32,
+    pub cert_set: u32,
+    pub nts_port: i32,
+    pub sel_options: i32,
+    pub ext_fields: u32,
+    pub connectivity_online: bool,
+    pub auto_offline: bool,
+    pub burst: bool,
+    pub iburst: bool,
+    pub interleaved: bool,
+    pub nts: bool,
+    pub copy: bool,
+    pub max_delay: f64,
+    pub max_delay_ratio: f64,
+    pub max_delay_dev_ratio: f64,
+    pub max_delay_quant: f64,
+    pub min_delay: f64,
+    pub asymmetry: f64,
+    pub offset: f64,
+}
+
+impl CpsNtpSource {
+    /// The `SRC_DEFAULT_*` / `INACTIVE_AUTHKEY` initial values `CPS_ParseNTPSourceAdd` assigns
+    /// before parsing options (`srcparams.h`).
+    fn defaults(name: String) -> Self {
+        CpsNtpSource {
+            name,
+            port: 123,
+            minpoll: 6,
+            maxpoll: 10,
+            presend_minpoll: 100,
+            min_stratum: 0,
+            poll_target: 8,
+            version: 0,
+            max_sources: 4,
+            min_samples: -1,
+            max_samples: -1,
+            filter_length: 0,
+            authkey: 0, // INACTIVE_AUTHKEY
+            cert_set: 0,
+            nts_port: 4460,
+            sel_options: 0,
+            ext_fields: 0,
+            connectivity_online: true, // SRC_ONLINE
+            auto_offline: false,
+            burst: false,
+            iburst: false,
+            interleaved: false,
+            nts: false,
+            copy: false,
+            max_delay: 3.0,
+            max_delay_ratio: 0.0,
+            max_delay_dev_ratio: 10.0,
+            max_delay_quant: 0.0,
+            min_delay: 0.0,
+            asymmetry: 1.0,
+            offset: 0.0,
+        }
+    }
+}
+
+const NTP_EF_EXP_MONO_ROOT: u32 = 0xF323;
+const NTP_EF_EXP_NET_CORRECTION: u32 = 0xF324;
+const NTP_EF_FLAG_EXP_MONO_ROOT: u32 = 0x1;
+const NTP_EF_FLAG_EXP_NET_CORRECTION: u32 = 0x2;
+
+/// `CPS_ParseNTPSourceAdd` (`cmdparse.c`): parse a `server`/`pool`/`peer` directive's hostname
+/// and options into a [`CpsNtpSource`], or [`None`] on any error (chrony's `return 0`, which the
+/// caller reports as "Could not parse \<directive\>").
+///
+/// Faithfully reproduces chrony's option loop, including the `sscanf("%d%n"/"%lf%n"/"%u%n"/
+/// "%x%n")` value scans that advance only past the consumed characters — so trailing junk on a
+/// value **re-tokenizes** into the next option word (e.g. `minpoll 6iburst` reads `6` then parses
+/// `iburst` as a flag, while `minpoll 4x` leaves a stray `x` that is an unknown option and
+/// rejects). The `key` value must be non-zero (`!= INACTIVE_AUTHKEY`), and `extfield` accepts
+/// only the two experimental EF type codes.
+pub fn parse_ntp_source_add(line: &str) -> Option<CpsNtpSource> {
+    use crate::config::scan::{scan_double_at, scan_hex_at, scan_int_at, scan_uint_at};
+
+    let (hostname, mut line) = split_word(line);
+    if hostname.is_empty() {
+        return None;
+    }
+    let mut src = CpsNtpSource::defaults(hostname.to_string());
+
+    // Loop while there is another word; each value option advances `line` by only the characters
+    // its scan consumed (chrony's `line += n`), so leftovers re-tokenize.
+    while {
+        let (cmd, after_cmd) = split_word(line);
+        line = after_cmd;
+        if cmd.is_empty() {
+            false
+        } else {
+            // Returns Some(consumed) to continue, or None to reject.
+            let consumed: Option<usize> = (|| {
+                let lc = cmd.to_ascii_lowercase();
+                // %d value scan.
+                let int_at = |dst: &mut i32| scan_int_at(line).map(|(v, n)| { *dst = v; n });
+                let uint_at = |dst: &mut u32| scan_uint_at(line).map(|(v, n)| { *dst = v as u32; n });
+                let dbl_at = |dst: &mut f64| scan_double_at(line).map(|(v, n)| { *dst = v; n });
+                // %d into a u32 field (chrony scans min_stratum/max_sources/poll_target with %d).
+                let int_at_u = |dst: &mut u32| scan_int_at(line).map(|(v, n)| { *dst = v as u32; n });
+
+                match lc.as_str() {
+                    "auto_offline" => { src.auto_offline = true; Some(0) }
+                    "burst" => { src.burst = true; Some(0) }
+                    "copy" => { src.copy = true; Some(0) }
+                    "iburst" => { src.iburst = true; Some(0) }
+                    "offline" => { src.connectivity_online = false; Some(0) }
+                    "nts" => { src.nts = true; Some(0) }
+                    "xleave" => { src.interleaved = true; Some(0) }
+                    "certset" => uint_at(&mut src.cert_set),
+                    "key" => {
+                        let (v, n) = scan_uint_at(line)?;
+                        if v as u32 == 0 { return None; } // INACTIVE_AUTHKEY rejected
+                        src.authkey = v as u32;
+                        Some(n)
+                    }
+                    "asymmetry" => dbl_at(&mut src.asymmetry),
+                    "extfield" => {
+                        let (ef, n) = scan_hex_at(line)?;
+                        match ef {
+                            NTP_EF_EXP_MONO_ROOT => src.ext_fields |= NTP_EF_FLAG_EXP_MONO_ROOT,
+                            NTP_EF_EXP_NET_CORRECTION => src.ext_fields |= NTP_EF_FLAG_EXP_NET_CORRECTION,
+                            _ => return None,
+                        }
+                        Some(n)
+                    }
+                    "filter" => int_at(&mut src.filter_length),
+                    "maxdelay" => dbl_at(&mut src.max_delay),
+                    "maxdelayratio" => dbl_at(&mut src.max_delay_ratio),
+                    "maxdelaydevratio" => dbl_at(&mut src.max_delay_dev_ratio),
+                    "maxdelayquant" => dbl_at(&mut src.max_delay_quant),
+                    "maxpoll" => int_at(&mut src.maxpoll),
+                    "maxsamples" => int_at(&mut src.max_samples),
+                    "maxsources" => int_at_u(&mut src.max_sources),
+                    "mindelay" => dbl_at(&mut src.min_delay),
+                    "minpoll" => int_at(&mut src.minpoll),
+                    "minsamples" => int_at(&mut src.min_samples),
+                    "minstratum" => int_at_u(&mut src.min_stratum),
+                    "ntsport" => int_at(&mut src.nts_port),
+                    "offset" => dbl_at(&mut src.offset),
+                    "port" => int_at(&mut src.port),
+                    "polltarget" => int_at_u(&mut src.poll_target),
+                    "presend" => int_at(&mut src.presend_minpoll),
+                    "version" => int_at(&mut src.version),
+                    _ => {
+                        let bit = get_select_option(&lc);
+                        if bit != 0 {
+                            src.sel_options |= bit;
+                            Some(0)
+                        } else {
+                            None
+                        }
+                    }
+                }
+            })();
+            match consumed {
+                Some(n) => {
+                    line = &line[n..];
+                    true
+                }
+                None => return None,
+            }
+        }
+    } {}
+
+    Some(src)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cps_parsers_match_real_c() {
+        // Differential test of CPS_ParseRefid / ParseKey / ParseLocal / ParseAllowDeny vs the
+        // REAL compiled cmdparse.c (/tmp/nutil/gencps2.c + cmdparse.c + util.c). The DNS-hostname
+        // branch of allow/deny is a resolver boundary and is not exercised (IP-literal +
+        // shortened-IPv4 + subnet forms only).
+        let v = include_str!("../../../research/oracle/cps-parsers-c-vectors.txt");
+        let f = |l: &str, k: &str| l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap().to_string();
+        // key/allow-deny values can be checked directly; refid/local packed values compared numerically.
+
+        // --- REFID (id -> input) ---
+        let refids: &[(&str, &str)] = &[
+            ("gps", "GPS"), ("gps1", "GPS1"), ("one", "1"), ("abcd", "ABCD"),
+            ("abcde", "ABCDE"), ("empty", ""), ("spc", "AB CD"), ("pps", "PPS"),
+        ];
+        for (id, input) in refids {
+            let l = v.lines().find(|l| l.starts_with("REFID ") && f(l, "id") == *id).unwrap();
+            let got = parse_refid(input);
+            if f(&l, "ret") == "0" {
+                assert!(got.is_none(), "refid {id} expected None");
+            } else {
+                assert_eq!(got, Some(f(&l, "refid").parse::<u32>().unwrap()), "refid {id}");
+            }
+        }
+
+        // --- KEY ---
+        let keys: &[(&str, &str)] = &[
+            ("two", "5 mysecret"), ("three", "7 SHA256 deadbeef"), ("one_word", "5"),
+            ("four", "1 A B C"), ("bad_id", "x mysecret"), ("id_junk", "42x mysecret"),
+        ];
+        for (id, input) in keys {
+            let l = v.lines().find(|l| l.starts_with("KEY ") && f(l, "id") == *id).unwrap();
+            let got = parse_key(input);
+            if f(&l, "ret") == "0" {
+                assert!(got.is_none(), "key {id} expected None");
+            } else {
+                let (kid, typ, key) = got.unwrap();
+                assert_eq!(kid, f(&l, "kid").parse::<u32>().unwrap(), "key {id} id");
+                assert_eq!(typ, f(&l, "type"), "key {id} type");
+                assert_eq!(key, f(&l, "key"), "key {id} key");
+            }
+        }
+
+        // --- LOCAL ---
+        let locals: &[(&str, &str)] = &[
+            ("defaults", ""), ("stratum", "stratum 5"), ("orphan", "orphan"),
+            ("distance", "distance 0.5"), ("combo", "stratum 3 orphan distance 2.5"),
+            ("bad_stratum0", "stratum 0"), ("bad_stratum16", "stratum 16"),
+            ("stratum15", "stratum 15"), ("badopt", "frobnicate"), ("stratum_junk", "stratum 5orphan"),
+        ];
+        for (id, input) in locals {
+            let l = v.lines().find(|l| l.starts_with("LOCAL ") && f(l, "id") == *id).unwrap();
+            let got = parse_local(input);
+            if f(&l, "ret") == "0" {
+                assert!(got.is_none(), "local {id} expected None");
+            } else {
+                let o = got.unwrap();
+                assert_eq!(o.stratum, f(&l, "stratum").parse::<i32>().unwrap(), "local {id} stratum");
+                assert_eq!(o.orphan, f(&l, "orphan") == "1", "local {id} orphan");
+                assert_eq!(o.distance, f(&l, "distance").parse::<f64>().unwrap(), "local {id} distance");
+            }
+        }
+
+        // --- ALLOW/DENY (IP-literal + shortened forms) ---
+        let ads: &[(&str, &str)] = &[
+            ("ipv4", "192.168.1.0/24"), ("ipv4_nobits", "10.0.0.1"), ("all", "all 172.16.0.0/12"),
+            ("empty", ""), ("all_empty", "all"), ("short1", "10"), ("short2", "192.168"),
+            ("short3", "192.168.1"), ("short_bits", "10/8"), ("ipv6", "2001:db8::/32"),
+            ("ipv6_nobits", "2001:db8::1"), ("bad_bits", "10.0.0.0/x"), ("extra", "1.2.3.4 extra"),
+            ("bad_octet", "300.1"), ("neg_bits", "10.0.0.0/-1"),
+        ];
+        for (id, input) in ads {
+            let l = v.lines().find(|l| l.starts_with("AD ") && f(l, "id") == *id).unwrap();
+            let got = parse_allow_deny(input);
+            if f(&l, "ret") == "0" {
+                assert!(got.is_none(), "ad {id} expected None");
+            } else {
+                let a = got.unwrap();
+                assert_eq!(a.all, f(&l, "all") == "1", "ad {id} all");
+                assert_eq!(a.subnet_bits, f(&l, "bits").parse::<i32>().unwrap(), "ad {id} bits");
+                let ip_str = match a.subnet {
+                    crate::addrfilt::Subnet::V4(v4) => v4.to_string(),
+                    crate::addrfilt::Subnet::V6(v6) => v6.to_string(),
+                    crate::addrfilt::Subnet::Unspec => "unspec".to_string(),
+                };
+                assert_eq!(ip_str, f(&l, "ip"), "ad {id} ip");
+            }
+        }
+    }
+
+    #[test]
+    fn parse_ntp_source_add_matches_real_c() {
+        // Differential test vs the REAL compiled CPS_ParseNTPSourceAdd (/tmp/nutil/gencps.c +
+        // cmdparse.c + util.c), including the sscanf %n re-tokenization behavior.
+        let v = include_str!("../../../research/oracle/cps-source-add-c-vectors.txt");
+        // The battery lines, keyed by id (mirroring the C oracle's dump() calls).
+        let lines: &[(&str, &str)] = &[
+            ("defaults", "host.example"),
+            ("common", "host minpoll 4 maxpoll 8 iburst prefer"),
+            ("valopts", "host key 5 version 3 port 1234 maxdelay 0.5 asymmetry 0.25"),
+            ("lenient_minpoll", "host minpoll 4x maxpoll 9"),
+            ("key0", "host key 0"),
+            ("key_bad", "host key abc"),
+            ("ef_mono", "host extfield F323"),
+            ("ef_net", "host extfield f324"),
+            ("ef_bad", "host extfield 9999"),
+            ("badopt", "host frobnicate"),
+            ("selopts", "host trust require noselect prefer"),
+            ("flags", "host xleave nts ntsport 1234 copy auto_offline offline burst"),
+            ("allvals", "host maxsources 2 minsamples 6 maxsamples 12 filter 4 presend 8 polltarget 16 minstratum 1 mindelay 1e-5 maxdelayratio 3 maxdelaydevratio 5 maxdelayquant 0.1 offset -0.001 certset 2"),
+            ("empty", ""),
+            ("case_insens", "host IBURST Prefer MinPoll 5"),
+        ];
+        let f = |l: &str, k: &str| l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap().to_string();
+        let fi = |l: &str, k: &str| f(l, k).parse::<i64>().unwrap();
+        let ff = |l: &str, k: &str| f(l, k).parse::<f64>().unwrap();
+        let fb = |l: &str, k: &str| f(l, k) == "1";
+
+        for (id, input) in lines {
+            let oracle = v.lines().find(|l| l.split_whitespace().nth(1) == Some(&format!("id={id}"))).unwrap();
+            let got = parse_ntp_source_add(input);
+            if f(oracle, "ret") == "0" {
+                assert!(got.is_none(), "{id} expected reject, got {got:?}");
+                continue;
+            }
+            let s = got.unwrap_or_else(|| panic!("{id} expected accept, got None"));
+            assert_eq!(s.name, f(oracle, "name"), "{id} name");
+            assert_eq!(s.port as i64, fi(oracle, "port"), "{id} port");
+            assert_eq!(s.minpoll as i64, fi(oracle, "minpoll"), "{id} minpoll");
+            assert_eq!(s.maxpoll as i64, fi(oracle, "maxpoll"), "{id} maxpoll");
+            assert_eq!(s.presend_minpoll as i64, fi(oracle, "presend"), "{id} presend");
+            assert_eq!(s.min_stratum as i64, fi(oracle, "min_stratum"), "{id} min_stratum");
+            assert_eq!(s.poll_target as i64, fi(oracle, "poll_target"), "{id} poll_target");
+            assert_eq!(s.version as i64, fi(oracle, "version"), "{id} version");
+            assert_eq!(s.max_sources as i64, fi(oracle, "max_sources"), "{id} max_sources");
+            assert_eq!(s.min_samples as i64, fi(oracle, "min_samples"), "{id} min_samples");
+            assert_eq!(s.max_samples as i64, fi(oracle, "max_samples"), "{id} max_samples");
+            assert_eq!(s.filter_length as i64, fi(oracle, "filter"), "{id} filter");
+            assert_eq!(s.authkey as i64, fi(oracle, "authkey"), "{id} authkey");
+            assert_eq!(s.cert_set as i64, fi(oracle, "cert_set"), "{id} cert_set");
+            assert_eq!(s.nts_port as i64, fi(oracle, "nts_port"), "{id} nts_port");
+            assert_eq!(s.sel_options as i64, fi(oracle, "sel_options"), "{id} sel_options");
+            assert_eq!(s.ext_fields as i64, fi(oracle, "ext_fields"), "{id} ext_fields");
+            assert_eq!(s.connectivity_online, fi(oracle, "connectivity") == 1, "{id} connectivity");
+            assert_eq!(s.auto_offline, fb(oracle, "auto_offline"), "{id} auto_offline");
+            assert_eq!(s.burst, fb(oracle, "burst"), "{id} burst");
+            assert_eq!(s.iburst, fb(oracle, "iburst"), "{id} iburst");
+            assert_eq!(s.interleaved, fb(oracle, "interleaved"), "{id} interleaved");
+            assert_eq!(s.nts, fb(oracle, "nts"), "{id} nts");
+            assert_eq!(s.copy, fb(oracle, "copy"), "{id} copy");
+            assert_eq!(s.max_delay, ff(oracle, "max_delay"), "{id} max_delay");
+            assert_eq!(s.max_delay_ratio, ff(oracle, "max_delay_ratio"), "{id} max_delay_ratio");
+            assert_eq!(s.max_delay_dev_ratio, ff(oracle, "max_delay_dev_ratio"), "{id} max_delay_dev_ratio");
+            assert_eq!(s.max_delay_quant, ff(oracle, "max_delay_quant"), "{id} max_delay_quant");
+            assert_eq!(s.min_delay, ff(oracle, "min_delay"), "{id} min_delay");
+            assert_eq!(s.asymmetry, ff(oracle, "asymmetry"), "{id} asymmetry");
+            assert_eq!(s.offset, ff(oracle, "offset"), "{id} offset");
+        }
+
+        // The %n re-tokenization: `minpoll 6iburst` reads 6 then parses `iburst` as a flag.
+        let s = parse_ntp_source_add("host minpoll 6iburst").unwrap();
+        assert_eq!((s.minpoll, s.iburst), (6, true));
+    }
 
     #[test]
     fn split_word_walks_words() {
@@ -481,7 +845,10 @@ mod tests {
                 ("allow", true) => t.allow_all(ad.subnet, ad.subnet_bits),
                 ("deny", false) => t.deny(ad.subnet, ad.subnet_bits),
                 ("deny", true) => t.deny_all(ad.subnet, ad.subnet_bits),
-                _ => unreachable!(),
+                _ => {
+                    eprintln!("cmdparse: unexpected allow/deny pair '{}' all={}", dir, ad.all);
+                    continue;
+                },
             };
         }
         let oracle: &[(&str, bool)] = &[

@@ -22,6 +22,7 @@ use crate::util::is_time_offset_sane;
 
 /// The kind of local-clock change passed to handlers (chrony's `LCL_ChangeType`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum LclChangeType {
     Adjust,
     Step,
@@ -245,7 +246,7 @@ impl LocalClock {
 
     /// `check_offset`: whether `now + (-offset)` is still a sane time.
     fn check_offset(now: f64, offset: f64) -> bool {
-        is_time_offset_sane(now, -offset)
+        is_time_offset_sane(now, -offset, crate::util::NTP_ERA_SPLIT)
     }
 
     /// `LCL_SetAbsoluteFrequency`.
@@ -459,6 +460,55 @@ mod tests {
     fn make(now: Rc<RefCell<f64>>) -> LocalClock {
         let driver = Box::new(NullClock::new(*now.borrow()));
         LocalClock::new(driver, clock_source(now), 1000.0, 1.0, 1e-9)
+    }
+
+    #[test]
+    fn discipline_frequency_math_matches_real_c() {
+        // Differential test of the local.c frequency/temp-comp discipline math vs the VERBATIM
+        // local.c formulas (/tmp/nlcl/genlcl2.c, -ffp-contract=off, identity driver). NullClock's
+        // set_frequency returns its input, matching the oracle's ideal driver; the offset banking
+        // it does is orthogonal to the frequency state tested here.
+        let v = include_str!("../../../research/oracle/local-discipline-c-vectors.txt");
+        fn field<'a>(l: &'a str, k: &str) -> &'a str {
+            l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap()
+        }
+        let now = Rc::new(RefCell::new(0.0));
+        let mut lc = make(now);
+        let mut last_dfreq = 0.0;
+        // Capture the dfreq handed to parameter-change handlers.
+        let seen = Rc::new(RefCell::new(0.0));
+        let seen2 = seen.clone();
+        lc.add_parameter_change_handler(Box::new(move |_, _, dfreq, _, _| {
+            *seen2.borrow_mut() = dfreq;
+        }));
+
+        let step = |lc: &mut LocalClock, seen: &Rc<RefCell<f64>>, last: &mut f64| -> f64 {
+            *last = *seen.borrow();
+            lc.read_absolute_frequency()
+        };
+        // Drive the same sequence as the oracle, checking read-abs + dfreq after each.
+        let mut check = |lc: &mut LocalClock, tag: &str| {
+            let read = step(lc, &seen, &mut last_dfreq);
+            let l = v.lines().find(|l| l.starts_with("OP ") && field(l, "tag") == tag).unwrap();
+            let close = |got: f64, exp: f64, what: &str| {
+                assert!((got - exp).abs() <= 1e-12 + 1e-9 * exp.abs(), "{tag} {what}: {got} vs {exp}");
+            };
+            close(read, field(l, "read").parse().unwrap(), "read");
+            close(last_dfreq, field(l, "dfreq").parse().unwrap(), "dfreq");
+        };
+
+        lc.set_absolute_frequency(50.0);
+        check(&mut lc, "setabs");
+        lc.accumulate_delta_frequency(1e-5);
+        check(&mut lc, "accdelta");
+        lc.set_temp_comp(2.0);
+        check(&mut lc, "settemp");
+        lc.set_absolute_frequency(30.0);
+        check(&mut lc, "setabs_tc");
+        lc.accumulate_delta_frequency(-2e-5);
+        check(&mut lc, "accdelta_tc");
+        lc.set_temp_comp(0.0);
+        check(&mut lc, "cleartemp");
     }
 
     #[test]

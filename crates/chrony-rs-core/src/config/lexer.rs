@@ -48,6 +48,11 @@ pub const COMMENT_CHARS: [char; 4] = ['#', '%', '!', ';'];
 /// lines. Never fails: an unparseable *directive* is a diagnostic produced later,
 /// not a tokenizer error.
 pub fn tokenize(input: &str) -> Vec<TokenLine> {
+    let input = if input.as_bytes().starts_with(&[0xEF, 0xBB, 0xBF]) {
+        &input[3..]
+    } else {
+        input
+    };
     let mut out = Vec::new();
     for (idx, raw_line) in input.lines().enumerate() {
         let line_no = idx + 1;

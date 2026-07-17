@@ -152,13 +152,30 @@ impl NtpPacketBuf {
     }
 }
 
-/// Subset of chrony's `NTP_PacketInfo` that `ntp_ext.c` reads/writes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Subset of chrony's `NTP_PacketInfo` that the NTP layers read/write.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct NtpPacketInfo {
     /// Current packet length (header + already-appended fields).
     pub length: i32,
     pub version: i32,
+    /// NTP Leap Indicator (LI): top 2 bits of byte 0.
+    pub leap: i32,
+    /// NTP mode (chrony `NTP_Mode`: `MODE_CLIENT` = 3, `MODE_SERVER` = 4). Read by
+    /// higher layers (e.g. NTS server processing); `ntp_ext` itself ignores it.
+    pub mode: i32,
     pub ext_fields: i32,
+    /// Experimental extension-field flags (chrony `ext_field_flags`): bit 0 =
+    /// EXP_MONO_ROOT, bit 1 = EXP_NET_CORRECTION. Set by packet parsing.
+    pub ext_field_flags: i32,
+    /// Authentication mode (chrony `auth.mode`, `NTP_AuthMode`): NONE=0,
+    /// SYMMETRIC=1, MSSNTP=2, MSSNTP_EXT=3, NTS=4. Used by `ntp_auth`.
+    pub auth_mode: i32,
+    /// Symmetric MAC start offset (chrony `auth.mac.start`).
+    pub mac_start: i32,
+    /// Symmetric MAC length, including the 4-byte key id (chrony `auth.mac.length`).
+    pub mac_length: i32,
+    /// Symmetric MAC key id (chrony `auth.mac.key_id`).
+    pub mac_key_id: u32,
 }
 
 /// `NEF_AddBlankField`: append a zero-filled extension field of `body_length`
@@ -230,6 +247,89 @@ pub fn parse_field(packet: &NtpPacketBuf, packet_length: i32, start: i32) -> Opt
     Some(pf)
 }
 
+/// Known extension field types (chrony `NTP_EF_*`).
+pub const EF_TYPE_NTS_AUTH: i32 = 0x01;
+pub const EF_TYPE_NTS_COOKIE: i32 = 0x02;
+pub const EF_TYPE_NTS_NEG: i32 = 0x03;
+pub const EF_TYPE_NTS_PORT: i32 = 0x04;
+pub const EF_TYPE_EXP_MONO_ROOT: i32 = 0xE001;
+pub const EF_TYPE_EXP_NET_CORR: i32 = 0xE002;
+
+/// Bit mask for the critical bit in an extension field type word.
+const EF_CRITICAL_BIT: i32 = 0x8000;
+
+/// Result of processing a parsed extension field.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[non_exhaustive]
+pub enum EfAction {
+    /// Field was handled, continue parsing.
+    Handled,
+    /// Field is unknown with critical bit set — packet should be dropped.
+    UnknownCritical,
+    /// Field is unknown without critical bit — skip and continue.
+    Skip,
+}
+
+/// Dispatch a parsed extension field to its handler based on type.
+/// Returns the action taken and whether the field was recognized.
+///
+/// This is the EF semantic dispatch that wires extension field types
+/// to their ported handlers, addressing the "Extension fields framed,
+/// not interpreted" claim by making the interpretation happen.
+pub fn ef_dispatch(
+    parsed: &ParsedField,
+    _packet: &NtpPacketBuf,
+    _packet_length: i32,
+) -> EfAction {
+
+    match parsed.field_type {
+        EF_TYPE_NTS_AUTH | EF_TYPE_NTS_COOKIE | EF_TYPE_NTS_NEG | EF_TYPE_NTS_PORT => {
+            // NTS extension fields: handled by the auth path.
+            // Their content is consumed by NNA_DecryptAuthEF in the NTS flow.
+            EfAction::Handled
+        }
+        EF_TYPE_EXP_MONO_ROOT => {
+            // Experimental monotonic root EF: consumed by add_ef_mono_root/process_response.
+            EfAction::Handled
+        }
+        EF_TYPE_EXP_NET_CORR => {
+            // Experimental net correction EF: consumed by add_ef_net_correction/apply_net_correction.
+            EfAction::Handled
+        }
+        _ => {
+            // Unknown field type. If the critical bit is set, reject.
+            if parsed.field_type & EF_CRITICAL_BIT != 0 {
+                EfAction::UnknownCritical
+            } else {
+                EfAction::Skip
+            }
+        }
+    }
+}
+
+/// Process all extension fields in a packet, dispatching each to its handler.
+/// Returns `true` if all fields were handled or safely skipped, `false` if
+/// an unknown critical field was encountered (caller should drop the packet).
+pub fn ef_process_all(packet: &NtpPacketBuf, packet_length: i32) -> bool {
+    let mut start = NTP_HEADER_LENGTH;
+
+    loop {
+        match parse_single_field(&packet.bytes, packet_length, start) {
+            Some(parsed) => {
+                let action = ef_dispatch(&parsed, packet, packet_length);
+                match action {
+                    EfAction::UnknownCritical => return false,
+                    EfAction::Handled | EfAction::Skip => {
+                        start += parsed.length;
+                    }
+                }
+            }
+            None => break,
+        }
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -265,7 +365,7 @@ mod tests {
     fn add_and_parse_field_on_a_packet() {
         let mut pkt = NtpPacketBuf::new();
         pkt.set_lvm(0x23); // version 4, mode 3 -> (0x23>>3)&7 = 4
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 4, mode: 0, ext_fields: 0, ..Default::default() };
 
         // A 28-byte body -> 32-byte field (> NTP_MIN_EF_LENGTH and > MAC length).
         let body: Vec<u8> = (0..28).map(|i| i as u8).collect();
@@ -283,10 +383,10 @@ mod tests {
     fn add_field_requires_v4_and_alignment() {
         let mut pkt = NtpPacketBuf::new();
         // version 3 in info -> rejected
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 3, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH, version: 3, mode: 0, ext_fields: 0, ..Default::default() };
         assert!(!add_field(&mut pkt, &mut info, 0x0204, &[0u8; 28]));
         // misaligned current length -> rejected
-        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH + 1, version: 4, ext_fields: 0 };
+        let mut info = NtpPacketInfo { length: NTP_HEADER_LENGTH + 1, version: 4, mode: 0, ext_fields: 0, ..Default::default() };
         assert!(!add_field(&mut pkt, &mut info, 0x0204, &[0u8; 28]));
     }
 
@@ -302,5 +402,120 @@ mod tests {
         assert!(parse_field(&pkt, pl, NTP_HEADER_LENGTH).is_none());
         // start before the header is rejected.
         assert!(parse_field(&pkt, 80, 0).is_none());
+    }
+
+    /// The deterministic body/header fillers shared with the C oracle generator:
+    /// body byte `i` is `0xA0 + i`, and a planted header is `[type:u16be][len:u16be]`.
+    fn fill_body(n: i32) -> Vec<u8> {
+        (0..n.max(0)).map(|i| (0xA0u32.wrapping_add(i as u32)) as u8).collect()
+    }
+    fn plant_hdr(buf: &mut [u8], start: i32, htype: i32, hlen: i32) {
+        if start >= 0 && (start as usize) + 4 <= buf.len() {
+            let s = start as usize;
+            buf[s..s + 2].copy_from_slice(&(htype as u16).to_be_bytes());
+            buf[s + 2..s + 4].copy_from_slice(&(hlen as u16).to_be_bytes());
+        }
+    }
+
+    /// Differential oracle: every `ntp_ext` function replayed against a battery
+    /// generated by the REAL compiled `ntp_ext.c` + `ntp.h`
+    /// (`research/oracle/ntp_ext-c-vectors.txt`). Covers `format_field`/`NEF_SetField`
+    /// (valid, exact-boundary-fit, misaligned start/body, negative body, no-fit,
+    /// negative buffer_length, `start==buffer_length`, header-doesn't-fit, u16 type
+    /// wrap, zero-length body — with the full written buffer byte-compared),
+    /// `NEF_ParseSingleField`, `NEF_AddField` (v3 reject, misaligned/short/oversize
+    /// length, `ef<NTP_MIN_EF_LENGTH`, second field at a non-header start), and
+    /// `NEF_ParseField` (non-v4, MAC-sized tail, `start<header`, misaligned/short
+    /// packet_length, `start>=packet_length`). The header constants are pinned against
+    /// the real `ntp.h` (incl. `sizeof(NTP_Packet)`).
+    #[test]
+    fn matches_real_c_ntp_ext_vectors() {
+        let vectors = include_str!("../../../../research/oracle/ntp_ext-c-vectors.txt");
+        fn field<'a>(line: &'a str, key: &str) -> &'a str {
+            line.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{key}=")))
+                .unwrap_or_else(|| panic!("missing {key} in: {line}"))
+        }
+        fn i(line: &str, key: &str) -> i32 {
+            field(line, key).parse().unwrap()
+        }
+
+        const CAP: usize = 4096;
+        let mut n = 0;
+        for line in vectors.lines() {
+            if let Some(rest) = line.strip_prefix("HDR ") {
+                assert_eq!(i(rest, "HDRLEN"), NTP_HEADER_LENGTH, "NTP_HEADER_LENGTH");
+                assert_eq!(i(rest, "MINEF"), NTP_MIN_EF_LENGTH, "NTP_MIN_EF_LENGTH");
+                assert_eq!(i(rest, "MACV4"), NTP_MAX_V4_MAC_LENGTH, "NTP_MAX_V4_MAC_LENGTH");
+                assert_eq!(i(rest, "PKTSIZE"), NTP_PACKET_SIZE, "sizeof(NTP_Packet)");
+            } else if let Some(rest) = line.strip_prefix("SET ") {
+                assert_eq!(i(rest, "n"), n, "SET order");
+                let (buflen, start, ty, blen) =
+                    (i(rest, "buflen"), i(rest, "start"), i(rest, "type"), i(rest, "blen"));
+                // Mirror NEF_SetField exactly: format_field, then copy the body in.
+                let mut buf = vec![0u8; CAP];
+                let out = format_field(&mut buf, buflen, start, ty, blen);
+                let ret = out.is_some();
+                assert_eq!(ret as i32, i(rest, "ret"), "SET n={n} ret");
+                if let Some((total, body_off)) = out {
+                    assert_eq!(total, i(rest, "tlen"), "SET n={n} tlen");
+                    let body = fill_body(blen);
+                    buf[body_off..body_off + body.len()].copy_from_slice(&body);
+                    let got: String =
+                        buf[..buflen as usize].iter().map(|b| format!("{b:02x}")).collect();
+                    assert_eq!(got, field(rest, "buf"), "SET n={n} buf");
+                }
+                n += 1;
+            } else if let Some(rest) = line.strip_prefix("PSF ") {
+                assert_eq!(i(rest, "n"), n, "PSF order");
+                let (buflen, start) = (i(rest, "buflen"), i(rest, "start"));
+                let mut buf = vec![0u8; CAP];
+                plant_hdr(&mut buf, start, i(rest, "htype"), i(rest, "hlen"));
+                let pf = parse_single_field(&buf, buflen, start);
+                assert_eq!(pf.is_some() as i32, i(rest, "ret"), "PSF n={n} ret");
+                if let Some(pf) = pf {
+                    assert_eq!(pf.length, i(rest, "len"), "PSF n={n} len");
+                    assert_eq!(pf.field_type, i(rest, "type"), "PSF n={n} type");
+                    assert_eq!(pf.body_offset as i32, i(rest, "boff"), "PSF n={n} boff");
+                    assert_eq!(pf.body_length, i(rest, "blen"), "PSF n={n} blen");
+                }
+                n += 1;
+            } else if let Some(rest) = line.strip_prefix("ADD ") {
+                assert_eq!(i(rest, "n"), n, "ADD order");
+                let (inlen, ver, ty, blen) =
+                    (i(rest, "inlen"), i(rest, "ver"), i(rest, "type"), i(rest, "blen"));
+                let mut pkt = NtpPacketBuf::new();
+                let mut info =
+                    NtpPacketInfo { length: inlen, version: ver, ..Default::default() };
+                let ret = add_field(&mut pkt, &mut info, ty, &fill_body(blen));
+                assert_eq!(ret as i32, i(rest, "ret"), "ADD n={n} ret");
+                assert_eq!(info.length, i(rest, "outlen"), "ADD n={n} outlen");
+                assert_eq!(info.ext_fields, i(rest, "ef"), "ADD n={n} ef");
+                if ret {
+                    let got: String = pkt.bytes()[inlen as usize..info.length as usize]
+                        .iter()
+                        .map(|b| format!("{b:02x}"))
+                        .collect();
+                    assert_eq!(got, field(rest, "field"), "ADD n={n} field");
+                }
+                n += 1;
+            } else if let Some(rest) = line.strip_prefix("PARSE ") {
+                assert_eq!(i(rest, "n"), n, "PARSE order");
+                let (lvm, plen, start) = (i(rest, "lvm"), i(rest, "plen"), i(rest, "start"));
+                let mut pkt = NtpPacketBuf::new();
+                pkt.set_lvm(lvm as u8);
+                plant_hdr(pkt.bytes_mut(), start, i(rest, "htype"), i(rest, "hlen"));
+                let pf = parse_field(&pkt, plen, start);
+                assert_eq!(pf.is_some() as i32, i(rest, "ret"), "PARSE n={n} ret");
+                if let Some(pf) = pf {
+                    assert_eq!(pf.length, i(rest, "len"), "PARSE n={n} len");
+                    assert_eq!(pf.field_type, i(rest, "type"), "PARSE n={n} type");
+                    assert_eq!(pf.body_offset as i32, i(rest, "boff"), "PARSE n={n} boff");
+                    assert_eq!(pf.body_length, i(rest, "blen"), "PARSE n={n} blen");
+                }
+                n += 1;
+            }
+        }
+        assert_eq!(n, 38, "expected 38 oracle cases");
     }
 }

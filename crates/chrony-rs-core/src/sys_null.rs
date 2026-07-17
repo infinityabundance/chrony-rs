@@ -139,4 +139,75 @@ mod tests {
         let (corr, _) = c.offset_convert(100.0);
         assert!((corr - (-1.0e-3)).abs() < 1e-12, "corr {corr}");
     }
+
+    /// Differential oracle: the full driver op sequence (init, read/set frequency,
+    /// accrue, step, and offset_convert across both the `<MIN_UPDATE_INTERVAL`
+    /// instantaneous path and the `>MIN_UPDATE_INTERVAL` flush path) driven identically
+    /// through the REAL compiled `sys_null.c` (`research/oracle/sys_null-c-vectors.txt`),
+    /// matching the returned frequency/correction/error plus the internal
+    /// `freq`/`offset_register`/`last_update` state after every op.
+    ///
+    /// The oracle drives raw times whose fractional part is exactly representable
+    /// (0 or 0.5 s), so chrony's ns-granular `timespec` diff (`UTI_DiffTimespecsToDouble`)
+    /// equals this port's `f64`-seconds subtraction to the bit — the modeling boundary
+    /// documented in the module header collapses to exact parity for these inputs.
+    #[test]
+    fn matches_real_c_sys_null_vectors() {
+        let vectors = include_str!("../../../research/oracle/sys_null-c-vectors.txt");
+        fn f(line: &str, key: &str) -> f64 {
+            line.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{key}=")))
+                .unwrap_or_else(|| panic!("missing {key} in: {line}"))
+                .parse()
+                .unwrap()
+        }
+        // Identical IEEE-754 f64 op sequences on both sides -> match to the last ULP.
+        let close = |a: f64, b: f64, what: &str| {
+            let tol = 1e-15 * (1.0 + a.abs().max(b.abs()));
+            assert!((a - b).abs() <= tol, "{what}: rust={a:.17e} c={b:.17e}");
+        };
+
+        // NullClock::new does not exist until the INIT line; seed a placeholder.
+        let mut c = NullClock::new(0.0);
+        let check_state = |c: &NullClock, line: &str| {
+            close(c.freq, f(line, "freq"), "freq");
+            close(c.offset_register, f(line, "reg"), "offset_register");
+            close(c.last_update, f(line, "lu"), "last_update");
+        };
+
+        let mut n = 0;
+        for line in vectors.lines().filter(|l| !l.starts_with('#') && !l.trim().is_empty()) {
+            let tag = line.split_whitespace().next().unwrap();
+            assert_eq!(f(line, "n") as i32, n, "op order");
+            match tag {
+                "OP" => {
+                    // INIT or ACCRUE, distinguished by the op= field.
+                    if line.contains("op=INIT") {
+                        c = NullClock::new(f(line, "arg"));
+                    } else {
+                        c.accrue_offset(f(line, "arg"), 0.0);
+                    }
+                    check_state(&c, line);
+                }
+                "RF" => close(c.read_frequency(), f(line, "val"), "read_frequency"),
+                "SF" => {
+                    let ret = c.set_frequency(f(line, "now"), f(line, "in"));
+                    close(ret, f(line, "ret"), "set_frequency ret");
+                    check_state(&c, line);
+                }
+                "OC" => {
+                    let (corr, err) = c.offset_convert(f(line, "raw"));
+                    close(corr, f(line, "corr"), "offset_convert corr");
+                    close(err, f(line, "err"), "offset_convert err");
+                    check_state(&c, line);
+                }
+                "STEP" => {
+                    assert_eq!(c.apply_step_offset(f(line, "in")), f(line, "ret") as i32, "step");
+                }
+                other => panic!("unknown tag {other}"),
+            }
+            n += 1;
+        }
+        assert_eq!(n, 12, "expected 12 recorded ops");
+    }
 }

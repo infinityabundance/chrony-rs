@@ -54,6 +54,7 @@ enum State {
 
 /// Result of a subnet mutation (chrony's `ADF_Status`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum AdfStatus {
     Success,
     BadSubnet,
@@ -61,7 +62,8 @@ pub enum AdfStatus {
 
 /// A subnet specifier for `allow`/`deny`: a v4 or v6 address, or `Unspec` (apply
 /// to both families, only valid with a zero subnet width — chrony's `IPADDR_UNSPEC`).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+    #[non_exhaustive]
 pub enum Subnet {
     V4(Ipv4Addr),
     V6(Ipv6Addr),
@@ -87,6 +89,7 @@ fn get_subnet(addr: &[u32], at: u32) -> usize {
 
 /// One trie node (chrony's `TableNode`). Children are owned, so `Drop` is the
 /// `ADF_DestroyTable`/`close_node` free path.
+#[derive(Debug)]
 struct TableNode {
     state: State,
     extended: Option<Vec<TableNode>>,
@@ -202,6 +205,7 @@ impl TableNode {
 }
 
 /// The access-control table (chrony's `ADF_AuthTableInst`): one trie per family.
+#[derive(Debug)]
 pub struct AuthTable {
     base4: TableNode,
     base6: TableNode,
@@ -303,6 +307,78 @@ mod tests {
     }
     fn ip(s: &str) -> IpAddr {
         s.parse().unwrap()
+    }
+
+    /// Build a [`Subnet`] from an address string, choosing the family by parse.
+    fn subnet(s: &str) -> Subnet {
+        match s.parse::<IpAddr>().unwrap() {
+            IpAddr::V4(a) => Subnet::V4(a),
+            IpAddr::V6(a) => Subnet::V6(a),
+        }
+    }
+
+    /// Build each scenario's table from the same op script the C oracle ran (`/tmp/nadf`).
+    fn scenario(label: &str) -> AuthTable {
+        let mut t = AuthTable::new();
+        match label {
+            "s1" => {
+                t.allow(subnet("10.0.0.0"), 8);
+                t.allow(subnet("192.168.1.0"), 24);
+            }
+            "s2" => {
+                t.allow(Subnet::V4("0.0.0.0".parse().unwrap()), 0);
+                t.deny(subnet("192.168.0.0"), 16);
+                t.allow(subnet("192.168.1.0"), 24);
+            }
+            "s3" => {
+                t.allow(subnet("10.0.0.0"), 8);
+                t.allow(subnet("10.1.0.0"), 16);
+                t.deny_all(subnet("10.0.0.0"), 8);
+            }
+            "s4" => {
+                t.allow(subnet("2001:db8::"), 32);
+                t.deny(subnet("2001:db8:1::"), 48);
+            }
+            other => panic!("unknown scenario {other}"),
+        }
+        t
+    }
+
+    #[test]
+    fn matches_real_addrfilt_c_over_battery() {
+        // Differential test vs the REAL compiled addrfilt.c (subnet trie) over four scenarios --
+        // subnet allow, allow-all + overlapping deny/allow, deny_all pruning, and IPv6 -- with a
+        // 15-address battery. Upgrades the ADF port from live-witnessed to compiled-oracle-backed.
+        let v = include_str!("../../../research/oracle/addrfilt-c-vectors.txt");
+        let field = |l: &str, k: &str| -> String {
+            l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap().to_string()
+        };
+
+        let mut tables = std::collections::HashMap::new();
+        for label in ["s1", "s2", "s3", "s4"] {
+            tables.insert(label, scenario(label));
+        }
+
+        for l in v.lines() {
+            if let Some(rest) = l.strip_prefix("Q ") {
+                let label = rest.split_whitespace().next().unwrap();
+                let addr = field(l, "ip");
+                let allowed = field(l, "allowed") == "1";
+                let t = &tables[label];
+                assert_eq!(t.is_allowed(ip(&addr)), allowed, "{label} ip={addr}");
+            } else if let Some(rest) = l.strip_prefix("ANY ") {
+                // "ANY s1 v4=1 v6=0" -- family INET4 then INET6.
+                let label = rest.split_whitespace().next().unwrap();
+                let t = &tables[label];
+                assert_eq!(t.is_any_allowed(false), field(l, "v4") == "1", "{label} any v4");
+                assert_eq!(t.is_any_allowed(true), field(l, "v6") == "1", "{label} any v6");
+            }
+        }
+
+        // Scenario 5: out-of-range subnet bits are rejected (BadSubnet), matching the oracle.
+        let mut t = AuthTable::new();
+        assert_eq!(t.allow(subnet("10.0.0.0"), 33), AdfStatus::BadSubnet);
+        assert_eq!(t.allow(subnet("2001:db8::"), 129), AdfStatus::BadSubnet);
     }
 
     #[test]

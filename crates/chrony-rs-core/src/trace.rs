@@ -65,6 +65,7 @@ pub struct Event {
 /// break (`trace_schema` bump).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+    #[non_exhaustive]
 pub enum EventKind {
     /// An NTP packet arrived from a peer (`data.packet_hex`, `data.peer`).
     RecvNtp,
@@ -90,6 +91,7 @@ pub struct Expected {
 
 /// Why a trace is structurally invalid (independent of whether replay *matches*).
 #[derive(Clone, Debug, PartialEq, Eq)]
+    #[non_exhaustive]
 pub enum TraceError {
     WrongSchema { found: String },
     EventsOutOfOrder { index: usize, prev: u64, this: u64 },

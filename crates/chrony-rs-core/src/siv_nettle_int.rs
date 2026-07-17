@@ -68,6 +68,7 @@ fn xtime(x: u8) -> u8 {
 }
 
 /// AES-128 encryption (the only block-cipher operation chrony's SIV needs).
+#[derive(Debug)]
 pub struct Aes128 {
     /// 11 round keys, 16 bytes each.
     round_keys: [[u8; 16]; 11],
@@ -225,6 +226,7 @@ fn memxor3(dst: &mut [u8], a: &[u8], b: &[u8]) {
 }
 
 /// chrony `struct cmac128_ctx`.
+#[derive(Debug)]
 pub(crate) struct Cmac128 {
     k1: [u8; 16],
     k2: [u8; 16],
@@ -383,6 +385,7 @@ fn s2v(s2vk: &[u8; 16], adata: &[u8], nonce: &[u8], pdata: &[u8]) -> [u8; 16] {
 
 /// chrony `struct siv_cmac_aes128_ctx`: the AES-SIV-CMAC-256 cipher (a 32-byte key
 /// split into the S2V/CMAC key and the AES-CTR key).
+#[derive(Debug)]
 pub struct SivCmacAes128 {
     cipher: Aes128,
     s2vk: [u8; 16],

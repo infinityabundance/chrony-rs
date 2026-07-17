@@ -28,6 +28,7 @@ use serde::{Deserialize, Serialize};
 /// Deliberately not yet consumed by non-test code: era-aware Unix conversion is a
 /// later court (`CHRONY.DISCIPLINE.15`). Exposed now so the constant has one
 /// canonical home and is checked by tests, rather than being reintroduced ad hoc.
+// Used for NTP timestamp era calculations; currently unused but documents the constant
 #[allow(dead_code)]
 pub const NTP_UNIX_EPOCH_DELTA_SECS: u64 = 2_208_988_800;
 

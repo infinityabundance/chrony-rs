@@ -27,12 +27,21 @@ pub fn log2_to_double(l: i32) -> f64 {
     }
 }
 
+/// chrony's `NTP_ERA_SPLIT`: the configure-time constant (`--with-ntp-era`, in seconds
+/// since 1970) that anchors the 32-bit NTP timestamp window for the `HAVE_LONG_TIME_T`
+/// build. Production 64-bit builds derive it from the build date (`build_epoch − 50 yr`),
+/// so it is a per-build constant rather than a universal value; this reconstruction pins
+/// the era-split-0 configuration (a valid, reproducible build via `--with-ntp-era=0`).
+/// Functions that depend on it take it as an explicit parameter so any build can be
+/// modelled.
+pub const NTP_ERA_SPLIT: i64 = 0;
+
 /// `UTI_IsTimeOffsetSane`: whether `ts` (Unix seconds) plus `offset` is a valid
-/// wall-clock time. The offset must be finite and within ±2³², and the resulting
-/// time must lie in the NTP-mapped window. With the default build
-/// (`NTP_ERA_SPLIT = 0`, 64-bit `time_t`) that window is `[0, 2³²]` seconds since
-/// 1970 (years 1970–2106); a non-default era split would shift it.
-pub fn is_time_offset_sane(ts: f64, offset: f64) -> bool {
+/// wall-clock time, for the `HAVE_LONG_TIME_T` (64-bit `time_t`) build. The offset must
+/// be finite and within ±2³², the time must not predate 1970, and it must lie in the
+/// NTP-mapped window `[ntp_era_split, ntp_era_split + 2³²]`. With `ntp_era_split = 0`
+/// that window is `[0, 2³²]` (years 1970–2106).
+pub fn is_time_offset_sane(ts: f64, offset: f64, ntp_era_split: i64) -> bool {
     // chrony's MAX_OFFSET.
     const MAX_OFFSET: f64 = 4_294_967_296.0; // 2^32
     // The `!(…)` form rejects NaN, matching chrony's comment.
@@ -40,8 +49,13 @@ pub fn is_time_offset_sane(ts: f64, offset: f64) -> bool {
         return false;
     }
     let t = ts + offset;
-    // Time before 1970, or beyond the NTP era window (split 0 -> [0, 2^32]).
-    (0.0..=MAX_OFFSET).contains(&t)
+    // Time before 1970 is not considered valid.
+    if t < 0.0 {
+        return false;
+    }
+    // HAVE_LONG_TIME_T: the interval to which NTP time is mapped.
+    let split = ntp_era_split as f64;
+    !(t < split || t > split + MAX_OFFSET)
 }
 
 /// `UTI_RefidToString`: render a 32-bit reference ID as its printable bytes
@@ -86,9 +100,1216 @@ pub fn hex_to_bytes(hex: &str) -> Option<Vec<u8>> {
     Some(out)
 }
 
+const NSEC_PER_SEC: i64 = 1_000_000_000;
+
+/// `UTI_NormaliseTimespec`: carry an out-of-range nanosecond field into the seconds,
+/// keeping `0 <= tv_nsec < 1e9`.
+pub fn normalise_timespec(mut sec: i64, mut nsec: i64) -> (i64, i64) {
+    // chrony: nsec >= NSEC_PER_SEC || nsec < 0.
+    if !(0..NSEC_PER_SEC).contains(&nsec) {
+        sec += nsec / NSEC_PER_SEC;
+        nsec %= NSEC_PER_SEC;
+        if nsec < 0 {
+            sec -= 1;
+            nsec += NSEC_PER_SEC;
+        }
+    }
+    (sec, nsec)
+}
+
+/// `UTI_TimespecToDouble`: `sec + 1e-9 * nsec`.
+pub fn timespec_to_double(sec: i64, nsec: i64) -> f64 {
+    sec as f64 + 1.0e-9 * nsec as f64
+}
+
+/// `UTI_DoubleToTimespec`: split `d` into a normalised `(sec, nsec)` with chrony's
+/// `(time_t)`/`(long)` truncation.
+pub fn double_to_timespec(d: f64) -> (i64, i64) {
+    let sec = d as i64;
+    let nsec = (1.0e9 * (d - sec as f64)) as i64;
+    normalise_timespec(sec, nsec)
+}
+
+/// `UTI_NormaliseTimeval`: reduce `tv_usec` to `[0, 1e6)`. (Note chrony's `>=`/`<=`
+/// reduction bound, distinct from the timespec form.)
+pub fn normalise_timeval(mut sec: i64, mut usec: i64) -> (i64, i64) {
+    if usec >= 1_000_000 || usec <= -1_000_000 {
+        sec += usec / 1_000_000;
+        usec %= 1_000_000;
+    }
+    if usec < 0 {
+        sec -= 1;
+        usec += 1_000_000;
+    }
+    (sec, usec)
+}
+
+/// `UTI_TimevalToDouble`: `sec + 1e-6 * usec`.
+pub fn timeval_to_double(sec: i64, usec: i64) -> f64 {
+    sec as f64 + 1.0e-6 * usec as f64
+}
+
+/// `UTI_DoubleToTimeval`: split `d` into a normalised `(sec, usec)`; the microseconds are
+/// rounded (chrony's `round()`).
+pub fn double_to_timeval(d: f64) -> (i64, i64) {
+    let sec = d as i64;
+    let usec = (1.0e6 * (d - sec as f64)).round() as i64;
+    normalise_timeval(sec, usec)
+}
+
+/// chrony `MAX_NTP_INT32` (the 16.16 NTP-short maximum, also returned by the f28 max).
+const MAX_NTP_INT32: f64 = 4_294_967_295.0 / 65536.0;
+
+/// `UTI_DoubleToNtp32f28`: seconds to 4.28 fixed point (host-order raw value).
+pub fn double_to_ntp32f28(x: f64) -> u32 {
+    const SCALE: f64 = (1u32 << 28) as f64;
+    if x >= 4_294_967_295.0 / SCALE {
+        0xffff_ffff
+    } else if x <= 0.0 {
+        0
+    } else {
+        let xs = x * SCALE;
+        let mut r = xs as u32;
+        if (r as f64) < xs {
+            r += 1;
+        }
+        r
+    }
+}
+
+/// `UTI_Ntp32f28ToDouble`: 4.28 fixed point (host-order raw) to seconds. The all-ones
+/// value is special-cased to `MAX_NTP_INT32` (matching chrony).
+pub fn ntp32f28_to_double(r: u32) -> f64 {
+    if r == 0xffff_ffff {
+        MAX_NTP_INT32
+    } else {
+        r as f64 / (1u32 << 28) as f64
+    }
+}
+
+/// `UTI_IsZeroNtp64`: whether both halves of the 64-bit NTP timestamp are zero.
+pub fn is_zero_ntp64(hi: u32, lo: u32) -> bool {
+    hi == 0 && lo == 0
+}
+
+/// `UTI_CompareNtp64`: order two 64-bit NTP timestamps by their host-order halves
+/// (`-1`/`0`/`1`).
+pub fn compare_ntp64(a_hi: u32, a_lo: u32, b_hi: u32, b_lo: u32) -> i32 {
+    if a_hi == b_hi && a_lo == b_lo {
+        return 0;
+    }
+    let diff = (a_hi as i32).wrapping_sub(b_hi as i32);
+    if diff < 0 {
+        -1
+    } else if diff > 0 {
+        1
+    } else if a_lo < b_lo {
+        -1
+    } else {
+        1
+    }
+}
+
+/// `UTI_IsEqualAnyNtp64`: whether `a` equals any of `b1`/`b2`/`b3` (each optional, as
+/// chrony skips `NULL` operands).
+pub fn is_equal_any_ntp64(
+    a: (u32, u32),
+    b1: Option<(u32, u32)>,
+    b2: Option<(u32, u32)>,
+    b3: Option<(u32, u32)>,
+) -> bool {
+    [b1, b2, b3].into_iter().flatten().any(|b| b == a)
+}
+
+/// `UTI_CompareTimespecs`: order two timespecs by seconds then nanoseconds (`-1`/`0`/`1`).
+pub fn compare_timespecs(a: (i64, i64), b: (i64, i64)) -> i32 {
+    if a.0 < b.0 {
+        -1
+    } else if a.0 > b.0 {
+        1
+    } else if a.1 < b.1 {
+        -1
+    } else if a.1 > b.1 {
+        1
+    } else {
+        0
+    }
+}
+
+/// `UTI_DiffTimespecsToDouble`: `a - b` in seconds.
+pub fn diff_timespecs_to_double(a: (i64, i64), b: (i64, i64)) -> f64 {
+    (a.0 as f64 - b.0 as f64) + 1.0e-9 * (a.1 - b.1) as f64
+}
+
+/// `UTI_DiffTimespecs`: `a - b` as a normalised timespec.
+pub fn diff_timespecs(a: (i64, i64), b: (i64, i64)) -> (i64, i64) {
+    normalise_timespec(a.0 - b.0, a.1 - b.1)
+}
+
+/// `UTI_AddDoubleToTimespec`: `start + increment` seconds, with chrony's `(time_t)`
+/// truncation of the integer part.
+pub fn add_double_to_timespec(start: (i64, i64), increment: f64) -> (i64, i64) {
+    let int_part = increment as i64;
+    let sec = start.0 + int_part;
+    let nsec = start.1 + (1.0e9 * (increment - int_part as f64)) as i64;
+    normalise_timespec(sec, nsec)
+}
+
+/// `UTI_AddDiffToTimespec`: `c + (a - b)` (the difference taken as a double).
+pub fn add_diff_to_timespec(a: (i64, i64), b: (i64, i64), c: (i64, i64)) -> (i64, i64) {
+    add_double_to_timespec(c, diff_timespecs_to_double(a, b))
+}
+
+/// `UTI_TimevalToTimespec`: microseconds to nanoseconds.
+pub fn timeval_to_timespec(sec: i64, usec: i64) -> (i64, i64) {
+    (sec, 1000 * usec)
+}
+
+/// `UTI_TimespecToTimeval`: nanoseconds to microseconds (truncating).
+pub fn timespec_to_timeval(sec: i64, nsec: i64) -> (i64, i64) {
+    (sec, nsec / 1000)
+}
+
+/// chrony `JAN_1970`: seconds between the NTP epoch (1900) and the Unix epoch (1970).
+const JAN_1970: u32 = 0x83aa_7e80;
+/// chrony `NSEC_PER_NTP64` = `2³² / 1e9`, so `nanoseconds × NSEC_PER_NTP64` is an NTP
+/// 32-bit fraction.
+const NSEC_PER_NTP64: f64 = 4.294_967_296;
+
+/// `UTI_ZeroNtp64`: the all-zero 64-bit NTP timestamp (chrony's "unknown" sentinel),
+/// as host-order `(hi, lo)`.
+pub fn zero_ntp64() -> (u32, u32) {
+    (0, 0)
+}
+
+/// `UTI_ZeroTimespec`: the all-zero timespec, as `(sec, nsec)`.
+pub fn zero_timespec() -> (i64, i64) {
+    (0, 0)
+}
+
+/// `UTI_IsZeroTimespec`: whether both fields of the timespec are zero.
+pub fn is_zero_timespec(sec: i64, nsec: i64) -> bool {
+    sec == 0 && nsec == 0
+}
+
+/// `UTI_TimespecToNtp64`: convert a timespec to a 64-bit NTP timestamp (host-order
+/// `(hi, lo)`). Zero maps to zero (chrony's "unknown" sentinel). The seconds field is
+/// taken modulo 2³² (`(uint32_t)tv_sec`), so this forward direction is independent of
+/// `time_t` width / NTP era split. An optional `fuzz` is XORed into the result, exactly
+/// as chrony adds sub-precision randomness; the XOR commutes with byte order, so it is
+/// applied to the host-order halves here.
+pub fn timespec_to_ntp64(sec: i64, nsec: i64, fuzz: Option<(u32, u32)>) -> (u32, u32) {
+    let sec = sec as u32;
+    let nsec = nsec as u32;
+    // Recognize zero as a special case - it always signifies an 'unknown' value.
+    if nsec == 0 && sec == 0 {
+        return (0, 0);
+    }
+    let mut hi = sec.wrapping_add(JAN_1970);
+    let mut lo = (NSEC_PER_NTP64 * nsec as f64) as u32;
+    if let Some((fhi, flo)) = fuzz {
+        hi ^= fhi;
+        lo ^= flo;
+    }
+    (hi, lo)
+}
+
+/// `UTI_GetNtp64Fuzz`: the deterministic core of chrony's sub-precision timestamp
+/// fuzzing. chrony zeroes an 8-byte `NTP_int64`, fills its low `8 - start` bytes with
+/// random bytes (`start = 8 - (precision + 32 + 7)/8`), then reduces the most-significant
+/// filled byte modulo `1 << ((precision + 32) % 8)` so only the bits below the clock
+/// precision are randomized. Returns the fuzz as host-order `(hi, lo)` to XOR into a
+/// timestamp via [`timespec_to_ntp64`].
+///
+/// The CSPRNG draw itself (`UTI_GetRandomBytes`) is the injected host boundary: `rnd`
+/// supplies the `8 - start` random bytes (`rnd[i]` fills byte `start + i`). chrony builds
+/// the value by byte access into the native struct and later XORs it against the
+/// network-order timestamp; modeling it here as a **big-endian** 8-byte array reproduces
+/// chrony's exact byte placement (verified vs the real `util.c`) while staying independent
+/// of host endianness — the XOR into the big-endian wire timestamp lands on the same bits.
+pub fn get_ntp64_fuzz(precision: i32, rnd: &[u8]) -> (u32, u32) {
+    let precision = if precision < -32 || precision > 32 {
+        eprintln!("util: WARNING — out-of-range precision {precision} in get_ntp64_fuzz, clamping to -32");
+        -32
+    } else {
+        precision
+    };
+    let start = 8 - ((precision + 32 + 7) / 8) as usize;
+    let mut w = [0u8; 8];
+    w[start..].copy_from_slice(&rnd[..8 - start]);
+    let bits = (precision + 32) % 8;
+    if bits != 0 {
+        w[start] %= 1u8 << bits;
+    }
+    let hi = u32::from_be_bytes([w[0], w[1], w[2], w[3]]);
+    let lo = u32::from_be_bytes([w[4], w[5], w[6], w[7]]);
+    (hi, lo)
+}
+
+/// `UTI_AverageDiffTimespecs`: returns `(average, diff)` where `diff = later - earlier`
+/// (seconds) and `average = earlier + diff/2`.
+pub fn average_diff_timespecs(earlier: (i64, i64), later: (i64, i64)) -> ((i64, i64), f64) {
+    let diff = diff_timespecs_to_double(later, earlier);
+    let average = add_double_to_timespec(earlier, diff / 2.0);
+    (average, diff)
+}
+
+/// `UTI_AdjustTimespec`: project `old_ts` forward by a frequency/offset adjustment over
+/// the elapsed time to `when`. Returns `(new_ts, delta_time)` where
+/// `delta_time = elapsed × dfreq − doffset` and `new_ts = old_ts + delta_time`.
+pub fn adjust_timespec(
+    old_ts: (i64, i64),
+    when: (i64, i64),
+    dfreq: f64,
+    doffset: f64,
+) -> ((i64, i64), f64) {
+    let elapsed = diff_timespecs_to_double(when, old_ts);
+    let delta_time = elapsed * dfreq - doffset;
+    let new_ts = add_double_to_timespec(old_ts, delta_time);
+    (new_ts, delta_time)
+}
+
+/// `UTI_Integer64HostToNetwork`: split a 64-bit integer into chrony's wire `Integer64`
+/// `(high, low)` 32-bit halves. Returned in host order (the values `ntohl` would yield
+/// from the on-wire struct), making the representation byte-order independent.
+pub fn integer64_host_to_network(i: u64) -> (u32, u32) {
+    ((i >> 32) as u32, i as u32)
+}
+
+/// `UTI_Integer64NetworkToHost`: recombine chrony's wire `Integer64` `(high, low)` halves
+/// (host order) into a 64-bit integer. Inverse of [`integer64_host_to_network`].
+pub fn integer64_network_to_host(high: u32, low: u32) -> u64 {
+    (high as u64) << 32 | low as u64
+}
+
+// chrony's custom 32-bit wire float: a 7-bit signed exponent and a 25-bit signed
+// coefficient (no hidden bit). Value = coef × 2^(exp − 25). See candm.h `Float`.
+const FLOAT_EXP_BITS: i32 = 7;
+const FLOAT_EXP_MIN: i32 = -(1 << (FLOAT_EXP_BITS - 1)); // -64
+const FLOAT_EXP_MAX: i32 = -FLOAT_EXP_MIN - 1; // 63
+const FLOAT_COEF_BITS: i32 = 32 - FLOAT_EXP_BITS; // 25
+const FLOAT_COEF_MIN: i32 = -(1 << (FLOAT_COEF_BITS - 1)); // -2^24
+const FLOAT_COEF_MAX: i32 = -FLOAT_COEF_MIN - 1; // 2^24 - 1
+
+/// `UTI_FloatNetworkToHost`: decode chrony's custom 32-bit wire float (host-order raw
+/// `word`) to a `f64`.
+pub fn float_network_to_host(word: u32) -> f64 {
+    let x = word;
+    let mut exp = (x >> FLOAT_COEF_BITS) as i32;
+    if exp >= 1 << (FLOAT_EXP_BITS - 1) {
+        exp -= 1 << FLOAT_EXP_BITS;
+    }
+    exp -= FLOAT_COEF_BITS;
+
+    let mut coef = (x % (1u32 << FLOAT_COEF_BITS)) as i32;
+    if coef >= 1 << (FLOAT_COEF_BITS - 1) {
+        coef -= 1 << FLOAT_COEF_BITS;
+    }
+
+    coef as f64 * 2.0f64.powi(exp)
+}
+
+/// `UTI_FloatHostToNetwork`: encode a `f64` into chrony's custom 32-bit wire float,
+/// returned as the host-order raw 32-bit `word` (the value `ntohl` would yield from the
+/// on-wire `Float`). NaN is saved as zero; values saturate to the format's range.
+pub fn float_host_to_network(x: f64) -> u32 {
+    let mut x = x;
+    let neg;
+    if x < 0.0 {
+        x = -x;
+        neg = 1;
+    } else if x >= 0.0 {
+        neg = 0;
+    } else {
+        // Save NaN as zero.
+        x = 0.0;
+        neg = 0;
+    }
+
+    let mut exp: i32;
+    let mut coef: i32;
+    if x < 1.0e-100 {
+        exp = 0;
+        coef = 0;
+    } else if x > 1.0e100 {
+        exp = FLOAT_EXP_MAX;
+        coef = FLOAT_COEF_MAX + neg;
+    } else {
+        exp = (x.ln() / 2.0f64.ln()) as i32 + 1;
+        coef = (x * 2.0f64.powi(-exp + FLOAT_COEF_BITS) + 0.5) as i32;
+
+        debug_assert!(coef > 0);
+
+        // We may need to shift up to two bits down.
+        while coef > FLOAT_COEF_MAX + neg {
+            coef >>= 1;
+            exp += 1;
+        }
+
+        if exp > FLOAT_EXP_MAX {
+            // Overflow.
+            exp = FLOAT_EXP_MAX;
+            coef = FLOAT_COEF_MAX + neg;
+        } else if exp < FLOAT_EXP_MIN {
+            // Underflow.
+            if exp + FLOAT_COEF_BITS >= FLOAT_EXP_MIN {
+                coef >>= FLOAT_EXP_MIN - exp;
+                exp = FLOAT_EXP_MIN;
+            } else {
+                exp = 0;
+                coef = 0;
+            }
+        }
+    }
+
+    // Negate back.
+    if neg != 0 {
+        // chrony: (uint32_t)-coef << FLOAT_EXP_BITS >> FLOAT_EXP_BITS — mask to coef bits.
+        coef = (((-(coef as i64) as u32) << FLOAT_EXP_BITS) >> FLOAT_EXP_BITS) as i32;
+    }
+
+    (exp as u32) << FLOAT_COEF_BITS | (coef as u32 & ((1u32 << FLOAT_COEF_BITS) - 1))
+}
+
+/// chrony's `TV_NOHIGHSEC`: the `tv_sec_high` sentinel a 32-bit-`time_t` sender writes,
+/// which a 64-bit receiver treats as a zero high word.
+const TV_NOHIGHSEC: u32 = 0x7fff_ffff;
+
+/// `UTI_Ntp64ToTimespec` (`HAVE_LONG_TIME_T` build): convert a 64-bit NTP timestamp
+/// (host-order `(hi, lo)`) to a Unix timespec `(sec, nsec)`. Zero maps to zero (the
+/// "unknown" sentinel). The seconds map through the era split: the `(uint32_t)`
+/// subtraction wraps modulo 2³² before being widened to `time_t` and re-anchored at
+/// `ntp_era_split`, exactly as chrony does — `ntp_era_split` is the configure-time
+/// [`NTP_ERA_SPLIT`] constant.
+pub fn ntp64_to_timespec(hi: u32, lo: u32, ntp_era_split: i64) -> (i64, i64) {
+    if is_zero_ntp64(hi, lo) {
+        return zero_timespec();
+    }
+    let ntp_sec = hi;
+    let ntp_frac = lo;
+    // chrony: ntp_sec - (uint32_t)(NTP_ERA_SPLIT + JAN_1970) + (time_t)NTP_ERA_SPLIT.
+    // The subtraction is in uint32 (wrapping), then widened to time_t.
+    let split_plus = ntp_era_split.wrapping_add(JAN_1970 as i64) as u32;
+    let tv_sec = ntp_sec.wrapping_sub(split_plus) as i64 + ntp_era_split;
+    let tv_nsec = (ntp_frac as f64 / NSEC_PER_NTP64) as i64;
+    (tv_sec, tv_nsec)
+}
+
+/// `UTI_TimespecHostToNetwork` (`HAVE_LONG_TIME_T` build): serialize a Unix timespec
+/// `(sec, nsec)` into chrony's wire `Timespec` halves, returned host-order as
+/// `(tv_sec_high, tv_sec_low, tv_nsec)` (the values `ntohl` would yield from the on-wire
+/// struct). `tv_sec_high` carries the seconds above 2³².
+pub fn timespec_host_to_network(sec: i64, nsec: i64) -> (u32, u32, u32) {
+    let tv_nsec = nsec as u32;
+    let tv_sec_high = ((sec as u64) >> 32) as u32;
+    let tv_sec_low = sec as u32;
+    (tv_sec_high, tv_sec_low, tv_nsec)
+}
+
+/// `UTI_TimespecNetworkToHost` (`HAVE_LONG_TIME_T` build): deserialize chrony's wire
+/// `Timespec` halves (host-order `tv_sec_high`/`tv_sec_low`/`tv_nsec`) into a Unix
+/// timespec `(sec, nsec)`. A `tv_sec_high` of [`TV_NOHIGHSEC`] (a 32-bit sender) is read
+/// as zero, and `tv_nsec` is clamped to `999_999_999`.
+pub fn timespec_network_to_host(tv_sec_high: u32, tv_sec_low: u32, tv_nsec: u32) -> (i64, i64) {
+    let sec_low = tv_sec_low;
+    let mut sec_high = tv_sec_high;
+    if sec_high == TV_NOHIGHSEC {
+        sec_high = 0;
+    }
+    let tv_sec = ((sec_high as u64) << 32 | sec_low as u64) as i64;
+    let tv_nsec = tv_nsec.min(999_999_999) as i64;
+    (tv_sec, tv_nsec)
+}
+
+/// chrony's `IPAddr` (addressing.h): a tagged address that is one of unspecified, IPv4
+/// (host-order `u32`), IPv6 (16 raw bytes), or a synthetic numeric id. The family tags
+/// match chrony's `IPADDR_*` constants (`UNSPEC=0`, `INET4=1`, `INET6=2`, `ID=3`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+    #[non_exhaustive]
+pub enum IpAddr {
+    /// `IPADDR_UNSPEC`.
+    Unspec,
+    /// `IPADDR_INET4`: an IPv4 address in host byte order.
+    Inet4(u32),
+    /// `IPADDR_INET6`: the 16 address bytes, network order (as stored on the wire).
+    Inet6([u8; 16]),
+    /// `IPADDR_ID`: a synthetic numeric source id.
+    Id(u32),
+}
+
+impl Default for IpAddr {
+    fn default() -> Self { IpAddr::Unspec }
+}
+
+impl IpAddr {
+    /// The chrony `IPADDR_*` family tag.
+    pub fn family(&self) -> u16 {
+        match self {
+            IpAddr::Unspec => 0,
+            IpAddr::Inet4(_) => 1,
+            IpAddr::Inet6(_) => 2,
+            IpAddr::Id(_) => 3,
+        }
+    }
+}
+
+/// chrony `client.c` `bits_to_mask`: build the network mask of the given `family` for a
+/// prefix length of `bits`. Out-of-range `bits` clamps to the full width (32/128); a
+/// byte-aligned prefix writes an explicit zero partial byte (matching chrony's loop). The
+/// `IPADDR_ID` family yields [`IpAddr::Unspec`] (chrony sets the mask family to `UNSPEC`).
+///
+/// Panics on an unexpected family (chrony's `assert(0)`).
+pub fn bits_to_mask(bits: i32, family: u16) -> IpAddr {
+    match family {
+        1 => {
+            // IPADDR_INET4
+            let bits = if !(0..=32).contains(&bits) { 32 } else { bits };
+            if bits > 0 {
+                IpAddr::Inet4(u32::MAX << (32 - bits))
+            } else {
+                IpAddr::Inet4(0)
+            }
+        }
+        2 => {
+            // IPADDR_INET6
+            let bits = if !(0..=128).contains(&bits) { 128 } else { bits };
+            let mut out = [0u8; 16];
+            let full = (bits / 8) as usize;
+            for byte in out.iter_mut().take(full) {
+                *byte = 0xff;
+            }
+            if full < 16 {
+                out[full] = ((0xffu32 << (8 - (bits % 8) as u32)) & 0xff) as u8;
+            }
+            IpAddr::Inet6(out)
+        }
+        3 => IpAddr::Unspec, // IPADDR_ID -> UNSPEC
+        _ => IpAddr::Unspec, // unknown family -> zero mask
+    }
+}
+
+/// `UTI_IsIPReal`: whether the address is a real (routable) IP — i.e. INET4 or INET6,
+/// not the unspecified or synthetic-id pseudo-families.
+pub fn is_ip_real(ip: &IpAddr) -> bool {
+    matches!(ip, IpAddr::Inet4(_) | IpAddr::Inet6(_))
+}
+
+/// `UTI_CompareIPs`: chrony's address ordering. Returns the raw integer difference (NOT
+/// clamped to -1/0/1), reproducing the C subtraction semantics exactly — including the
+/// signed wraparound of the IPv4/id `uint32` subtraction and the first-differing-byte
+/// difference for IPv6. Different families compare by family tag. An optional `mask` is
+/// ignored unless its family matches `b`'s.
+pub fn compare_ips(a: &IpAddr, b: &IpAddr, mask: Option<&IpAddr>) -> i32 {
+    if a.family() != b.family() {
+        return a.family() as i32 - b.family() as i32;
+    }
+    // chrony drops the mask if its family doesn't match b's.
+    let mask = mask.filter(|m| m.family() == b.family());
+    match (a, b) {
+        (IpAddr::Unspec, _) => 0,
+        (IpAddr::Inet4(x), IpAddr::Inet4(y)) => match mask {
+            Some(IpAddr::Inet4(m)) => (x & m).wrapping_sub(y & m) as i32,
+            _ => x.wrapping_sub(*y) as i32,
+        },
+        (IpAddr::Inet6(x), IpAddr::Inet6(y)) => {
+            let mut d = 0i32;
+            let mut i = 0;
+            while d == 0 && i < 16 {
+                d = match mask {
+                    Some(IpAddr::Inet6(m)) => (x[i] & m[i]) as i32 - (y[i] & m[i]) as i32,
+                    _ => x[i] as i32 - y[i] as i32,
+                };
+                i += 1;
+            }
+            d
+        }
+        (IpAddr::Id(x), IpAddr::Id(y)) => x.wrapping_sub(*y) as i32,
+        _ => 0,
+    }
+}
+
+/// `UTI_IPHostToNetwork`: serialize an `IPAddr` into chrony's 20-byte on-wire image
+/// (`sizeof(IPAddr)`): the 16-byte address region, then the family as a big-endian
+/// `u16`, then a zero `_pad`. Uninitialized bytes are zeroed, exactly as chrony does to
+/// avoid leaking stack contents. The IPv4/id value goes out in network byte order.
+pub fn ip_host_to_network(ip: &IpAddr) -> [u8; 20] {
+    let mut w = [0u8; 20];
+    w[16..18].copy_from_slice(&ip.family().to_be_bytes());
+    match ip {
+        IpAddr::Inet4(v) | IpAddr::Id(v) => w[0..4].copy_from_slice(&v.to_be_bytes()),
+        IpAddr::Inet6(b) => w[0..16].copy_from_slice(b),
+        IpAddr::Unspec => {}
+    }
+    w
+}
+
+/// `UTI_IPNetworkToHost`: deserialize chrony's 20-byte on-wire `IPAddr` image. An
+/// unrecognized family decodes to [`IpAddr::Unspec`].
+pub fn ip_network_to_host(wire: &[u8; 20]) -> IpAddr {
+    let family = u16::from_be_bytes([wire[16], wire[17]]);
+    let v = u32::from_be_bytes([wire[0], wire[1], wire[2], wire[3]]);
+    match family {
+        1 => IpAddr::Inet4(v),
+        2 => {
+            let mut b = [0u8; 16];
+            b.copy_from_slice(&wire[0..16]);
+            IpAddr::Inet6(b)
+        }
+        3 => IpAddr::Id(v),
+        _ => IpAddr::Unspec,
+    }
+}
+
+/// `UTI_CmacNameToAlgorithm`: map a CMAC algorithm name to chrony's `CMC_Algorithm`
+/// value, `CMC_INVALID` (0) if unknown.
+pub fn cmac_name_to_algorithm(name: &str) -> i32 {
+    match name {
+        "AES128" => 13, // CMC_AES128
+        "AES256" => 14, // CMC_AES256
+        _ => 0,         // CMC_INVALID
+    }
+}
+
+/// `UTI_HashNameToAlgorithm`: map a hash algorithm name to chrony's `HSH_Algorithm`
+/// value, `HSH_INVALID` (0) if unknown.
+pub fn hash_name_to_algorithm(name: &str) -> i32 {
+    match name {
+        "MD5" => 1,
+        "SHA1" => 2,
+        "SHA256" => 3,
+        "SHA384" => 4,
+        "SHA512" => 5,
+        "SHA3-224" => 6,
+        "SHA3-256" => 7,
+        "SHA3-384" => 8,
+        "SHA3-512" => 9,
+        "TIGER" => 10,
+        "WHIRLPOOL" => 11,
+        _ => 0, // HSH_INVALID
+    }
+}
+
+/// `UTI_TimespecToString`: render a timespec as `seconds.nanoseconds`, the nanoseconds
+/// zero-padded to 9 digits, for diagnostic display. The seconds keep their sign; the
+/// nanoseconds are formatted unsigned (chrony's `(unsigned long)`).
+pub fn timespec_to_string(sec: i64, nsec: i64) -> String {
+    format!("{}.{:09}", sec, nsec as u64)
+}
+
+/// `UTI_Ntp64ToString`: render a 64-bit NTP timestamp as a diagnostic string by mapping
+/// it to a timespec ([`ntp64_to_timespec`], so era-split-aware) and formatting that via
+/// [`timespec_to_string`].
+pub fn ntp64_to_string(hi: u32, lo: u32, ntp_era_split: i64) -> String {
+    let (sec, nsec) = ntp64_to_timespec(hi, lo, ntp_era_split);
+    timespec_to_string(sec, nsec)
+}
+
+/// Civil date `(year, month, day)` from a count of days since 1970-01-01 (Howard
+/// Hinnant's algorithm), matching `gmtime`'s proleptic-Gregorian calendar.
+fn civil_from_days(days: i64) -> (i64, u32, u32) {
+    let z = days + 719_468;
+    let era = (if z >= 0 { z } else { z - 146_096 }) / 146_097;
+    let doe = z - era * 146_097; // [0, 146096]
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365; // [0, 399]
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100); // [0, 365]
+    let mp = (5 * doy + 2) / 153; // [0, 11]
+    let d = doy - (153 * mp + 2) / 5 + 1; // [1, 31]
+    let m = if mp < 10 { mp + 3 } else { mp - 9 }; // [1, 12]
+    (y + i64::from(m <= 2), m as u32, d as u32)
+}
+
+/// `UTI_TimeToLogForm`: format a Unix time (UTC) as `"%Y-%m-%d %H:%M:%S"`, matching
+/// chrony's `gmtime` + `strftime`. Years are rendered with at least four digits (chrony
+/// never logs years before 1000, where `strftime`'s `%Y` would differ).
+pub fn time_to_log_form(t: i64) -> String {
+    // gmtime: floor-divide into whole days and the second-of-day, for negative t too.
+    let days = t.div_euclid(86_400);
+    let secs = t.rem_euclid(86_400);
+    let (year, month, day) = civil_from_days(days);
+    let hour = secs / 3600;
+    let min = (secs % 3600) / 60;
+    let sec = secs % 60;
+    format!("{year:04}-{month:02}-{day:02} {hour:02}:{min:02}:{sec:02}")
+}
+
+/// `logging.c` `LOG_Message`'s line-prefix timestamp: format a Unix time (UTC) as
+/// `strftime("%Y-%m-%dT%H:%M:%SZ")` — ISO 8601 with the trailing `Z`. Composes the same
+/// `gmtime` civil-date math as [`time_to_log_form`].
+pub fn time_to_iso8601(t: i64) -> String {
+    let days = t.div_euclid(86_400);
+    let secs = t.rem_euclid(86_400);
+    let (year, month, day) = civil_from_days(days);
+    let hour = secs / 3600;
+    let min = (secs % 3600) / 60;
+    let sec = secs % 60;
+    format!("{year:04}-{month:02}-{day:02}T{hour:02}:{min:02}:{sec:02}Z")
+}
+
+/// chronyc's `print_report` `%T` specifier: format a Unix time (UTC) as
+/// `strftime("%a %b %d %T %Y")` — the abbreviated English weekday and month, zero-padded
+/// day-of-month, `HH:MM:SS`, and the year (e.g. `"Wed Nov 15 03:33:20 2023"`). Composes the same
+/// `gmtime` civil-date math as [`time_to_log_form`], plus the weekday from the day count
+/// (1970-01-01 was a Thursday).
+pub fn gmtime_report_string(t: i64) -> String {
+    const WDAY: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const MON: [&str; 12] = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    let days = t.div_euclid(86_400);
+    let secs = t.rem_euclid(86_400);
+    let (year, month, day) = civil_from_days(days);
+    // 1970-01-01 (day 0) was a Thursday (index 4, with 0 = Sunday); wrap for negative days.
+    let wday = (days + 4).rem_euclid(7) as usize;
+    let hour = secs / 3600;
+    let min = (secs % 3600) / 60;
+    let sec = secs % 60;
+    format!(
+        "{} {} {day:02} {hour:02}:{min:02}:{sec:02} {year}",
+        WDAY[wday],
+        MON[(month - 1) as usize],
+    )
+}
+
+/// `UTI_PathToDir`: the directory part of a path (a `dirname`-like split on the last
+/// `/`). No slash → `"."`; a single leading slash → `"/"`; otherwise the prefix before
+/// the last slash.
+pub fn path_to_dir(path: &str) -> String {
+    match path.rfind('/') {
+        None => ".".to_string(),
+        Some(0) => "/".to_string(),
+        Some(i) => path[..i].to_string(),
+    }
+}
+
+/// `UTI_SplitString`: split on runs of ASCII whitespace, returning the words and the
+/// total word count. chrony fills a caller buffer of `max_saved_words` and returns the
+/// full count (which may exceed it), so the returned `Vec` is capped at `max_saved_words`
+/// while the count is not.
+pub fn split_string(string: &str, max_saved_words: usize) -> (Vec<String>, usize) {
+    let mut words = Vec::new();
+    let mut count = 0;
+    // chrony uses C isspace: space, \t, \n, \v, \f, \r.
+    for word in string.split([' ', '\t', '\n', '\u{b}', '\u{c}', '\r']) {
+        if word.is_empty() {
+            continue;
+        }
+        if count < max_saved_words {
+            words.push(word.to_string());
+        }
+        count += 1;
+    }
+    (words, count)
+}
+
+/// `UTI_IPToString`: render an `IPAddr` as its canonical text. INET4 and INET6 use the
+/// platform's `inet_ntop` form (dotted-quad / RFC 5952); chrony's tests confirm Rust's
+/// std `Ipv4Addr`/`Ipv6Addr` `Display` is byte-identical to glibc's `inet_ntop`
+/// (including the `::ffff:a.b.c.d` IPv4-mapped form and leftmost-longest zero-run
+/// compression). `ID` renders as `ID#` + a 10-digit zero-padded number; `UNSPEC` as
+/// `[UNSPEC]`.
+pub fn ip_to_string(ip: &IpAddr) -> String {
+    match ip {
+        IpAddr::Unspec => "[UNSPEC]".to_string(),
+        // chrony stores INET4 in host order and prints MSB first; `Ipv4Addr::from(u32)`
+        // interprets the u32 big-endian, matching.
+        IpAddr::Inet4(v) => std::net::Ipv4Addr::from(*v).to_string(),
+        IpAddr::Inet6(b) => std::net::Ipv6Addr::from(*b).to_string(),
+        IpAddr::Id(id) => format!("ID#{id:010}"),
+    }
+}
+
+/// `UTI_StringToIP`: parse an IP literal, trying IPv4 then IPv6 exactly as chrony's
+/// `inet_pton(AF_INET, …)` then `inet_pton(AF_INET6, …)`. Returns `None` if neither
+/// parses. The oracle confirms Rust's std parsers reject the same inputs glibc's
+/// `inet_pton` does (leading zeros, out-of-range octets, embedded spaces, hex, etc.).
+pub fn string_to_ip(s: &str) -> Option<IpAddr> {
+    if let Ok(v4) = s.parse::<std::net::Ipv4Addr>() {
+        // chrony stores ntohl(s_addr), i.e. the host-order value.
+        return Some(IpAddr::Inet4(u32::from(v4)));
+    }
+    if let Ok(v6) = s.parse::<std::net::Ipv6Addr>() {
+        return Some(IpAddr::Inet6(v6.octets()));
+    }
+    None
+}
+
+/// `UTI_IsStringIP`: whether `s` is a valid IP literal (IPv4 or IPv6).
+pub fn is_string_ip(s: &str) -> bool {
+    string_to_ip(s).is_some()
+}
+
+/// `UTI_StringToIdIP`: parse chrony's `ID#<number>` pseudo-address. Matches the literal
+/// `ID#` prefix (no leading whitespace), then `sscanf("%u")`: skip whitespace, take the
+/// leading decimal digits, and store them truncated to a `u32` (so `4294967296` wraps to
+/// `0`, exactly as glibc). Trailing non-digits are ignored.
+pub fn string_to_id_ip(s: &str) -> Option<IpAddr> {
+    let rest = s.strip_prefix("ID#")?;
+    // sscanf %u skips leading ASCII whitespace.
+    let rest = rest.trim_start_matches([' ', '\t', '\n', '\u{b}', '\u{c}', '\r']);
+    let mut digits = 0;
+    let mut v: u32 = 0;
+    for c in rest.bytes() {
+        if !c.is_ascii_digit() {
+            break;
+        }
+        // Modular accumulation in u32 reproduces glibc's uint32 truncation of the value.
+        v = v.wrapping_mul(10).wrapping_add((c - b'0') as u32);
+        digits += 1;
+    }
+    if digits == 0 {
+        return None;
+    }
+    Some(IpAddr::Id(v))
+}
+
+/// `UTI_IPToRefid`: derive a 32-bit reference id from an address. IPv4 is the host-order
+/// address itself; IPv6 is the first 4 bytes (big-endian) of the non-cryptographic MD5 of
+/// the 16 address bytes (chrony's `HSH_MD5_NONCRYPTO`); anything else is 0.
+pub fn ip_to_refid(ip: &IpAddr) -> u32 {
+    match ip {
+        IpAddr::Inet4(v) => *v,
+        IpAddr::Inet6(bytes) => {
+            let digest = crate::md5::Md5::digest(bytes);
+            u32::from_be_bytes([digest[0], digest[1], digest[2], digest[3]])
+        }
+        _ => 0,
+    }
+}
+
+/// `UTI_IPToRefid` for an IPv4 address (the address itself). Retained for callers that
+/// already hold the host-order `u32`.
+pub fn ip_to_refid_inet4(addr: u32) -> u32 {
+    addr
+}
+
+/// `UTI_IPSockAddrToString`: render an address and port as `ip:port`, bracketing the IP
+/// for IPv6 (`[ip]:port`), matching chrony's family check.
+pub fn ip_sockaddr_to_string(ip: &IpAddr, port: u16) -> String {
+    if ip.family() != 2 {
+        // not INET6
+        format!("{}:{}", ip_to_string(ip), port)
+    } else {
+        format!("[{}]:{}", ip_to_string(ip), port)
+    }
+}
+
+/// `UTI_IPSubnetToString`: render a subnet. `UNSPEC` → `"any address"`; a full-length
+/// prefix (IPv4 `/32`, IPv6 `/128`) → just the address; otherwise `address/bits`.
+pub fn ip_subnet_to_string(subnet: &IpAddr, bits: i32) -> String {
+    match subnet {
+        IpAddr::Unspec => "any address".to_string(),
+        IpAddr::Inet4(_) if bits == 32 => ip_to_string(subnet),
+        IpAddr::Inet6(_) if bits == 128 => ip_to_string(subnet),
+        _ => format!("{}/{}", ip_to_string(subnet), bits),
+    }
+}
+
+/// `join_path`: build `basedir/name + suffix` into a buffer of `length` bytes. A `None`
+/// basedir contributes neither the directory nor the `/` separator; a `None` suffix is
+/// empty. Returns `None` (chrony's "too long" failure) when the result would not fit in
+/// `length` bytes including the NUL terminator (i.e. its length is `>= length`).
+pub fn join_path(
+    basedir: Option<&str>,
+    name: &str,
+    suffix: Option<&str>,
+    length: usize,
+) -> Option<String> {
+    let (basedir, sep) = match basedir {
+        None => ("", ""),
+        Some(b) => (b, "/"),
+    };
+    let suffix = suffix.unwrap_or("");
+    let full = format!("{basedir}{sep}{name}{suffix}");
+    // snprintf reports the would-be length; it fails to fit when len >= length.
+    if full.len() >= length {
+        None
+    } else {
+        Some(full)
+    }
+}
+
+/// `UTI_CheckDirPermissions`: whether a directory's `stat` result is acceptable — it must
+/// be a directory, carry no permission bits outside `perm`, and be owned by `exp_uid` /
+/// `exp_gid`. The `stat` call itself is the host boundary; this is the pure decision over
+/// its result (`mode` is the low permission bits, `& 0o777`).
+pub fn check_dir_permissions(
+    is_dir: bool,
+    mode: u32,
+    uid: u32,
+    gid: u32,
+    perm: u32,
+    exp_uid: u32,
+    exp_gid: u32,
+) -> bool {
+    if !is_dir {
+        return false;
+    }
+    if (mode & 0o777) & !perm != 0 {
+        return false;
+    }
+    if uid != exp_uid {
+        return false;
+    }
+    if gid != exp_gid {
+        return false;
+    }
+    true
+}
+
+/// `UTI_CheckFilePermissions`: whether a regular file's permission bits are within `perm`.
+/// A non-regular file (or a failed `stat`) is "not considered an error" and passes. The
+/// `stat` call is the host boundary; this is the pure decision over its result.
+pub fn check_file_permissions(is_reg: bool, mode: u32, perm: u32) -> bool {
+    if !is_reg {
+        return true;
+    }
+    (mode & 0o777) & !perm == 0
+}
+
+// ---------------------------------------------------------------------------
+// Remaining util.c functions — file I/O, privilege drop, CSPRNG, signals.
+// These are host-boundary operations injected as closures; the port documents
+// the semantics and boundary.
+// ---------------------------------------------------------------------------
+
+/// `UTI_CheckReadOnlyAccess`: check whether a path has read-only access.
+/// Returns `true` if the path is accessible and not writable by others.
+/// The actual stat() call is the host boundary.
+pub fn check_read_only_access<F: FnOnce(&str) -> Option<(bool, u32)>>(
+    path: &str,
+    stat: F,
+) -> bool {
+    match stat(path) {
+        Some((_is_reg, mode)) => {
+            // Must be readable (owner/group) and not world-writable.
+            let is_readable = (mode & 0o444) != 0;
+            let not_world_writable = (mode & 0o002) == 0;
+            is_readable && not_world_writable
+        }
+        None => false,
+    }
+}
+
+/// `UTI_DropRoot`: drop root privileges. Host boundary (setuid/setgpr/capabilities).
+pub fn drop_root<F: FnOnce() -> bool>(drop: F) -> bool {
+    drop()
+}
+
+/// `UTI_GetRandomBytes`: fill a buffer with cryptographically random bytes.
+/// Host boundary (CSPRNG).
+pub fn get_random_bytes<F: FnOnce(&mut [u8])>(fill: F, buf: &mut [u8]) {
+    fill(buf);
+}
+
+/// `UTI_GetRandomBytesUrandom`: fill a buffer from /dev/urandom.
+/// Host boundary (file read).
+pub fn get_random_bytes_urandom<F: FnOnce(&mut [u8]) -> bool>(fill: F, buf: &mut [u8]) -> bool {
+    fill(buf)
+}
+
+/// `UTI_ResetGetRandomFunctions`: re-seed the CSPRNG (used after fork).
+/// Host boundary.
+pub fn reset_get_random_functions<F: FnOnce()>(reset: F) {
+    reset();
+}
+
+/// `UTI_SetQuitSignalsHandler`: install signal handlers for SIGINT/SIGTERM.
+/// Host boundary.
+pub fn set_quit_signals_handler<F: FnOnce()>(set_handler: F) {
+    set_handler();
+}
+
+/// `UTI_OpenFile`: open a file for reading/writing. Host boundary.
+/// Returns an abstract handle (fd, or an enum) via the injected open function.
+pub fn open_file<F: FnOnce(&str) -> Option<i32>>(path: &str, open: F) -> Option<i32> {
+    open(path)
+}
+
+/// `UTI_RemoveFile`: delete a file. Returns true on success.
+/// Host boundary.
+pub fn remove_file<F: FnOnce(&str) -> bool>(path: &str, remove: F) -> bool {
+    remove(path)
+}
+
+/// `UTI_RenameTempFile`: atomically rename a temp file to its final name.
+/// Host boundary (rename syscall).
+pub fn rename_temp_file<F: FnOnce(&str, &str) -> bool>(old: &str, new: &str, rename: F) -> bool {
+    rename(old, new)
+}
+
+/// `create_dir`: create a directory (mode is the permission bits).
+/// Host boundary (mkdir syscall).
+pub fn create_dir<F: FnOnce(&str, u32) -> bool>(path: &str, mode: u32, mkdir: F) -> bool {
+    mkdir(path, mode)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Differential oracle for [`get_ntp64_fuzz`] vs the REAL compiled `UTI_GetNtp64Fuzz`
+    /// (verbatim util.c body + a controlled RNG that fills `rnd[i] = 0xB0 + i`), swept over
+    /// the full precision domain `-32..=32` (`research/oracle/ntp64-fuzz-c-vectors.txt`).
+    /// Reconstructs the 8 fuzz bytes from the returned host-order `(hi, lo)` (big-endian)
+    /// and byte-compares them to chrony's raw struct bytes — endianness-agnostic — pinning
+    /// the `start` offset and the top-byte `% (1 << bits)` masking at every precision,
+    /// including the boundaries where a new byte enters the fuzz (`start` decrements) and
+    /// where `bits` wraps to 0 (no mask).
+    #[test]
+    fn get_ntp64_fuzz_matches_real_c() {
+        let vectors = include_str!("../../../research/oracle/ntp64-fuzz-c-vectors.txt");
+        let field = |line: &str, key: &str| -> String {
+            line.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{key}=")))
+                .unwrap()
+                .to_string()
+        };
+        // Same controlled RNG the oracle used: rnd[i] = 0xB0 + i.
+        let rnd: [u8; 8] = std::array::from_fn(|i| (0xB0 + i) as u8);
+
+        let mut n = 0;
+        for line in vectors.lines().filter(|l| l.starts_with("FUZZ ")) {
+            let prec: i32 = field(line, "prec").parse().unwrap();
+            let (hi, lo) = get_ntp64_fuzz(prec, &rnd);
+            let mut w = [0u8; 8];
+            w[0..4].copy_from_slice(&hi.to_be_bytes());
+            w[4..8].copy_from_slice(&lo.to_be_bytes());
+            let got: String = w.iter().map(|b| format!("{b:02x}")).collect();
+            assert_eq!(got, field(line, "bytes"), "prec={prec} bytes");
+            // The reported start offset is also reproduced by our formula.
+            let start = 8 - ((prec + 32 + 7) / 8);
+            assert_eq!(start, field(line, "start").parse::<i32>().unwrap(), "prec={prec} start");
+            n += 1;
+        }
+        assert_eq!(n, 65, "expected a -32..=32 precision sweep");
+    }
+
+    /// Cross-cutting reference: where Rust `format!` matches C `printf` for the specifiers chrony
+    /// uses in file/log output, and where it does not. Establishes that the persistence/log
+    /// formats (%f for the drift file and logs, %o for reachability, %x/%X for refids, %d/%u for
+    /// counts) are byte-safe, and pins the one exception (%e — Rust omits the exponent sign and
+    /// zero-padding, so `fmt_c_e6`-style shims are required). Differential-tested vs real printf.
+    #[test]
+    fn printf_format_parity() {
+        // The C `%.6e` -> chrony format shim (mirrors sourcestats::fmt_c_e6).
+        fn c_e6(x: f64) -> String {
+            let s = format!("{x:.6e}");
+            let (m, e) = s.split_once('e').unwrap();
+            let e: i32 = e.parse().unwrap();
+            format!("{m}e{}{:02}", if e < 0 { '-' } else { '+' }, e.abs())
+        }
+        let v = include_str!("../../../research/oracle/printf-format-c-vectors.txt");
+        fn out(l: &str) -> &str {
+            l.split(" |").nth(1).unwrap().strip_suffix('|').unwrap()
+        }
+        for l in v.lines().filter(|l| !l.starts_with('#') && l.contains(" |")) {
+            let tag = l.split_whitespace().next().unwrap();
+            let val = l.split_whitespace().find_map(|t| t.strip_prefix("v=")).unwrap();
+            let want = out(l);
+            let got = match tag {
+                "F6" => format!("{:.6}", val.parse::<f64>().unwrap()),
+                "F206" => format!("{:20.6}", val.parse::<f64>().unwrap()),
+                "SF3" => format!("{:+.3}", val.parse::<f64>().unwrap()),
+                "F0" => format!("{:.0}", val.parse::<f64>().unwrap()),
+                "O" => format!("{:o}", val.parse::<u32>().unwrap()),
+                "X" => format!("{:08X}", val.parse::<u32>().unwrap()),
+                "XL" => format!("{:x}", val.parse::<u32>().unwrap()),
+                "D8" => format!("{:8}", val.parse::<u32>().unwrap()),
+                "DD" => format!("{:5}", val.parse::<i64>().unwrap()),
+                "E6" => c_e6(val.parse::<f64>().unwrap()),
+                other => panic!("unknown tag {other}"),
+            };
+            assert_eq!(got, want, "{tag} v={val}: Rust {got:?} vs C {want:?}");
+        }
+    }
+
+    fn field<'a>(line: &'a str, key: &str) -> &'a str {
+        line.split_whitespace().find_map(|t| t.strip_prefix(&format!("{key}="))).unwrap()
+    }
+
+    #[test]
+    fn matches_real_c_time_conversions() {
+        let v = include_str!("../../../research/oracle/util-time-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+
+        // DoubleToTimespec / TimespecToDouble round trips.
+        for tag in ["TS_POS", "TS_FRAC", "TS_NEG", "TS_ZERO"] {
+            let l = line(tag);
+            let (sec, nsec) = double_to_timespec(field(l, "in").parse().unwrap());
+            assert_eq!(sec, field(l, "sec").parse::<i64>().unwrap(), "{tag} sec");
+            assert_eq!(nsec, field(l, "nsec").parse::<i64>().unwrap(), "{tag} nsec");
+            assert_eq!(timespec_to_double(sec, nsec), field(l, "back").parse::<f64>().unwrap(), "{tag} back");
+        }
+        // DoubleToTimeval / TimevalToDouble round trips.
+        for tag in ["TV_POS", "TV_FRAC", "TV_NEG"] {
+            let l = line(tag);
+            let (sec, usec) = double_to_timeval(field(l, "in").parse().unwrap());
+            assert_eq!(sec, field(l, "sec").parse::<i64>().unwrap(), "{tag} sec");
+            assert_eq!(usec, field(l, "usec").parse::<i64>().unwrap(), "{tag} usec");
+            assert_eq!(timeval_to_double(sec, usec), field(l, "back").parse::<f64>().unwrap(), "{tag} back");
+        }
+        // f28 fixed point.
+        for tag in ["F28_SMALL", "F28_ONE", "F28_NEG", "F28_BIG"] {
+            let l = line(tag);
+            let raw = double_to_ntp32f28(field(l, "in").parse().unwrap());
+            assert_eq!(raw, field(l, "raw").parse::<u32>().unwrap(), "{tag} raw");
+            assert_eq!(ntp32f28_to_double(raw), field(l, "back").parse::<f64>().unwrap(), "{tag} back");
+        }
+        // CompareNtp64 / IsZeroNtp64.
+        assert_eq!(compare_ntp64(5, 10, 5, 10), field(line("CMP_EQ"), "r").parse::<i32>().unwrap());
+        assert_eq!(compare_ntp64(5, 10, 5, 11), field(line("CMP_LO"), "r").parse::<i32>().unwrap());
+        assert_eq!(compare_ntp64(6, 0, 5, 10), field(line("CMP_HI"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_zero_ntp64(0, 0) as i32, field(line("ISZERO_Y"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_zero_ntp64(5, 10) as i32, field(line("ISZERO_N"), "r").parse::<i32>().unwrap());
+    }
+
+    #[test]
+    fn matches_real_c_timespec_arithmetic() {
+        let v = include_str!("../../../research/oracle/util-time-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+
+        // IsEqualAnyNtp64: same values the C oracle used (a=5:10, b=5:10, c=5:11, d=6:0, z=0:0).
+        let (a, b, c, d, z) = ((5, 10), (5, 10), (5, 11), (6, 0), (0, 0));
+        assert_eq!(
+            is_equal_any_ntp64(a, Some(b), Some(c), Some(d)) as i32,
+            field(line("EQANY_B1"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_equal_any_ntp64(d, Some(c), Some(z), Some(d)) as i32,
+            field(line("EQANY_B3"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_equal_any_ntp64(a, Some(c), Some(d), Some(z)) as i32,
+            field(line("EQANY_NONE"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_equal_any_ntp64(a, None, None, None) as i32,
+            field(line("EQANY_NULLS"), "r").parse::<i32>().unwrap()
+        );
+
+        // CompareTimespecs: p=100:5e8, q=100:2e8, rr=50:9e8.
+        let (p, q, rr) = ((100i64, 500000000i64), (100i64, 200000000i64), (50i64, 900000000i64));
+        assert_eq!(compare_timespecs(p, q), field(line("CMPTS_GT"), "r").parse::<i32>().unwrap());
+        assert_eq!(compare_timespecs(q, p), field(line("CMPTS_LT"), "r").parse::<i32>().unwrap());
+        assert_eq!(compare_timespecs(p, p), field(line("CMPTS_EQ"), "r").parse::<i32>().unwrap());
+
+        // DiffTimespecs (p - rr) plus DiffTimespecsToDouble.
+        let l = line("DIFFTS");
+        let (ds, dn) = diff_timespecs(p, rr);
+        assert_eq!(ds, field(l, "sec").parse::<i64>().unwrap(), "DIFFTS sec");
+        assert_eq!(dn, field(l, "nsec").parse::<i64>().unwrap(), "DIFFTS nsec");
+        assert_eq!(diff_timespecs_to_double(p, rr), field(l, "d").parse::<f64>().unwrap(), "DIFFTS d");
+
+        // AddDoubleToTimespec(q, 1.75).
+        let l = line("ADDDBL");
+        let (asec, ansec) = add_double_to_timespec(q, 1.75);
+        assert_eq!(asec, field(l, "sec").parse::<i64>().unwrap(), "ADDDBL sec");
+        assert_eq!(ansec, field(l, "nsec").parse::<i64>().unwrap(), "ADDDBL nsec");
+
+        // AddDiffToTimespec(p, rr, q) = q + (p - rr).
+        let l = line("ADDDIFF");
+        let (fsec, fnsec) = add_diff_to_timespec(p, rr, q);
+        assert_eq!(fsec, field(l, "sec").parse::<i64>().unwrap(), "ADDDIFF sec");
+        assert_eq!(fnsec, field(l, "nsec").parse::<i64>().unwrap(), "ADDDIFF nsec");
+
+        // timeval <-> timespec.
+        let l = line("TV2TS");
+        let (tsec, tnsec) = timeval_to_timespec(123, 456789);
+        assert_eq!(tsec, field(l, "sec").parse::<i64>().unwrap(), "TV2TS sec");
+        assert_eq!(tnsec, field(l, "nsec").parse::<i64>().unwrap(), "TV2TS nsec");
+        let l = line("TS2TV");
+        let (vsec, vusec) = timespec_to_timeval(123, 456789999);
+        assert_eq!(vsec, field(l, "sec").parse::<i64>().unwrap(), "TS2TV sec");
+        assert_eq!(vusec, field(l, "usec").parse::<i64>().unwrap(), "TS2TV usec");
+    }
+
+    #[test]
+    fn matches_real_c_ntp64_wire_serialization() {
+        let v = include_str!("../../../research/oracle/util-time-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+
+        // ZeroNtp64 / ZeroTimespec.
+        let l = line("ZNTP64");
+        assert_eq!(zero_ntp64(), (field(l, "hi").parse().unwrap(), field(l, "lo").parse().unwrap()));
+        let l = line("ZTS");
+        assert_eq!(zero_timespec(), (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap()));
+
+        // IsZeroTimespec.
+        assert_eq!(is_zero_timespec(0, 0) as i32, field(line("ISZTS_ZZ"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_zero_timespec(0, 5) as i32, field(line("ISZTS_ZN"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_zero_timespec(5, 0) as i32, field(line("ISZTS_SZ"), "r").parse::<i32>().unwrap());
+
+        // TimespecToNtp64: plain, zero, and with fuzz XOR (fuzz = 0xdeadbeef:0x12345678).
+        let l = line("TS2N_POS");
+        assert_eq!(
+            timespec_to_ntp64(1234, 500000000, None),
+            (field(l, "hi").parse().unwrap(), field(l, "lo").parse().unwrap())
+        );
+        let l = line("TS2N_ZERO");
+        assert_eq!(
+            timespec_to_ntp64(0, 0, None),
+            (field(l, "hi").parse().unwrap(), field(l, "lo").parse().unwrap())
+        );
+        let l = line("TS2N_FUZZ");
+        assert_eq!(
+            timespec_to_ntp64(1234, 500000000, Some((0xdead_beef, 0x1234_5678))),
+            (field(l, "hi").parse().unwrap(), field(l, "lo").parse().unwrap())
+        );
+
+        // AverageDiffTimespecs (earlier=100:2e8, later=103:7e8).
+        let l = line("AVGDIFF");
+        let ((asec, ansec), diff) = average_diff_timespecs((100, 200000000), (103, 700000000));
+        assert_eq!(asec, field(l, "sec").parse::<i64>().unwrap(), "AVGDIFF sec");
+        assert_eq!(ansec, field(l, "nsec").parse::<i64>().unwrap(), "AVGDIFF nsec");
+        assert_eq!(diff, field(l, "diff").parse::<f64>().unwrap(), "AVGDIFF diff");
+
+        // AdjustTimespec (old=1000:0, when=1010:0, dfreq=1e-5, doffset=0.5).
+        let l = line("ADJ");
+        let ((nsec_s, nsec_n), delta) = adjust_timespec((1000, 0), (1010, 0), 1.0e-5, 0.5);
+        assert_eq!(nsec_s, field(l, "sec").parse::<i64>().unwrap(), "ADJ sec");
+        assert_eq!(nsec_n, field(l, "nsec").parse::<i64>().unwrap(), "ADJ nsec");
+        assert_eq!(delta, field(l, "delta").parse::<f64>().unwrap(), "ADJ delta");
+
+        // Integer64 host<->network round trip (i = 0x123456789abcdef0).
+        let l = line("I64");
+        let (high, low) = integer64_host_to_network(0x1234_5678_9abc_def0);
+        assert_eq!(high, field(l, "hi").parse::<u32>().unwrap(), "I64 hi");
+        assert_eq!(low, field(l, "lo").parse::<u32>().unwrap(), "I64 lo");
+        assert_eq!(
+            integer64_network_to_host(high, low),
+            field(l, "back").parse::<u64>().unwrap(),
+            "I64 back"
+        );
+
+        // Float host<->network: chrony's custom 7-exp/25-coef wire float.
+        let cases = [
+            ("FLT_ZERO", 0.0),
+            ("FLT_ONE", 1.0),
+            ("FLT_NEGONE", -1.0),
+            ("FLT_HALF", 0.5),
+            ("FLT_NEGHALF", -0.5),
+            ("FLT_BIG", 1234.5),
+            ("FLT_NEGBIG", -1234.5),
+            ("FLT_TINY", 1.0e-9),
+            ("FLT_PI", 3.141_592_653_589_79),
+            ("FLT_UNDER", 1.0e-120),
+            ("FLT_OVER", 1.0e120),
+            ("FLT_NEGOVER", -1.0e120),
+            ("FLT_NEARMAX", 65535.99),
+            ("FLT_POW2", 0.001953125),
+        ];
+        for (tag, x) in cases {
+            let l = line(tag);
+            let raw = float_host_to_network(x);
+            assert_eq!(raw, field(l, "raw").parse::<u32>().unwrap(), "{tag} raw");
+            assert_eq!(
+                float_network_to_host(raw),
+                field(l, "back").parse::<f64>().unwrap(),
+                "{tag} back"
+            );
+        }
+    }
 
     #[test]
     fn log2_to_double_matches_chrony_branches() {
@@ -103,12 +1324,412 @@ mod tests {
 
     #[test]
     fn is_time_offset_sane_window() {
-        assert!(is_time_offset_sane(1.7e9, 0.0)); // ~2023, valid
-        assert!(is_time_offset_sane(0.0, 0.0)); // 1970 boundary
-        assert!(!is_time_offset_sane(-1.0, 0.0)); // before 1970
-        assert!(!is_time_offset_sane(5e9, 0.0)); // beyond 2^32 (after 2106)
-        assert!(!is_time_offset_sane(1.7e9, f64::NAN)); // NaN offset
-        assert!(!is_time_offset_sane(1.7e9, 5e9)); // offset out of range
+        // Era-split-0 build: window [0, 2^32].
+        assert!(is_time_offset_sane(1.7e9, 0.0, 0)); // ~2023, valid
+        assert!(is_time_offset_sane(0.0, 0.0, 0)); // split boundary
+        assert!(!is_time_offset_sane(-1.0, 0.0, 0)); // before 1970
+        assert!(!is_time_offset_sane(5e9, 0.0, 0)); // beyond 2^32 (after 2106)
+        assert!(!is_time_offset_sane(1.7e9, f64::NAN, 0)); // NaN offset
+        assert!(!is_time_offset_sane(1.7e9, 5e9, 0)); // offset out of range
+    }
+
+    #[test]
+    fn matches_real_c_era_split_conversions() {
+        // Oracle built with HAVE_LONG_TIME_T and a pinned NTP_ERA_SPLIT (see genera.c).
+        let v = include_str!("../../../research/oracle/util-era-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+        let split: i64 = field(line("ERA_SPLIT"), "v").parse().unwrap();
+        let jan_1970: u32 = field(line("JAN_1970"), "v").parse().unwrap();
+        assert_eq!(split, 123_200_000);
+        assert_eq!(jan_1970, JAN_1970);
+
+        // Ntp64ToTimespec.
+        let l = line("N2TS_ZERO");
+        assert_eq!(
+            ntp64_to_timespec(0, 0, split),
+            (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap())
+        );
+        let l = line("N2TS_MID");
+        let frac: u32 = field(l, "nsec_in").parse().unwrap();
+        let ntp_sec = 1_700_000_000u32.wrapping_add(JAN_1970);
+        let (sec, nsec) = ntp64_to_timespec(ntp_sec, frac, split);
+        assert_eq!(sec, field(l, "sec").parse::<i64>().unwrap(), "N2TS_MID sec");
+        assert_eq!(nsec, field(l, "nsec").parse::<i64>().unwrap(), "N2TS_MID nsec");
+        let l = line("N2TS_LOW");
+        let (sec, _) = ntp64_to_timespec(JAN_1970.wrapping_add(100), 0, split);
+        assert_eq!(sec, field(l, "sec").parse::<i64>().unwrap(), "N2TS_LOW sec");
+
+        // TimespecHostToNetwork.
+        let l = line("TSH2N_MID");
+        let (h, lo, n) = timespec_host_to_network(1_700_000_000, 123_456_789);
+        assert_eq!(h, field(l, "high").parse::<u32>().unwrap(), "TSH2N_MID high");
+        assert_eq!(lo, field(l, "low").parse::<u32>().unwrap(), "TSH2N_MID low");
+        assert_eq!(n, field(l, "nsec").parse::<u32>().unwrap(), "TSH2N_MID nsec");
+        let l = line("TSH2N_BIG");
+        let (h, lo, n) = timespec_host_to_network(0x12_3456_7890, 999_999_999);
+        assert_eq!(h, field(l, "high").parse::<u32>().unwrap(), "TSH2N_BIG high");
+        assert_eq!(lo, field(l, "low").parse::<u32>().unwrap(), "TSH2N_BIG low");
+        assert_eq!(n, field(l, "nsec").parse::<u32>().unwrap(), "TSH2N_BIG nsec");
+
+        // TimespecNetworkToHost (round trips of the above, plus the NOHIGH case).
+        let l = line("TSN2H_MID");
+        let (h, lo, n) = timespec_host_to_network(1_700_000_000, 123_456_789);
+        assert_eq!(
+            timespec_network_to_host(h, lo, n),
+            (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap())
+        );
+        let l = line("TSN2H_BIG");
+        let (h, lo, n) = timespec_host_to_network(0x12_3456_7890, 999_999_999);
+        assert_eq!(
+            timespec_network_to_host(h, lo, n),
+            (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap())
+        );
+        let l = line("TSN2H_NOHIGH");
+        // tv_sec_high = TV_NOHIGHSEC, low = 42, nsec = 1.5e9 (clamped).
+        assert_eq!(
+            timespec_network_to_host(0x7fff_ffff, 42, 1_500_000_000),
+            (field(l, "sec").parse().unwrap(), field(l, "nsec").parse().unwrap())
+        );
+
+        // IsTimeOffsetSane window [split, split + 2^32].
+        assert_eq!(
+            is_time_offset_sane((split - 10) as f64, 0.0, split) as i32,
+            field(line("SANE_LO"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_time_offset_sane(1.7e9, 0.0, split) as i32,
+            field(line("SANE_IN"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_time_offset_sane((split + (1i64 << 32) + 10) as f64, 0.0, split) as i32,
+            field(line("SANE_HI"), "r").parse::<i32>().unwrap()
+        );
+        assert_eq!(
+            is_time_offset_sane(1.7e9, f64::NAN, split) as i32,
+            field(line("SANE_NAN"), "r").parse::<i32>().unwrap()
+        );
+    }
+
+    #[test]
+    fn matches_real_c_ip_address_algebra() {
+        let v = include_str!("../../../research/oracle/util-ip-c-vectors.txt");
+        let line = |tag: &str| v.lines().map(str::trim).find(|l| l.starts_with(tag)).unwrap();
+        let r = |tag: &str| field(line(tag), "r").parse::<i32>().unwrap();
+        let val = |tag: &str| field(line(tag), "v").parse::<i32>().unwrap();
+
+        // The 20-byte wire image must match sizeof(IPAddr).
+        assert_eq!(field(line("SIZEOF"), "v").parse::<usize>().unwrap(), 20);
+
+        // The fixtures' addresses, mirrored from genip.c.
+        let a4 = IpAddr::Inet4(0xC0A8_0101);
+        let b4 = IpAddr::Inet4(0xC0A8_0102);
+        let m4 = IpAddr::Inet4(0xFFFF_FF00);
+        let hi4 = IpAddr::Inet4(0x8000_0000);
+        let lo4 = IpAddr::Inet4(0x0000_0000);
+        let mut a6b = [0u8; 16];
+        for (i, x) in a6b.iter_mut().enumerate() {
+            *x = i as u8 + 1;
+        }
+        let a6 = IpAddr::Inet6(a6b);
+        let mut b6b = a6b;
+        b6b[8] = 0xFF;
+        let b6 = IpAddr::Inet6(b6b);
+        let mut m6b = [0u8; 16];
+        m6b[..8].fill(0xFF);
+        let m6 = IpAddr::Inet6(m6b);
+        let id1 = IpAddr::Id(100);
+        let id2 = IpAddr::Id(250);
+        let un = IpAddr::Unspec;
+
+        // IsIPReal.
+        assert_eq!(is_ip_real(&a4) as i32, r("REAL_4"));
+        assert_eq!(is_ip_real(&a6) as i32, r("REAL_6"));
+        assert_eq!(is_ip_real(&id1) as i32, r("REAL_ID"));
+        assert_eq!(is_ip_real(&un) as i32, r("REAL_UN"));
+
+        // CompareIPs (raw integer differences, not clamped).
+        assert_eq!(compare_ips(&a4, &b4, None), r("CMP_4_LT"));
+        assert_eq!(compare_ips(&b4, &a4, None), r("CMP_4_GT"));
+        assert_eq!(compare_ips(&a4, &a4, None), r("CMP_4_EQ"));
+        assert_eq!(compare_ips(&a4, &b4, Some(&m4)), r("CMP_4_MASK"));
+        assert_eq!(compare_ips(&hi4, &lo4, None), r("CMP_4_WRAP"));
+        assert_eq!(compare_ips(&a6, &b6, None), r("CMP_6_LT"));
+        assert_eq!(compare_ips(&b6, &a6, None), r("CMP_6_GT"));
+        assert_eq!(compare_ips(&a6, &a6, None), r("CMP_6_EQ"));
+        assert_eq!(compare_ips(&a6, &b6, Some(&m6)), r("CMP_6_MASK"));
+        assert_eq!(compare_ips(&id1, &id2, None), r("CMP_ID_LT"));
+        assert_eq!(compare_ips(&id2, &id1, None), r("CMP_ID_GT"));
+        assert_eq!(compare_ips(&un, &un, None), r("CMP_UN"));
+        assert_eq!(compare_ips(&a4, &a6, None), r("CMP_FAM_46"));
+        assert_eq!(compare_ips(&a6, &a4, None), r("CMP_FAM_64"));
+        // Mask whose family != b's is ignored.
+        assert_eq!(compare_ips(&a4, &b4, Some(&m6)), r("CMP_MASK_FAMMISMATCH"));
+
+        // IPHostToNetwork / IPNetworkToHost: exact wire image + round trip.
+        let wire = |tag: &str| field(line(tag), "bytes");
+        assert_eq!(bytes_to_hex(&ip_host_to_network(&a4)), wire("H2N_4").to_uppercase());
+        assert_eq!(ip_network_to_host(&ip_host_to_network(&a4)), a4);
+        assert_eq!(bytes_to_hex(&ip_host_to_network(&a6)), wire("H2N_6").to_uppercase());
+        assert_eq!(ip_network_to_host(&ip_host_to_network(&a6)), a6);
+        assert_eq!(bytes_to_hex(&ip_host_to_network(&id1)), wire("H2N_ID").to_uppercase());
+        assert_eq!(ip_network_to_host(&ip_host_to_network(&id1)), id1);
+        assert_eq!(bytes_to_hex(&ip_host_to_network(&un)), wire("H2N_UN").to_uppercase());
+        assert_eq!(ip_network_to_host(&ip_host_to_network(&un)), un);
+
+        // Cmac/Hash name -> algorithm.
+        assert_eq!(cmac_name_to_algorithm("AES128"), val("CMAC_AES128"));
+        assert_eq!(cmac_name_to_algorithm("AES256"), val("CMAC_AES256"));
+        assert_eq!(cmac_name_to_algorithm("AES999"), val("CMAC_BAD"));
+        for name in [
+            "MD5", "SHA1", "SHA256", "SHA384", "SHA512", "SHA3-224", "SHA3-256", "SHA3-384",
+            "SHA3-512", "TIGER", "WHIRLPOOL",
+        ] {
+            assert_eq!(hash_name_to_algorithm(name), val(&format!("HASH_{name}")), "{name}");
+        }
+        assert_eq!(hash_name_to_algorithm("BOGUS"), val("HASH_BOGUS"));
+    }
+
+    #[test]
+    fn matches_real_c_string_path_split() {
+        let v = include_str!("../../../research/oracle/util-str-c-vectors.txt");
+        // Match the tag as the exact first token (tags like PATHDIR_A are prefixes of
+        // PATHDIR_ABC, so a plain starts_with would mis-match).
+        let line = |tag: &str| {
+            v.lines().map(str::trim).find(|l| l.split_whitespace().next() == Some(tag)).unwrap()
+        };
+        // Everything after "key=" to end of line (for values that may contain spaces).
+        let after = |tag: &str, key: &str| {
+            line(tag).split_once(&format!("{key}=")).unwrap().1.to_string()
+        };
+        let split: i64 = 123_200_000; // matches the oracle build's NTP_ERA_SPLIT
+
+        // TimespecToString.
+        assert_eq!(timespec_to_string(1_700_000_000, 123_456_789), after("TS2STR_A", "s"));
+        assert_eq!(timespec_to_string(42, 7), after("TS2STR_B", "s"));
+        assert_eq!(timespec_to_string(0, 0), after("TS2STR_C", "s"));
+        assert_eq!(timespec_to_string(-5, 500_000_000), after("TS2STR_D", "s"));
+
+        // Ntp64ToString.
+        assert_eq!(ntp64_to_string(0, 0, split), after("N642STR_ZERO", "s"));
+        let ntp_sec = 1_700_000_000u32.wrapping_add(JAN_1970);
+        assert_eq!(ntp64_to_string(ntp_sec, 2_147_483_648, split), after("N642STR_MID", "s"));
+
+        // TimeToLogForm.
+        assert_eq!(time_to_log_form(0), after("T2LOG_EPOCH", "s"));
+        assert_eq!(time_to_log_form(1_700_000_000), after("T2LOG_Y2023", "s"));
+        assert_eq!(time_to_log_form(951_782_400), after("T2LOG_Y2000", "s")); // leap day
+        assert_eq!(time_to_log_form(86_399), after("T2LOG_DAY1", "s"));
+        assert_eq!(time_to_log_form(32_503_680_000), after("T2LOG_Y3000", "s"));
+        assert_eq!(time_to_log_form(-1), after("T2LOG_NEG1", "s")); // pre-1970
+        assert_eq!(time_to_log_form(-2_208_988_800), after("T2LOG_Y1900", "s"));
+
+        // PathToDir.
+        assert_eq!(path_to_dir("/a/b/c"), after("PATHDIR_ABC", "s"));
+        assert_eq!(path_to_dir("/a"), after("PATHDIR_A", "s"));
+        assert_eq!(path_to_dir("a"), after("PATHDIR_REL", "s"));
+        assert_eq!(path_to_dir("noslash"), after("PATHDIR_NOSLASH", "s"));
+        assert_eq!(path_to_dir("/"), after("PATHDIR_ROOT", "s"));
+        assert_eq!(path_to_dir("a/b"), after("PATHDIR_AB", "s"));
+        assert_eq!(path_to_dir("/usr/local/bin/x"), after("PATHDIR_DEEP", "s"));
+
+        // SplitString: words + total count (capped at max_saved_words = 4).
+        let chk = |input: &str, tag: &str| {
+            let (words, count) = split_string(input, 4);
+            assert_eq!(count, field(line(tag), "count").parse::<usize>().unwrap(), "{tag} count");
+            for (i, w) in words.iter().enumerate() {
+                assert_eq!(w.as_str(), field(line(tag), &format!("w{i}")), "{tag} w{i}");
+            }
+        };
+        chk("  hello   world  foo ", "SPLIT_A");
+        chk("a b c d e f", "SPLIT_B");
+        chk("single", "SPLIT_C");
+        chk("", "SPLIT_D");
+        chk("   \t\n  ", "SPLIT_E");
+        chk("tab\tsep\tx", "SPLIT_F");
+    }
+
+    #[test]
+    fn matches_real_c_ipv6_refid() {
+        // UTI_IPToRefid IPv6: MD5 of the 16 address bytes, first 4 big-endian.
+        let v = include_str!("../../../research/oracle/util-refid6-c-vectors.txt");
+        for l in v.lines().map(str::trim).filter(|l| l.starts_with("R6 ")) {
+            let field = |k: &str| l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap();
+            let ip = string_to_ip(field("ip")).unwrap();
+            assert!(matches!(ip, IpAddr::Inet6(_)), "{} not v6", field("ip"));
+            assert_eq!(ip_to_refid(&ip), field("refid").parse::<u32>().unwrap(), "{}", field("ip"));
+        }
+        // IPv4 refid is the address itself; Id/Unspec are 0.
+        assert_eq!(ip_to_refid(&IpAddr::Inet4(0xC0A8_0101)), 0xC0A8_0101);
+        assert_eq!(ip_to_refid(&IpAddr::Id(42)), 0);
+        assert_eq!(ip_to_refid(&IpAddr::Unspec), 0);
+    }
+
+    #[test]
+    fn matches_real_c_ip_string_parse_format() {
+        let v = include_str!("../../../research/oracle/util-ipstr-c-vectors.txt");
+        let line = |tag: &str| {
+            v.lines().map(str::trim).find(|l| l.split_whitespace().next() == Some(tag)).unwrap()
+        };
+
+        // IsStringIP.
+        assert_eq!(is_string_ip("1.2.3.4") as i32, field(line("ISIP_V4"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_string_ip("::1") as i32, field(line("ISIP_V6"), "r").parse::<i32>().unwrap());
+        assert_eq!(is_string_ip("nope") as i32, field(line("ISIP_NO"), "r").parse::<i32>().unwrap());
+
+        // StringToIP + IPToString round trips, mirroring genipstr.c's inputs.
+        let cases: &[(&str, &str)] = &[
+            ("V4_ZERO", "0.0.0.0"),
+            ("V4_BCAST", "255.255.255.255"),
+            ("V4_TYP", "192.168.1.1"),
+            ("V4_SEQ", "1.2.3.4"),
+            ("V4_8", "8.8.8.8"),
+            ("V4_LEADZ", "01.2.3.4"),
+            ("V4_OOR", "256.1.1.1"),
+            ("V4_SHORT", "1.2.3"),
+            ("V4_LONG", "1.2.3.4.5"),
+            ("V4_EMPTY", ""),
+            ("V4_LSPACE", " 1.2.3.4"),
+            ("V4_TSPACE", "1.2.3.4 "),
+            ("V4_HEX", "0x1.2.3.4"),
+            ("V4_BAD", "1.2.3.x"),
+            ("V4_BIG", "999.999.999.999"),
+            ("V6_UNSPEC", "::"),
+            ("V6_LOOP", "::1"),
+            ("V6_DOC", "2001:db8::1"),
+            ("V6_LL", "fe80::1"),
+            ("V6_MAPPED", "::ffff:192.168.1.1"),
+            ("V6_FULL", "2001:0db8:0000:0000:0000:0000:0000:0001"),
+            ("V6_MID", "ff02::1:2"),
+            ("V6_ALL", "1:2:3:4:5:6:7:8"),
+            ("V6_UPPER", "2001:DB8::ABCD"),
+            ("V6_RUN", "2001:db8:0:0:1:0:0:1"),
+            ("V6_BADCHAR", "::g"),
+            ("V6_DBLCOLON", "1::2::3"),
+            ("V6_OOR", "12345::"),
+        ];
+        for (tag, input) in cases {
+            let l = line(tag);
+            let ok: i32 = field(l, "ok").parse().unwrap();
+            let parsed = string_to_ip(input);
+            if ok == 0 {
+                assert!(parsed.is_none(), "{tag}: expected parse failure, got {parsed:?}");
+                continue;
+            }
+            let ip = parsed.unwrap_or_else(|| panic!("{tag}: expected parse success"));
+            match field(l, "family").parse::<u16>().unwrap() {
+                1 => {
+                    let in4: u32 = field(l, "in4").parse().unwrap();
+                    assert_eq!(ip, IpAddr::Inet4(in4), "{tag} in4");
+                    assert_eq!(ip_to_refid_inet4(in4), field(l, "refid").parse::<u32>().unwrap(), "{tag} refid");
+                }
+                2 => {
+                    let bytes = hex_to_bytes(field(l, "in6")).unwrap();
+                    let mut b = [0u8; 16];
+                    b.copy_from_slice(&bytes);
+                    assert_eq!(ip, IpAddr::Inet6(b), "{tag} in6");
+                }
+                f => panic!("{tag}: unexpected family {f}"),
+            }
+            // Canonical text round trip (the inet_ntop / Display equivalence check).
+            assert_eq!(ip_to_string(&ip), field(l, "str"), "{tag} str");
+        }
+
+        // StringToIdIP.
+        let id_cases: &[(&str, &str)] = &[
+            ("ID_OK", "ID#0000000042"),
+            ("ID_PLAIN", "ID#7"),
+            ("ID_BAD", "X#7"),
+            ("ID_NONUM", "ID#abc"),
+            ("ID_WS", "ID#  42"),
+            ("ID_TRAIL", "ID#42xyz"),
+            ("ID_OVF", "ID#4294967296"),
+            ("ID_LSPACE", " ID#7"),
+            ("ID_EMPTY", "ID#"),
+        ];
+        for (tag, input) in id_cases {
+            let l = line(tag);
+            let ok: i32 = field(l, "ok").parse().unwrap();
+            let parsed = string_to_id_ip(input);
+            if ok == 0 {
+                assert!(parsed.is_none(), "{tag}: expected failure, got {parsed:?}");
+                continue;
+            }
+            let id: u32 = field(l, "id").parse().unwrap();
+            assert_eq!(parsed, Some(IpAddr::Id(id)), "{tag} id");
+            assert_eq!(ip_to_string(&IpAddr::Id(id)), field(l, "str"), "{tag} str");
+        }
+    }
+
+    #[test]
+    fn matches_real_c_filesystem_and_addr_format() {
+        let v = include_str!("../../../research/oracle/util-fs-c-vectors.txt");
+        let line = |tag: &str| {
+            v.lines().map(str::trim).find(|l| l.split_whitespace().next() == Some(tag)).unwrap()
+        };
+        let after = |tag: &str, key: &str| {
+            line(tag).split_once(&format!("{key}=")).unwrap().1.to_string()
+        };
+        let oct = |l: &str, key: &str| u32::from_str_radix(field(l, key), 8).unwrap();
+        let ri = |l: &str, key: &str| field(l, key).parse::<i32>().unwrap();
+
+        // join_path: r (1/0) and the joined string.
+        let jp = |out: Option<String>| (out.is_some() as i32, out.unwrap_or_default());
+        let (r, s) = jp(join_path(Some("/etc"), "chrony", Some(".conf"), 128));
+        assert_eq!(r, ri(line("JP_FULL"), "r"));
+        assert_eq!(s, after("JP_FULL", "s"));
+        let (r, s) = jp(join_path(None, "name", None, 128));
+        assert_eq!(r, ri(line("JP_NOBASE"), "r"));
+        assert_eq!(s, after("JP_NOBASE", "s"));
+        let (r, s) = jp(join_path(Some("/var/lib"), "drift", None, 128));
+        assert_eq!(r, ri(line("JP_NOSUF"), "r"));
+        assert_eq!(s, after("JP_NOSUF", "s"));
+        assert_eq!(join_path(Some("/a"), "b", Some(".s"), 5).is_some() as i32, ri(line("JP_OVF"), "r"));
+        let (r, s) = jp(join_path(Some("/a"), "b", Some(".s"), 7));
+        assert_eq!(r, ri(line("JP_FIT"), "r"));
+        assert_eq!(s, after("JP_FIT", "s"));
+
+        // IPSockAddrToString.
+        assert_eq!(ip_sockaddr_to_string(&IpAddr::Inet4(0xC0A8_0101), 123), after("SA_V4", "s"));
+        let v6 = string_to_ip("2001:db8::1").unwrap();
+        assert_eq!(ip_sockaddr_to_string(&v6, 4460), after("SA_V6", "s"));
+        assert_eq!(ip_sockaddr_to_string(&IpAddr::Id(42), 7), after("SA_ID", "s"));
+        assert_eq!(ip_sockaddr_to_string(&IpAddr::Unspec, 0), after("SA_UN", "s"));
+
+        // IPSubnetToString.
+        let n4 = IpAddr::Inet4(0xC0A8_0100);
+        let n6 = string_to_ip("2001:db8::").unwrap();
+        assert_eq!(ip_subnet_to_string(&IpAddr::Unspec, 0), after("SUB_UN", "s"));
+        assert_eq!(ip_subnet_to_string(&n4, 32), after("SUB_V4_32", "s"));
+        assert_eq!(ip_subnet_to_string(&n4, 24), after("SUB_V4_24", "s"));
+        assert_eq!(ip_subnet_to_string(&n6, 128), after("SUB_V6_128", "s"));
+        assert_eq!(ip_subnet_to_string(&n6, 64), after("SUB_V6_64", "s"));
+
+        // CheckDirPermissions: reconstruct uid match/mismatch around an arbitrary uid.
+        let (au, ag) = (1000u32, 1000u32);
+        for tag in ["DIR_OK", "DIR_PERMISSIVE", "DIR_EXTRA", "DIR_WRONGUID", "DIR_ONFILE"] {
+            let l = line(tag);
+            let exp_uid = if ri(l, "uid_match") == 1 { au } else { au + 1 };
+            let got = check_dir_permissions(
+                ri(l, "isdir") == 1,
+                oct(l, "mode"),
+                au,
+                ag,
+                oct(l, "perm"),
+                exp_uid,
+                ag,
+            );
+            assert_eq!(got as i32, ri(l, "verdict"), "{tag}");
+        }
+
+        // CheckFilePermissions.
+        for tag in [
+            "DIR_NOTDIR", "FILE_OK", "FILE_WWRITE", "FILE_WREAD", "FILE_EXACT", "FILE_MISSING",
+            "FILE_ISDIR",
+        ] {
+            let l = line(tag);
+            let got = check_file_permissions(ri(l, "isreg") == 1, oct(l, "mode"), oct(l, "perm"));
+            assert_eq!(got as i32, ri(l, "verdict"), "{tag}");
+        }
     }
 
     #[test]
@@ -131,5 +1752,42 @@ mod tests {
         assert!(hex_to_bytes("zz").is_none());
         assert_eq!(bytes_to_hex(&[]), "");
         assert_eq!(hex_to_bytes("").unwrap(), Vec::<u8>::new());
+    }
+
+    #[test]
+    fn bits_to_mask_matches_real_c() {
+        // Differential vs a VERBATIM copy of client.c's bits_to_mask (bits-to-mask oracle).
+        let v = include_str!("../../../research/oracle/bits-to-mask-c-vectors.txt");
+        let field = |l: &str, k: &str| -> String {
+            l.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{k}=")))
+                .unwrap()
+                .to_string()
+        };
+        let mut n = 0;
+        for l in v.lines().map(str::trim) {
+            if let Some(rest) = l.strip_prefix("V4 ") {
+                let bits: i32 = field(rest, "bits").parse().unwrap();
+                let mask = bits_to_mask(bits, 1);
+                let IpAddr::Inet4(m) = mask else { panic!("v4 family") };
+                assert_eq!(format!("{m:08x}"), field(rest, "mask"), "V4 bits={bits}");
+                assert_eq!(mask.family(), field(rest, "fam").parse::<u16>().unwrap());
+                n += 1;
+            } else if let Some(rest) = l.strip_prefix("V6 ") {
+                let bits: i32 = field(rest, "bits").parse().unwrap();
+                let mask = bits_to_mask(bits, 2);
+                let IpAddr::Inet6(m) = mask else { panic!("v6 family") };
+                let hex: String = m.iter().map(|b| format!("{b:02x}")).collect();
+                assert_eq!(hex, field(rest, "mask"), "V6 bits={bits}");
+                assert_eq!(mask.family(), field(rest, "fam").parse::<u16>().unwrap());
+                n += 1;
+            } else if let Some(rest) = l.strip_prefix("ID ") {
+                // IPADDR_ID -> UNSPEC (family 0).
+                assert_eq!(bits_to_mask(24, 3), IpAddr::Unspec);
+                assert_eq!(field(rest, "fam").parse::<u16>().unwrap(), 0);
+                n += 1;
+            }
+        }
+        assert_eq!(n, 29, "expected all mask vectors covered");
     }
 }

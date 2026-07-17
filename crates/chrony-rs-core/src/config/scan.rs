@@ -1,0 +1,325 @@
+//! Faithful `sscanf` scalar parsing for config directives.
+//!
+//! chrony's `conf.c` reads scalar directive values with `sscanf("%d")` / `sscanf("%lf")` /
+//! `sscanf("%lu")`, and multi-value directives with a single `sscanf("%lf %d %d", line)`
+//! over the whole line. These are **lenient about trailing junk** — `sscanf("%d")` on
+//! `"42abc"` yields `42` — and for the multi-field form, trailing junk on a non-final
+//! field makes the *next* conversion fail (so `sscanf("%lf %d %d", "1.0x 30 2")` parses
+//! only the first field). Rust's `str::parse` is strict, so it would reject inputs chrony
+//! accepts; per-token parsing would also miss the multi-field coupling. These functions
+//! reproduce `sscanf`'s behavior.
+//!
+//! Scope: the **decimal** domain real configs use. `sscanf("%lf")` also accepts hex floats
+//! and `%d` has implementation-defined overflow wrapping; neither occurs in a config, so
+//! they are out of scope (documented, not silently handled).
+//!
+//! # Oracle
+//!
+//! Differential-tested against the real `sscanf` (`/tmp/genscan.c`,
+//! `research/oracle/config-scan-c-vectors.txt`). See the tests.
+
+/// Skip C `isspace` whitespace (space, tab, newline, vtab, formfeed, CR) from `i`.
+fn skip_ws(b: &[u8], mut i: usize) -> usize {
+    while i < b.len() && matches!(b[i], b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r') {
+        i += 1;
+    }
+    i
+}
+
+/// `sscanf("%d%n")` at the start of `s`: skip leading whitespace, parse the base-10
+/// integer (optional sign), and return `(value, end_index)` — the index just past the
+/// consumed digits (the `%n` count). `None` when no digit is present. Used directly by the
+/// `ratelimit` key-value loop, which advances by exactly the consumed length.
+pub(crate) fn scan_int_at(s: &str) -> Option<(i32, usize)> {
+    let b = s.as_bytes();
+    let start = skip_ws(b, 0);
+    let mut i = start;
+    if i < b.len() && (b[i] == b'+' || b[i] == b'-') {
+        i += 1;
+    }
+    let digits = i;
+    while i < b.len() && b[i].is_ascii_digit() {
+        i += 1;
+    }
+    if i == digits {
+        return None;
+    }
+    Some((s[start..i].parse::<i32>().ok()?, i))
+}
+
+/// `sscanf("%lf")` at the start of `s`: skip leading whitespace, parse the decimal float
+/// (sign, fraction, exponent, `inf`/`infinity`/`nan`), and return `(value, end_index)`.
+pub(crate) fn scan_double_at(s: &str) -> Option<(f64, usize)> {
+    let b = s.as_bytes();
+    let start = skip_ws(b, 0);
+    let mut i = start;
+    if i < b.len() && (b[i] == b'+' || b[i] == b'-') {
+        i += 1;
+    }
+    let rest = s[i..].to_ascii_lowercase();
+    if rest.starts_with("infinity") {
+        return Some((s[start..i + 8].parse::<f64>().ok()?, i + 8));
+    }
+    if rest.starts_with("inf") {
+        return Some((s[start..i + 3].parse::<f64>().ok()?, i + 3));
+    }
+    if rest.starts_with("nan") {
+        return Some((s[start..i + 3].parse::<f64>().ok()?, i + 3));
+    }
+    let mut digits = 0;
+    while i < b.len() && b[i].is_ascii_digit() {
+        i += 1;
+        digits += 1;
+    }
+    if i < b.len() && b[i] == b'.' {
+        i += 1;
+        while i < b.len() && b[i].is_ascii_digit() {
+            i += 1;
+            digits += 1;
+        }
+    }
+    if digits == 0 {
+        return None;
+    }
+    if i < b.len() && (b[i] == b'e' || b[i] == b'E') {
+        let mut j = i + 1;
+        if j < b.len() && (b[j] == b'+' || b[j] == b'-') {
+            j += 1;
+        }
+        let exp_digits = j;
+        while j < b.len() && b[j].is_ascii_digit() {
+            j += 1;
+        }
+        if j > exp_digits {
+            i = j;
+        }
+    }
+    // Rust rejects a trailing bare '.', which sscanf accepts ("3." -> 3.0); drop it.
+    let lexeme = s[start..i].strip_suffix('.').unwrap_or(&s[start..i]);
+    Some((lexeme.parse::<f64>().ok()?, i))
+}
+
+/// `sscanf("%lu")` at the start of `s`: skip leading whitespace, parse a base-10 unsigned
+/// long (`u64`), with a leading `-` wrapping like C's `strtoul` (`"-1"` → `u64::MAX`).
+/// `sscanf("%x%n", s)` — a hexadecimal `uint32` prefix (optional `0x`/`0X`), returning the value
+/// and the byte index just past the consumed digits. Matches glibc `%x`: leading whitespace, an
+/// optional sign, an optional `0x` prefix, then hex digits (no digits → `None`).
+pub(crate) fn scan_hex_at(s: &str) -> Option<(u32, usize)> {
+    let b = s.as_bytes();
+    let start = skip_ws(b, 0);
+    let mut i = start;
+    let neg = i < b.len() && b[i] == b'-';
+    if i < b.len() && (b[i] == b'+' || b[i] == b'-') {
+        i += 1;
+    }
+    // Optional "0x"/"0X" prefix (glibc consumes it before the hex digits).
+    if i + 1 < b.len() && b[i] == b'0' && (b[i + 1] == b'x' || b[i + 1] == b'X') {
+        i += 2;
+    }
+    let digits = i;
+    let mut v: u32 = 0;
+    while i < b.len() && b[i].is_ascii_hexdigit() {
+        v = v.wrapping_mul(16).wrapping_add((b[i] as char).to_digit(16).unwrap());
+        i += 1;
+    }
+    if i == digits {
+        return None;
+    }
+    Some((if neg { v.wrapping_neg() } else { v }, i))
+}
+
+pub(crate) fn scan_uint_at(s: &str) -> Option<(u64, usize)> {
+    let b = s.as_bytes();
+    let start = skip_ws(b, 0);
+    let mut i = start;
+    let neg = i < b.len() && b[i] == b'-';
+    if i < b.len() && (b[i] == b'+' || b[i] == b'-') {
+        i += 1;
+    }
+    let digits = i;
+    let mut v: u64 = 0;
+    while i < b.len() && b[i].is_ascii_digit() {
+        v = v.wrapping_mul(10).wrapping_add((b[i] - b'0') as u64);
+        i += 1;
+    }
+    if i == digits {
+        return None;
+    }
+    Some((if neg { v.wrapping_neg() } else { v }, i))
+}
+
+/// `sscanf("%d", token)` — the value of a single trimmed argument, trailing junk ignored.
+pub fn scan_int(s: &str) -> Option<i32> {
+    scan_int_at(s).map(|(v, _)| v)
+}
+
+/// `sscanf("%lf", token)` — the value of a single trimmed argument.
+pub fn scan_double(s: &str) -> Option<f64> {
+    scan_double_at(s).map(|(v, _)| v)
+}
+
+/// `sscanf("%lu", token)` — the value of a single trimmed argument.
+pub fn scan_uint(s: &str) -> Option<u64> {
+    scan_uint_at(s).map(|(v, _)| v)
+}
+
+/// `parse_fallbackdrift`'s `sscanf("%d %d", line)`: both ints must convert from one
+/// left-to-right pass. Returns `(min, max)` only when both parse.
+pub fn scan_two_int(line: &str) -> Option<(i32, i32)> {
+    let (a, i) = scan_int_at(line)?;
+    let (b, _) = scan_int_at(&line[i..])?;
+    Some((a, b))
+}
+
+/// `parse_smoothtime`'s `sscanf("%lf %lf", line)`: both doubles must convert. Trailing junk
+/// on the *second* field is fine (there is no third conversion to fail). Returns
+/// `(max_freq, max_wander)` only when both parse.
+pub fn scan_two_double(line: &str) -> Option<(f64, f64)> {
+    let (a, i) = scan_double_at(line)?;
+    let (b, _) = scan_double_at(&line[i..])?;
+    Some((a, b))
+}
+
+/// `sscanf("%4s%n")` at the start of `s`: skip leading whitespace, then take up to 4
+/// non-whitespace characters, returning `(slice, end_index)`. `None` when no character is
+/// present. Used by `hwtimestamp`'s `rxfilter` option — note the 4-char cap re-tokenizes a
+/// longer word (`nonex` reads `none`, leaving `x`).
+pub(crate) fn scan_str4_at(s: &str) -> Option<(&str, usize)> {
+    let b = s.as_bytes();
+    let start = skip_ws(b, 0);
+    let mut i = start;
+    while i < b.len()
+        && i - start < 4
+        && !matches!(b[i], b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
+    {
+        i += 1;
+    }
+    if i == start {
+        return None;
+    }
+    Some((&s[start..i], i))
+}
+
+/// `sscanf("%lf %lf …", line)` for `n` doubles (chrony `tempcomp`'s 5-coefficient form):
+/// all `n` must convert from one left-to-right pass. Returns the values only when all
+/// `n` parse.
+pub fn scan_doubles(line: &str, n: usize) -> Option<Vec<f64>> {
+    let mut vals = Vec::with_capacity(n);
+    let mut rest = line;
+    for _ in 0..n {
+        let (v, consumed) = scan_double_at(rest)?;
+        vals.push(v);
+        rest = &rest[consumed..];
+    }
+    Some(vals)
+}
+
+/// `parse_maxchange`'s `sscanf("%lf %d %d", line)` over the whole (space-normalized) line:
+/// all three fields must convert from one left-to-right pass (a non-final field's trailing
+/// junk makes the next conversion fail). Returns `(threshold, delay, ignore)` only when all
+/// three parse.
+pub fn scan_maxchange(line: &str) -> Option<(f64, i32, i32)> {
+    let (a, i) = scan_double_at(line)?;
+    let (b, j) = scan_int_at(&line[i..])?;
+    let (c, _) = scan_int_at(&line[i + j..])?;
+    Some((a, b, c))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn matches_real_c_sscanf() {
+        let v = include_str!("../../../../research/oracle/config-scan-c-vectors.txt");
+        for l in v.lines().map(str::trim).filter(|l| !l.starts_with('#') && !l.is_empty()) {
+            let f = |key: &str| l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{key}="))).unwrap();
+            if l.starts_with("INT ") {
+                let got = scan_int(f("in"));
+                assert_eq!(got.is_some() as i32, f("ret").parse::<i32>().unwrap(), "INT {} ret", f("in"));
+                if got.is_some() {
+                    assert_eq!(got.unwrap(), f("val").parse::<i32>().unwrap(), "INT {} val", f("in"));
+                }
+            } else if l.starts_with("DBL ") {
+                let got = scan_double(f("in"));
+                assert_eq!(got.is_some() as i32, f("ret").parse::<i32>().unwrap(), "DBL {} ret", f("in"));
+                if got.is_some() {
+                    let want = f("val").parse::<f64>().unwrap();
+                    if want.is_nan() {
+                        assert!(got.unwrap().is_nan(), "DBL {} nan", f("in"));
+                    } else {
+                        assert_eq!(got.unwrap(), want, "DBL {} val", f("in"));
+                    }
+                }
+            } else if l.starts_with("UINT ") {
+                let got = scan_uint(f("in"));
+                assert_eq!(got.is_some() as i32, f("ret").parse::<i32>().unwrap(), "UINT {} ret", f("in"));
+                if got.is_some() {
+                    assert_eq!(got.unwrap(), f("val").parse::<u64>().unwrap(), "UINT {} val", f("in"));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn matches_real_c_maxchange() {
+        // (tag, line, expected ret count from the oracle).
+        let cases = [
+            ("OK", "1.0 30 2", 3, Some((1.0, 30, 2))),
+            ("FRAC", "0.5 300 1", 3, Some((0.5, 300, 1))),
+            ("JUNK0", "1.0x 30 2", 1, None),
+            ("JUNK1", "1.0 30x 2", 2, None),
+            ("SHORT", "1.0 30", 2, None),
+            ("EXTRASPACE", "1.0   30   2", 3, Some((1.0, 30, 2))),
+        ];
+        for (tag, line, ret, expected) in cases {
+            let got = scan_maxchange(line);
+            // The directive succeeds iff the oracle's conversion count is 3.
+            assert_eq!(got.is_some(), ret == 3, "{tag} success");
+            assert_eq!(got, expected, "{tag} value");
+        }
+    }
+
+    #[test]
+    fn matches_real_c_two_field() {
+        // fallbackdrift: sscanf("%d %d"), both required.
+        for (line, ret, expected) in [
+            ("2 10", 2, Some((2, 10))),
+            ("-3 -7", 2, Some((-3, -7))),
+            ("2x 10", 1, None),
+            ("2", 1, None),
+        ] {
+            let got = scan_two_int(line);
+            assert_eq!(got.is_some(), ret == 2, "FB {line} success");
+            assert_eq!(got, expected, "FB {line}");
+        }
+        // smoothtime: sscanf("%lf %lf"), trailing junk on the 2nd field is fine.
+        for (line, ret, expected) in [
+            ("1.0 2.0", 2, Some((1.0, 2.0))),
+            ("5.0e-2 1.0e-3", 2, Some((0.05, 0.001))),
+            ("1.0 2.0x", 2, Some((1.0, 2.0))),
+            ("1.0x 2.0", 1, None),
+            ("1.0", 1, None),
+        ] {
+            let got = scan_two_double(line);
+            assert_eq!(got.is_some(), ret == 2, "ST {line} success");
+            assert_eq!(got, expected, "ST {line}");
+        }
+    }
+
+    #[test]
+    fn matches_real_c_five_double() {
+        // tempcomp coefficient form: sscanf("%lf %lf %lf %lf %lf"), all five required.
+        for (line, ret, expected) in [
+            ("30 20.0 1.0 0.1 0.01", 5, Some(vec![30.0, 20.0, 1.0, 0.1, 0.01])),
+            ("30 20 1e-1 2e-2 3e-3", 5, Some(vec![30.0, 20.0, 0.1, 0.02, 0.003])),
+            ("30 20 1.0x 0.1 0.01", 3, None),      // junk on 3rd field fails
+            ("30 20 1.0 0.1", 4, None),            // short
+            ("30 20 1.0 0.1 0.01x", 5, Some(vec![30.0, 20.0, 1.0, 0.1, 0.01])), // junk on last is fine
+        ] {
+            let got = scan_doubles(line, 5);
+            assert_eq!(got.is_some(), ret == 5, "TC {line} success");
+            assert_eq!(got, expected, "TC {line}");
+        }
+    }
+}

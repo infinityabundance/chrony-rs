@@ -21,6 +21,7 @@ use crate::md5::Md5;
 /// by this backend; the others exist so the gate in [`get_hash_id`] is exact.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(i32)]
+    #[non_exhaustive]
 pub enum HshAlgorithm {
     Invalid = 0,
     Md5 = 1,
@@ -106,5 +107,47 @@ mod tests {
     #[test]
     fn finalise_is_noop() {
         finalise(); // must not panic
+    }
+
+    /// Differential oracle vs the REAL compiled `hash_intmd5.c` (`HSH_GetHashId` +
+    /// `HSH_Hash`): the concatenation path `MD5(in1 || in2)` and the `out_len`
+    /// truncation (capped at 16), driven from the same fixture the md5 sweep uses
+    /// (`research/oracle/md5-c-vectors.txt`, `HDR`/`HSH` lines). Covers empty inputs,
+    /// concatenations crossing the 56/64-byte block boundary, and out_len of
+    /// 0/4/8/16/20 (0 -> return 0, >16 -> 16).
+    #[test]
+    fn matches_real_c_hash_vectors() {
+        let vectors = include_str!("../../../research/oracle/md5-c-vectors.txt");
+        fn field(line: &str, key: &str) -> String {
+            line.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{key}=")))
+                .unwrap()
+                .to_string()
+        }
+        fn n(line: &str, key: &str) -> usize {
+            field(line, key).parse().unwrap()
+        }
+
+        // HDR pins HSH_GetHashId(MD5) == 0, and the unsupported-algorithm rejection.
+        let hdr = vectors.lines().find(|l| l.starts_with("HDR ")).unwrap();
+        assert_eq!(get_hash_id(HshAlgorithm::Md5), Some(field(hdr, "hashid").parse().unwrap()));
+        assert_eq!(get_hash_id(HshAlgorithm::Md5NonCrypto), Some(0));
+        assert_eq!(get_hash_id(HshAlgorithm::Sha256), None);
+
+        let mut seen = 0;
+        for line in vectors.lines().filter(|l| l.starts_with("HSH ")) {
+            let (l1, l2, ol) = (n(line, "i1"), n(line, "i2"), n(line, "out"));
+            let want_ret = n(line, "ret");
+            let in1: Vec<u8> = (0..l1).map(|i| (i * 7 + 3) as u8).collect();
+            let in2: Vec<u8> = (0..l2).map(|i| (i * 11 + 5) as u8).collect();
+            let mut out = vec![0xEEu8; ol];
+            let ret = hash(&in1, &in2, &mut out);
+            assert_eq!(ret, want_ret, "HSH i1={l1} i2={l2} out={ol} ret");
+            let got: String = out[..ret].iter().map(|b| format!("{b:02x}")).collect();
+            let got = if got.is_empty() { "-".to_string() } else { got };
+            assert_eq!(got, field(line, "digest"), "HSH i1={l1} i2={l2} out={ol} digest");
+            seen += 1;
+        }
+        assert_eq!(seen, 14, "expected 14 HSH cases");
     }
 }

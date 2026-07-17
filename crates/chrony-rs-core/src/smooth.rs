@@ -45,6 +45,7 @@ struct Stage {
 
 /// The kind of local-clock change (chrony's `LCL_ChangeType`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum LclChangeType {
     Adjust,
     Step,
@@ -62,6 +63,7 @@ pub struct SmoothingReport {
 }
 
 /// Served-time smoothing state (chrony's `smooth.c` statics, made explicit).
+#[derive(Debug)]
 pub struct Smoothing {
     enabled: bool,
     locked: bool,
@@ -285,8 +287,74 @@ impl Smoothing {
 }
 
 #[cfg(test)]
+impl Smoothing {
+    /// Test hook: set the trajectory state directly (bypassing the slew-folding path) so the
+    /// pure `update_stages`/`get_smoothing` math can be driven against the C oracle.
+    fn test_set_state(&mut self, smooth_offset: f64, smooth_freq: f64) {
+        self.smooth_offset = smooth_offset;
+        self.smooth_freq = smooth_freq;
+    }
+    /// Set the absolute (already-converted) limits directly, avoiding the ppm round-trip in
+    /// [`Self::new`] so the stored values exactly match the oracle's.
+    fn test_set_limits(&mut self, max_freq: f64, max_wander: f64) {
+        self.max_freq = max_freq;
+        self.max_wander = max_wander;
+    }
+    fn test_update_stages(&mut self) {
+        self.update_stages();
+    }
+    fn test_stages(&self) -> [(f64, f64); NUM_STAGES] {
+        std::array::from_fn(|i| (self.stages[i].wander, self.stages[i].length))
+    }
+    /// `get_smoothing` at `elapsed` seconds since `last_update` — driven by setting
+    /// `last_update = 0` and passing `now = elapsed`.
+    fn test_get_smoothing(&self, elapsed: f64) -> (f64, f64, f64) {
+        self.get_smoothing(elapsed)
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn update_stages_and_get_smoothing_match_real_c() {
+        // Differential test vs the VERBATIM smooth.c update_stages/get_smoothing (/tmp/nsmt),
+        // upgrading the trajectory core from reference-impl-verified to compiled-oracle-backed.
+        // Both sides run the same IEEE-754 ops in the same order, so values match exactly.
+        let v = include_str!("../../../research/oracle/smooth-stages-c-vectors.txt");
+        let f = |l: &str, k: &str| -> f64 {
+            l.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{k}=")))
+                .unwrap()
+                .parse()
+                .unwrap()
+        };
+        // Build the smoother per id from the `S` line, check its stages, then each `G` line.
+        for sl in v.lines().filter(|l| l.starts_with("S ")) {
+            let id = sl.split_whitespace().find_map(|t| t.strip_prefix("id=")).unwrap();
+            let max_freq = f(sl, "max_freq");
+            let max_wander = f(sl, "max_wander");
+            let mut s = Smoothing::new(1.0, 1.0, false); // enabled; limits set exactly below
+            s.test_set_limits(max_freq, max_wander);
+            s.test_set_state(f(sl, "offset"), f(sl, "freq"));
+            s.test_update_stages();
+            let stages = s.test_stages();
+            for (i, (w, len)) in stages.iter().enumerate() {
+                assert_eq!(*w, f(sl, &format!("st{i}_w")), "{id} stage {i} wander");
+                assert_eq!(*len, f(sl, &format!("st{i}_l")), "{id} stage {i} length");
+            }
+            // The get_smoothing samples for this id.
+            for gl in v.lines().filter(|l| {
+                l.starts_with("G ") && l.split_whitespace().nth(1) == Some(&format!("id={id}"))
+            }) {
+                let (o, fr, wa) = s.test_get_smoothing(f(gl, "elapsed"));
+                assert_eq!(o, f(gl, "offset"), "{id} elapsed offset");
+                assert_eq!(fr, f(gl, "freq"), "{id} elapsed freq");
+                assert_eq!(wa, f(gl, "wander"), "{id} elapsed wander");
+            }
+        }
+    }
 
     #[test]
     fn disabled_when_limits_non_positive() {

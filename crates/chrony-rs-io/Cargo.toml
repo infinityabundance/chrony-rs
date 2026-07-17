@@ -1,0 +1,22 @@
+[package]
+name = "chrony-rs-io"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Real OS I/O layer for chrony-rs (a faithful port of chrony's socket.c syscall layer)."
+readme = "README.md"
+keywords = ["ntp", "time", "clock", "chrony", "synchronization"]
+categories = ["science::geoscience", "network-programming"]
+
+[lints]
+workspace = true
+
+[dependencies]
+chrony-rs-core = { path = "../chrony-rs-core" }
+libc = "0.2"
+
+[dev-dependencies]
+libc = "0.2"

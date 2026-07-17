@@ -40,6 +40,7 @@ const MIN_SAMPLE_SEPARATION: f64 = 1.0;
 
 /// The kind of local-clock change (chrony's `LCL_ChangeType`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum LclChangeType {
     Adjust,
     Step,
@@ -164,7 +165,7 @@ impl Manual {
         if !self.enabled {
             return None;
         }
-        if !is_time_offset_sane(ts, 0.0) {
+        if !is_time_offset_sane(ts, 0.0, crate::util::NTP_ERA_SPLIT) {
             return None;
         }
         if let Some(last) = self.samples.last() {
@@ -232,6 +233,35 @@ mod tests {
     const ABS_FREQ: f64 = 12.0;
     // A sane base time (~2023) so is_time_offset_sane passes.
     const T0: f64 = 1.7e9;
+
+    #[test]
+    fn accept_timestamp_matches_real_c() {
+        // Differential test of MNL_AcceptTimestamp's estimate (composing the verified robust
+        // regression over the manual sample list) vs the REAL compiled manual.c + regress.c
+        // (/tmp/nmnl/genmnl.c, -ffp-contract=off). Same now/ts sequence; abs_freq injected.
+        let v = include_str!("../../../research/oracle/manual-c-vectors.txt");
+        fn field<'a>(l: &'a str, k: &str) -> &'a str {
+            l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap()
+        }
+        let mut m = Manual::new(true);
+        for k in 0..6 {
+            let now = 1000.0 + 2.0 * k as f64;
+            let offset_k = 0.001 + 0.0002 * k as f64;
+            let est = m.accept_timestamp(now, now - offset_k, 12.5).expect("accepted");
+            let l = v.lines().find(|l| l.starts_with("MNL ") && field(l, "k") == k.to_string()).unwrap();
+            // reg_offset/dfreq compose the robust regression over the manual sample OFFSETS.
+            // chrony derives each offset from an ns-granular timespec (now - ts) while chrony-rs
+            // uses f64 seconds -- the declared time-domain boundary. The sub-nanosecond input
+            // difference is amplified by the fit, so compare within that quantization envelope
+            // (offset ~1e-7 s; freq ~0.1 ppm). new_afreq is the injected abs-freq, exact.
+            let close = |got: f64, exp: f64, tol: f64, what: &str| {
+                assert!((got - exp).abs() <= tol, "k={k} {what}: {got} vs {exp}");
+            };
+            close(est.reg_offset, field(l, "reg_offset").parse().unwrap(), 1e-7, "reg_offset");
+            close(est.dfreq_ppm, field(l, "dfreq_ppm").parse().unwrap(), 0.1, "dfreq_ppm");
+            assert_eq!(est.new_afreq_ppm, field(l, "new_afreq").parse::<f64>().unwrap(), "new_afreq");
+        }
+    }
 
     #[test]
     fn single_sample_slews_by_entered_offset() {

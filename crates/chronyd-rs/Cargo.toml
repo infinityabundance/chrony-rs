@@ -5,11 +5,23 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 description = "chrony-rs daemon/replay binary (lab and forensic modes only — not a production time daemon)."
+readme = "README.md"
+keywords = ["ntp", "time", "daemon", "chrony"]
+categories = ["network-programming"]
+
+[lints]
+workspace = true
 
 [[bin]]
 name = "chronyd-rs"
 path = "src/main.rs"
 
+[features]
+nts-tls = ["chrony-rs-core/nts-tls"]
+
 [dependencies]
-chrony-rs-core = { version = "0.1.0", path = "../chrony-rs-core" }
+chrony-rs-core = { path = "../chrony-rs-core" }
+chrony-rs-io = { path = "../chrony-rs-io" }
+libc = "0.2"

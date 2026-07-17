@@ -162,9 +162,9 @@ fn file_handler_dispatch() {
         Box::new(move |_t: Option<f64>, rd: &[usize], _w: &[usize], _e: &[usize]| {
             if !fired_once.get() && rd.contains(&5) {
                 fired_once.set(true);
-                SelectResult { status: 1, ready_read: vec![5], ready_write: vec![], ready_except: vec![] }
+                SelectResult { status: 1, ready_read: vec![5], ready_write: vec![], ready_except: vec![], rem_tv: None }
             } else {
-                SelectResult { status: 0, ready_read: vec![], ready_write: vec![], ready_except: vec![] }
+            SelectResult { status: 0, ready_read: vec![], ready_write: vec![], ready_except: vec![], rem_tv: None }
             }
         }) as SelectFn
     };

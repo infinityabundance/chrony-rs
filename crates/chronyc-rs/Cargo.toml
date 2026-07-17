@@ -5,13 +5,20 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 description = "chrony-rs control client and output-parity tool."
+readme = "README.md"
+keywords = ["ntp", "time", "client", "chrony"]
+categories = ["command-line-utilities"]
+
+[lints]
+workspace = true
 
 [[bin]]
 name = "chronyc-rs"
 path = "src/main.rs"
 
 [dependencies]
-chrony-rs-core = { version = "0.1.0", path = "../chrony-rs-core" }
+chrony-rs-core = { path = "../chrony-rs-core" }
 serde = { workspace = true }
 serde_json = { workspace = true }

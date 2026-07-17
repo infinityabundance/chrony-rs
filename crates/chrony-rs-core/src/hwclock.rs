@@ -63,6 +63,14 @@ pub struct HwClock {
     delay_quants: QuantileEstimator,
 }
 
+#[cfg(test)]
+impl HwClock {
+    /// Test hooks exposing the fitted model state for the differential test vs the real C.
+    fn test_state(&self) -> (usize, bool, f64, f64) {
+        (self.n_samples, self.valid_coefs, self.offset, self.frequency)
+    }
+}
+
 impl HwClock {
     /// `HCL_CreateInstance`.
     pub fn new(min_samples: usize, max_samples: usize, min_separation: f64, precision: f64) -> Self {
@@ -263,6 +271,71 @@ impl HwClock {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn accumulate_and_cook_match_real_c() {
+        // End-to-end differential test of HCL_AccumulateSample + HCL_CookTime (composing the
+        // verified robust regression) vs the REAL compiled hwclock.c + regress.c (/tmp/nhcl,
+        // -ffp-contract=off). Times are exact so the timespec<->f64 domains agree; abs_freq_ppm
+        // is injected (the oracle's LCL_ReadAbsoluteFrequency stub).
+        let v = include_str!("../../../research/oracle/hwclock-c-vectors.txt");
+        let hw = [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0];
+        let loc = [0.0, 10.0001, 20.0003, 30.0002, 40.0005, 50.0004, 60.0007, 70.0006];
+        let err = [1e-3; 8];
+        let hw2 = [0.0, 10.0, 5.0, 15.0, 25.0, 35.0];
+        let loc2 = [0.0, 10.0001, 5.0, 15.0002, 25.0004, 35.0003];
+        // (id, min, max, min_sep, prec, abs_ppm, hw, loc, n, cook_at)
+        #[allow(clippy::type_complexity)]
+        let cases: &[(&str, usize, usize, f64, f64, f64, &[f64], &[f64], usize, f64)] = &[
+            ("clean", 2, 8, 1.0, 1e-6, 0.0, &hw, &loc, 8, 75.0),
+            ("clean_ppm", 2, 8, 1.0, 1e-6, 10.0, &hw, &loc, 8, 75.0),
+            ("short", 2, 8, 1.0, 1e-6, 0.0, &hw, &loc, 3, 25.0),
+            ("reset", 2, 8, 1.0, 1e-6, 0.0, &hw2, &loc2, 6, 40.0),
+        ];
+        let fs = |l: &str, k: &str| l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap().to_string();
+        let ff = |l: &str, k: &str| fs(l, k).parse::<f64>().unwrap();
+        for (id, min_s, max_s, min_sep, prec, ppm, hw, loc, n, cook_at) in cases {
+            let mut c = HwClock::new(*min_s, *max_s, *min_sep, *prec);
+            for i in 0..*n {
+                c.accumulate_sample(hw[i], loc[i], err[i], *ppm);
+                let (ns, valid, offset, freq) = c.test_state();
+                let l = v.lines().find(|l| {
+                    l.starts_with("HCL ") && fs(l, "id") == *id && fs(l, "step") == i.to_string()
+                }).unwrap();
+                assert_eq!(ns, fs(&l, "n").parse::<usize>().unwrap(), "{id} step{i} n");
+                assert_eq!(valid, fs(&l, "valid") == "1", "{id} step{i} valid");
+                if valid {
+                    // offset/frequency are only defined once the fit is valid. Both compose the
+                    // robust regression and agree to ~1 ULP; the residual is FP summation-order
+                    // noise in the iterative fit (the regression's runs-test loop), not a logic
+                    // difference. Frequency (~1.0) matches to a tight relative tolerance; the
+                    // offset matches exactly for meaningful values and to a ~1e-14 noise floor
+                    // where the fit puts it near zero (26 orders below the 1e-3 error).
+                    let exp_off = ff(&l, "offset");
+                    assert!(
+                        (offset - exp_off).abs() <= 1e-12 + 1e-9 * exp_off.abs(),
+                        "{id} step{i} offset {offset} vs {exp_off}"
+                    );
+                    let exp_freq = ff(&l, "freq");
+                    assert!(
+                        (freq - exp_freq).abs() <= 1e-12 * exp_freq.abs(),
+                        "{id} step{i} freq {freq} vs {exp_freq}"
+                    );
+                }
+            }
+            // Cook probe.
+            let cl = v.lines().find(|l| l.starts_with("COOK ") && fs(l, "id") == *id).unwrap();
+            match c.cook_time(*cook_at) {
+                Some((cooked, e)) => {
+                    assert!(cl.contains("ok=1"), "{id} cook expected None");
+                    // cooked passes through chrony's ns-granular timespec -> compare within a ns.
+                    assert!((cooked - ff(&cl, "cooked")).abs() < 1e-9, "{id} cooked {cooked} vs {}", ff(&cl, "cooked"));
+                    assert_eq!(e, ff(&cl, "err"), "{id} cook err");
+                }
+                None => assert!(cl.contains("ok=0"), "{id} cook expected Some"),
+            }
+        }
+    }
 
     #[test]
     fn models_a_clean_offset_clock() {

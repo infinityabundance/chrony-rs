@@ -51,6 +51,18 @@ const MIN_ASYMMETRY_RUN: i32 = 10;
 const MAX_ASYMMETRY_RUN: i32 = 1000;
 const SD_TO_DIST_RATIO: f64 = 0.7;
 
+/// Format a double as C's `printf("%.6e")` for the dump file: six-digit mantissa, `e`, an
+/// explicit exponent sign, and a **≥2-digit** exponent. Rust's `{:.6e}` omits the sign and the
+/// zero-padding (`1.0e-4` vs C's `1.000000e-04`), so chrony's dump format needs this shim for
+/// byte-identical output — a divergence surfaced by differential-testing `SST_SaveToFile`.
+fn fmt_c_e6(x: f64) -> String {
+    let s = format!("{x:.6e}");
+    // `{:.6e}` renders as "<mantissa>e<exp>" where <exp> is a signed decimal with no padding.
+    let (mantissa, exp) = s.split_once('e').expect("scientific format has 'e'");
+    let e: i32 = exp.parse().expect("valid exponent");
+    format!("{mantissa}e{}{:02}", if e < 0 { '-' } else { '+' }, e.abs())
+}
+
 /// `SST_GetSelectionData` outputs (returned only when selection is OK).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SelectionData {
@@ -109,6 +121,7 @@ pub struct SourcestatsReport {
 }
 
 /// Per-source statistics history (chrony's `SST_Stats_Record`).
+#[derive(Debug)]
 pub struct SourceStats {
     refid: u32,
     has_ip: bool,
@@ -656,14 +669,14 @@ impl SourceStats {
             let i = self.get_runsbuf_index(m);
             let j = self.get_buf_index(m);
             s.push_str(&format!(
-                "{:.9} {:.6e} {:.6e} {:.6e} {:.6e} {:.6e} {:.6e}\n",
+                "{:.9} {} {} {} {} {} {}\n",
                 self.sample_times[i],
-                self.offsets[i],
-                self.orig_offsets[j],
-                self.peer_delays[i],
-                self.peer_dispersions[j],
-                self.root_delays[j],
-                self.root_dispersions[j],
+                fmt_c_e6(self.offsets[i]),
+                fmt_c_e6(self.orig_offsets[j]),
+                fmt_c_e6(self.peer_delays[i]),
+                fmt_c_e6(self.peer_dispersions[j]),
+                fmt_c_e6(self.root_delays[j]),
+                fmt_c_e6(self.root_dispersions[j]),
             ));
         }
         Some(s)
@@ -708,7 +721,7 @@ impl SourceStats {
             self.root_dispersions[i] = v[6];
             self.sample_times[i] = sample_time;
 
-            if !is_time_offset_sane(self.sample_times[i], -self.offsets[i])
+            if !is_time_offset_sane(self.sample_times[i], -self.offsets[i], crate::util::NTP_ERA_SPLIT)
                 || now < self.sample_times[i]
                 || !(self.peer_delays[i].abs() < 1.0e6
                     && self.peer_dispersions[i].abs() < 1.0e6
@@ -785,6 +798,143 @@ impl SourceStats {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tracking_data_matches_real_c() {
+        // End-to-end differential test of SST_AccumulateSample + SST_DoNewRegression +
+        // SST_GetTrackingData (the statistics keystone, composing the verified regress) vs the
+        // REAL compiled sourcestats.c + regress.c (/tmp/nss/genss.c, -ffp-contract=off). Sample
+        // times are exact integer seconds so the timespec<->f64 domains agree; precision=1e-6
+        // matches the oracle's LCL_GetSysPrecisionAsQuantum stub.
+        let v = include_str!("../../../research/oracle/sourcestats-c-vectors.txt");
+        let tm = [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0];
+        let off = [0.0001, 0.00021, 0.00029, 0.00042, 0.00048, 0.00061, 0.00069, 0.00082];
+        let pd = [0.01, 0.011, 0.012, 0.013, 0.014, 0.015, 0.016, 0.017];
+        let rd = [0.02, 0.021, 0.022, 0.023, 0.024, 0.025, 0.026, 0.027];
+        let rdisp = [2e-4, 2.1e-4, 2.2e-4, 2.3e-4, 2.4e-4, 2.5e-4, 2.6e-4, 2.7e-4];
+        // (id, min_delay, asymmetry, n)
+        let cases: &[(&str, f64, f64, usize)] = &[
+            ("eight", 0.0, 1.0, 8),
+            ("four", 0.0, 1.0, 4),
+            ("asym", 1e-4, 0.5, 8),
+        ];
+        let f = |l: &str, k: &str| l.split_whitespace().find_map(|t| t.strip_prefix(&format!("{k}="))).unwrap_or_else(|| panic!("no {k} in {l:?}")).parse::<f64>().unwrap();
+        // The estimates compose the robust regression and match to ~1 ULP; the residual is FP
+        // summation order in the regression's iterative runs-test, not a logic difference.
+        let close = |got: f64, exp: f64, id: &str, name: &str| {
+            assert!((got - exp).abs() <= 1e-12 + 1e-9 * exp.abs(), "{id} {name}: {got} vs {exp}");
+        };
+        for (id, min_delay, asym, n) in cases {
+            let mut s = SourceStats::new(0x0a00_0001, true, 4, 16, *min_delay, *asym);
+            for i in 0..*n {
+                s.accumulate_sample(&NtpSample {
+                    time: tm[i],
+                    offset: off[i],
+                    peer_delay: pd[i],
+                    peer_dispersion: 1e-6,
+                    root_delay: rd[i],
+                    root_dispersion: rdisp[i],
+                });
+                s.do_new_regression(1e-6);
+            }
+            let d = s.tracking_data();
+            let l = v.lines().find(|l| l.starts_with("SST ") && l.split_whitespace().nth(1) == Some(&format!("id={id}"))).unwrap();
+            assert_eq!(s.samples() as i64, f(l, "n") as i64, "{id} n");
+            // ref_time passes through chrony's ns timespec -> within a ns; the estimates ~1 ULP.
+            assert!((d.ref_time - f(l, "ref")).abs() < 1e-9, "{id} ref");
+            close(d.average_offset, f(l, "off"), id, "off");
+            close(d.offset_sd, f(l, "offsd"), id, "offsd");
+            close(d.frequency, f(l, "freq"), id, "freq");
+            close(d.frequency_sd, f(l, "freqsd"), id, "freqsd");
+            close(d.skew, f(l, "skew"), id, "skew");
+            close(d.root_delay, f(l, "rdelay"), id, "rdelay");
+            close(d.root_dispersion, f(l, "rdisp"), id, "rdisp");
+
+            // SST_GetSelectionData at now = last_sample_time + 5s (max_jitter = 1.0 stub).
+            let sl = v.lines().find(|l| l.starts_with("SEL ") && l.split_whitespace().nth(1) == Some(&format!("id={id}"))).unwrap();
+            let sel = s.selection_data(tm[*n - 1] + 5.0, 1.0);
+            if sl.split_whitespace().any(|t| t == "ok=0") {
+                assert!(sel.is_none(), "{id} selection expected None");
+            } else {
+                let sd = sel.unwrap_or_else(|| panic!("{id} selection expected Some"));
+                close(sd.offset_lo_limit, f(sl, "lo"), id, "sel_lo");
+                close(sd.offset_hi_limit, f(sl, "hi"), id, "sel_hi");
+                close(sd.root_distance, f(sl, "dist"), id, "sel_dist");
+                close(sd.std_dev, f(sl, "sd"), id, "sel_sd");
+                // first/last-sample-ago are exact time differences.
+                assert!((sd.first_sample_ago - f(sl, "first_ago")).abs() < 1e-9, "{id} first_ago");
+                assert!((sd.last_sample_ago - f(sl, "last_ago")).abs() < 1e-9, "{id} last_ago");
+            }
+
+            // The remaining pure accessors (frequency range, predicted offset, min RTT delay,
+            // jitter asymmetry, delay-test data) at when = last_sample_time + 5s.
+            let al = v.lines().find(|l| l.starts_with("ACC ") && l.split_whitespace().nth(1) == Some(&format!("id={id}"))).unwrap();
+            let when = tm[*n - 1] + 5.0;
+            let (fr_lo, fr_hi) = s.frequency_range();
+            close(fr_lo, f(al, "fr_lo"), id, "fr_lo");
+            close(fr_hi, f(al, "fr_hi"), id, "fr_hi");
+            close(s.predict_offset(when), f(al, "pred"), id, "pred");
+            close(s.min_round_trip_delay(), f(al, "mindelay"), id, "mindelay");
+            close(s.jitter_asymmetry(), f(al, "jasym"), id, "jasym");
+            let dtd_ok = al.split_whitespace().any(|t| t == "dtd_ok=1");
+            match s.delay_test_data(when) {
+                Some(dtd) => {
+                    assert!(dtd_ok, "{id} delay-test expected None");
+                    assert!((dtd.last_sample_ago - f(al, "dtd_ago")).abs() < 1e-9, "{id} dtd_ago");
+                    close(dtd.predicted_offset, f(al, "dtd_pred"), id, "dtd_pred");
+                    close(dtd.min_delay, f(al, "dtd_min"), id, "dtd_min");
+                    close(dtd.skew, f(al, "dtd_skew"), id, "dtd_skew");
+                    close(dtd.std_dev, f(al, "dtd_sd"), id, "dtd_sd");
+                }
+                None => assert!(!dtd_ok, "{id} delay-test expected Some"),
+            }
+        }
+    }
+
+    #[test]
+    fn save_to_string_matches_real_c() {
+        // Differential test of SST_SaveToFile's exact bytes vs the REAL compiled sourcestats.c
+        // (/tmp/nss/gensave.c). Uses absolute integer-second sample times so the timespec string
+        // matches, and pins the C `%.6e` exponent format (sign + >=2 digits) that Rust's `{:.6e}`
+        // omits -- a byte-parity divergence this test surfaced and fmt_c_e6 fixes.
+        let v = include_str!("../../../research/oracle/sourcestats-save-c-vectors.txt");
+        let expected = v
+            .lines()
+            .find(|l| l.starts_with("SAVE "))
+            .unwrap()
+            .split(" |")
+            .nth(1)
+            .unwrap()
+            .strip_suffix('|')
+            .unwrap()
+            .replace("\\n", "\n");
+
+        let off = [0.0001, 0.00021, 0.00029, 0.00042, 0.00048, 0.00061, 0.00069, 0.00082];
+        let pd = [0.01, 0.011, 0.012, 0.013, 0.014, 0.015, 0.016, 0.017];
+        let rd = [0.02, 0.021, 0.022, 0.023, 0.024, 0.025, 0.026, 0.027];
+        let rdisp = [2e-4, 2.1e-4, 2.2e-4, 2.3e-4, 2.4e-4, 2.5e-4, 2.6e-4, 2.7e-4];
+        let mut s = SourceStats::new(0x0a00_0001, true, 4, 16, 0.0, 1.0);
+        for i in 0..8 {
+            s.accumulate_sample(&NtpSample {
+                time: 1_000_000_000.0 + (i * 10) as f64,
+                offset: off[i],
+                peer_delay: pd[i],
+                peer_dispersion: 1e-6,
+                root_delay: rd[i],
+                root_dispersion: rdisp[i],
+            });
+            s.do_new_regression(1e-6);
+        }
+        assert_eq!(s.save_to_string().unwrap(), expected);
+    }
+
+    #[test]
+    fn c_exponent_format_shim() {
+        assert_eq!(fmt_c_e6(-0.0001), "-1.000000e-04");
+        assert_eq!(fmt_c_e6(1.0e-2), "1.000000e-02");
+        assert_eq!(fmt_c_e6(1.5e10), "1.500000e+10");
+        assert_eq!(fmt_c_e6(0.0), "0.000000e+00");
+    }
 
     fn sample(time: f64, offset: f64) -> NtpSample {
         NtpSample {

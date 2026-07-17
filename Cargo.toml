@@ -3,9 +3,11 @@ resolver = "2"
 members = [
     "crates/chrony-rs",
     "crates/chrony-rs-core",
+    "crates/chrony-rs-io",
     "crates/chronyd-rs",
     "crates/chronyc-rs",
     "xtask",
+    "fuzz",
 ]
 
 [workspace.package]
@@ -14,6 +16,7 @@ edition = "2021"
 rust-version = "1.74"
 license = "GPL-2.0-only"
 repository = "https://github.com/infinityabundance/chrony-rs"
+homepage = "https://github.com/infinityabundance/chrony-rs"
 description = "A forensic Rust reconstruction of chrony time-discipline behavior."
 
 # chrony itself is GPL-2.0-only. chrony-rs is an independent reconstruction, but
@@ -24,6 +27,12 @@ description = "A forensic Rust reconstruction of chrony time-discipline behavior
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[workspace.lints.rust]
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
 
 [profile.release]
 # Time-discipline code benefits from predictable arithmetic. We keep overflow

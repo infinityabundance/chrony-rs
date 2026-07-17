@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 /// chrony's `leap_status` rendering and must not be paraphrased.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+    #[non_exhaustive]
 pub enum LeapStatus {
     Normal,
     InsertSecond,
@@ -144,6 +145,7 @@ const SOURCES_LEGEND_LINES: &[&str] = &[
 /// Source mode glyph (first column char), from `RPY_SD_MD_*` in chrony.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+    #[non_exhaustive]
 pub enum SourceMode {
     /// `^` — a server we poll as a client.
     Server,
@@ -153,8 +155,18 @@ pub enum SourceMode {
     RefClock,
 }
 
+impl From<crate::cmdmon::SourceMode> for SourceMode {
+    fn from(m: crate::cmdmon::SourceMode) -> Self {
+        match m {
+            crate::cmdmon::SourceMode::NtpClient => SourceMode::Server,
+            crate::cmdmon::SourceMode::NtpPeer => SourceMode::Peer,
+            crate::cmdmon::SourceMode::LocalReference => SourceMode::RefClock,
+        }
+    }
+}
+
 impl SourceMode {
-    fn glyph(self) -> char {
+    pub fn glyph(self) -> char {
         match self {
             SourceMode::Server => '^',
             SourceMode::Peer => '=',
@@ -166,6 +178,7 @@ impl SourceMode {
 /// Source selection state glyph (second column char), from `RPY_SD_ST_*`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+    #[non_exhaustive]
 pub enum SourceState {
     /// `*` — current synced/best source (`RPY_SD_ST_SELECTED`).
     Selected,
@@ -181,8 +194,21 @@ pub enum SourceState {
     Jittery,
 }
 
+impl From<crate::cmdmon::SourceState> for SourceState {
+    fn from(s: crate::cmdmon::SourceState) -> Self {
+        match s {
+            crate::cmdmon::SourceState::Selected => SourceState::Selected,
+            crate::cmdmon::SourceState::Unselected => SourceState::Combined,
+            crate::cmdmon::SourceState::Selectable => SourceState::NotCombined,
+            crate::cmdmon::SourceState::Nonselectable => SourceState::Unusable,
+            crate::cmdmon::SourceState::Falseticker => SourceState::Falseticker,
+            crate::cmdmon::SourceState::Jittery => SourceState::Jittery,
+        }
+    }
+}
+
 impl SourceState {
-    fn glyph(self) -> char {
+    pub fn glyph(self) -> char {
         match self {
             SourceState::Selected => '*',
             SourceState::Combined => '+',
@@ -218,7 +244,7 @@ pub struct SourceEntry {
 
 impl SourceEntry {
     /// Render one row exactly as `print_report`'s format string would.
-    fn render_row(&self) -> String {
+    pub fn render_row(&self) -> String {
         format!(
             "{}{} {:<27}  {:2}  {:2}   {:3o}  {}  {}[{}] +/- {}\n",
             self.mode.glyph(),
@@ -379,7 +405,7 @@ pub struct SourcestatsEntry {
 }
 
 impl SourcestatsEntry {
-    fn render_row(&self) -> String {
+    pub fn render_row(&self) -> String {
         format!(
             "{:<25} {:3} {:3}  {} {} {}  {}  {}\n",
             self.name,
@@ -436,6 +462,637 @@ fn fmt_signed_freq_ppm(f: f64) -> String {
     } else {
         format!("{f:+10.0}")
     }
+}
+
+/// `print_clientlog_interval`: a log2 request-rate/interval shown as `%2d`, but a saturated
+/// rate (`>= 127`) renders as `" -"` (chrony's `clients`/`serverstats` "unknown" marker).
+fn fmt_clientlog_interval(rate: i32) -> String {
+    if rate >= 127 {
+        " -".to_string()
+    } else {
+        format!("{rate:2}")
+    }
+}
+
+// ---------------------------------------------------------------------------
+// `print_report`: chrony's custom mini-printf that drives every chronyc report.
+//
+// Ported from chrony 4.5 `client.c::print_report`. The format grammar is
+// printf-like but with chrony-specific specifiers (see `ReportSpec` below) and a
+// CSV mode that drops literal text, comma-joins fields, remaps a few specifiers,
+// and appends a trailing newline. Differential-tested vs the VERBATIM print_report
+// engine (linked against the real util.c) over both modes.
+// ---------------------------------------------------------------------------
+
+/// A typed argument consumed by [`print_report`], mirroring the C `va_arg` types each
+/// specifier reads (the C engine trusts the caller to pass the right type per specifier).
+#[derive(Clone, Debug, PartialEq)]
+    #[non_exhaustive]
+pub enum ReportArg {
+    /// A signed `int` (`%B`, `%C`, `%L`, `%M`, `%N`, `%c`, `%d`).
+    Int(i32),
+    /// A `uint32_t` (`%I`, `%R`, `%U`).
+    U32(u32),
+    /// A `uint64_t` (`%Q`).
+    U64(u64),
+    /// An `unsigned int` (`%b`, `%o`, `%u`).
+    Uint(u32),
+    /// A `double` (`%F`, `%O`, `%P`, `%S`, `%f`).
+    Double(f64),
+    /// A `const char *` (`%s`).
+    Str(String),
+    /// A `struct timespec *` (`%V`; `%T` is not modeled — see [`print_report`]).
+    Timespec(i64, i64),
+}
+
+/// Whether [`print_report`] renders human-readable text or CSV (the `-c` mode).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[non_exhaustive]
+pub enum ReportMode {
+    Human,
+    Csv,
+}
+
+/// chrony's `print_report` engine (`client.c`): format `format` against `args`, returning the
+/// exact bytes chronyc would print. The grammar between `%` specifiers is literal text
+/// (emitted only in [`ReportMode::Human`]); a specifier is `%[+|-][width][.prec]C` where the
+/// sign flag, decimal `width` (default 0), and `.prec` (default 5) drive the chrony-specific
+/// conversions. In [`ReportMode::Csv`] the sign/width are cleared, fields are comma-joined, a
+/// few specifiers are remapped (`C→d`, `F/P→f.3`, `O/S→f.9`, `I→U`, `T→V`), and a trailing
+/// newline is appended.
+///
+/// The `%T` specifier renders the timespec's seconds as `strftime("%a %b %d %T %Y")` UTC via
+/// [`crate::util::gmtime_report_string`] (the nanoseconds are unused, as in chrony); `%V` renders
+/// the full `seconds.nanoseconds` form. Every specifier is reproduced exactly.
+pub fn print_report(format: &str, args: &[ReportArg], mode: ReportMode) -> String {
+    let csv = mode == ReportMode::Csv;
+    let fmt: Vec<char> = format.chars().collect();
+    let mut out = String::new();
+    let mut ai = 0usize; // next argument index
+    let mut next_arg = || {
+        let a = args[ai].clone();
+        ai += 1;
+        a
+    };
+    let mut pos = 0usize;
+    let mut field = 0i32;
+    loop {
+        // Copy literal text up to the next '%' or end.
+        let mut lit = String::new();
+        while pos < fmt.len() && fmt[pos] != '%' {
+            lit.push(fmt[pos]);
+            pos += 1;
+        }
+        if !csv {
+            out.push_str(&lit);
+        }
+        // Stop on end-of-format or a trailing bare '%'.
+        if pos >= fmt.len() || pos + 1 >= fmt.len() {
+            break;
+        }
+        pos += 1; // consume '%'
+
+        // Parse [+|-] sign flag, [width], [.prec].
+        let mut sign = false;
+        let mut width = 0usize;
+        let mut prec = 5usize;
+        if fmt[pos] == '+' || fmt[pos] == '-' {
+            sign = true;
+            pos += 1;
+        }
+        if fmt[pos].is_ascii_digit() {
+            let start = pos;
+            while pos < fmt.len() && fmt[pos].is_ascii_digit() {
+                pos += 1;
+            }
+            width = fmt[start..pos].iter().collect::<String>().parse().unwrap();
+        }
+        if pos < fmt.len() && fmt[pos] == '.' {
+            pos += 1;
+            let start = pos;
+            while pos < fmt.len() && fmt[pos].is_ascii_digit() {
+                pos += 1;
+            }
+            prec = fmt[start..pos].iter().collect::<String>().parse().unwrap_or(0);
+        }
+        let mut spec = fmt[pos];
+        pos += 1;
+
+        // CSV mode: clear sign/width, comma-join, and remap a few specifiers.
+        if csv {
+            sign = false;
+            width = 0;
+            if field > 0 {
+                out.push(',');
+            }
+            match spec {
+                'C' => spec = 'd',
+                'F' | 'P' => {
+                    prec = 3;
+                    spec = 'f';
+                }
+                'O' | 'S' => {
+                    prec = 9;
+                    spec = 'f';
+                }
+                'I' => spec = 'U',
+                'T' => spec = 'V',
+                _ => {}
+            }
+        }
+
+        match spec {
+            'B' => {
+                let v = as_int(next_arg());
+                out.push_str(if v != 0 { "Yes" } else { "No" });
+            }
+            'C' => out.push_str(&fmt_clientlog_interval(as_int(next_arg()))),
+            'F' | 'O' => {
+                let dbl = as_double(next_arg());
+                let unit = if spec == 'O' { "seconds" } else { "ppm" };
+                // (dbl > 0) XOR (spec != 'O') ? "slow" : "fast"
+                let slow = (dbl > 0.0) ^ (spec != 'O');
+                out.push_str(&format!(
+                    "{} {} {}",
+                    fmt_fixed(dbl.abs(), width, prec, false),
+                    unit,
+                    if slow { "slow" } else { "fast" }
+                ));
+            }
+            'I' => out.push_str(&fmt_seconds(as_u32(next_arg()))),
+            'L' => {
+                let v = as_int(next_arg());
+                out.push_str(leap_string(v, width));
+            }
+            'M' => {
+                let v = as_int(next_arg());
+                out.push_str(match v {
+                    1 => "Symmetric active",
+                    2 => "Symmetric passive",
+                    4 => "Server",
+                    _ => "Invalid",
+                });
+            }
+            'N' => {
+                let v = as_int(next_arg());
+                out.push_str(match v {
+                    b if b == b'D' as i32 => "Daemon",
+                    b if b == b'K' as i32 => "Kernel",
+                    b if b == b'H' as i32 => "Hardware",
+                    _ => "Invalid",
+                });
+            }
+            'P' => {
+                let dbl = as_double(next_arg());
+                out.push_str(&if sign { fmt_signed_freq_ppm(dbl) } else { fmt_freq_ppm(dbl) });
+            }
+            'R' => out.push_str(&format!("{:08X}", as_u32(next_arg()))),
+            'S' => {
+                let dbl = as_double(next_arg());
+                out.push_str(&if sign { fmt_signed_nanoseconds(dbl) } else { fmt_nanoseconds(dbl) });
+            }
+            'U' => out.push_str(&fmt_uint_width(as_u32(next_arg()) as u64, width)),
+            'T' => {
+                if let ReportArg::Timespec(sec, _nsec) = next_arg() {
+                    out.push_str(&crate::util::gmtime_report_string(sec));
+                }
+            }
+            'V' => {
+                if let ReportArg::Timespec(sec, nsec) = next_arg() {
+                    out.push_str(&crate::util::timespec_to_string(sec, nsec));
+                }
+            }
+            'Q' => out.push_str(&fmt_uint_width(as_u64(next_arg()), width)),
+            'b' => {
+                let v = as_uint(next_arg());
+                for i in (0..prec as i32).rev() {
+                    out.push(if v & (1u32 << i) != 0 { '1' } else { '0' });
+                }
+            }
+            'c' => out.push(as_int(next_arg()) as u8 as char),
+            'd' => out.push_str(&fmt_int_width(as_int(next_arg()), width)),
+            'f' => out.push_str(&fmt_fixed(as_double(next_arg()), width, prec, sign)),
+            'o' => out.push_str(&fmt_oct_width(as_uint(next_arg()), width)),
+            's' => {
+                let s = as_str(next_arg());
+                out.push_str(&fmt_str_width(&s, width, sign));
+            }
+            'u' => out.push_str(&fmt_uint_width(as_uint(next_arg()) as u64, width)),
+            _ => {}
+        }
+        field += 1;
+    }
+    if csv {
+        out.push('\n');
+    }
+    out
+}
+
+/// `%L` leap-status text: the single-char glyph when `width == 1`, else the full phrase.
+fn leap_string(v: i32, width: usize) -> &'static str {
+    match v {
+        0 => if width != 1 { "Normal" } else { "N" },
+        1 => if width != 1 { "Insert second" } else { "+" },
+        2 => if width != 1 { "Delete second" } else { "-" },
+        3 => if width != 1 { "Not synchronised" } else { "?" },
+        _ => if width != 1 { "Invalid" } else { "?" },
+    }
+}
+
+// C `printf` field-width helpers (right-justified min-width; `%-*s` is left-justified).
+fn fmt_int_width(v: i32, width: usize) -> String {
+    format!("{v:>width$}")
+}
+fn fmt_uint_width(v: u64, width: usize) -> String {
+    format!("{v:>width$}")
+}
+fn fmt_oct_width(v: u32, width: usize) -> String {
+    format!("{v:>width$o}")
+}
+fn fmt_str_width(s: &str, width: usize, left: bool) -> String {
+    if left {
+        format!("{s:<width$}")
+    } else {
+        format!("{s:>width$}")
+    }
+}
+/// C `%*.*f` / `%+*.*f`: fixed-point with a min field width and precision.
+fn fmt_fixed(v: f64, width: usize, prec: usize, sign: bool) -> String {
+    if sign {
+        format!("{v:>+width$.prec$}")
+    } else {
+        format!("{v:>width$.prec$}")
+    }
+}
+
+fn as_int(a: ReportArg) -> i32 {
+    match a {
+        ReportArg::Int(v) => v,
+        _ => 0,
+    }
+}
+fn as_u32(a: ReportArg) -> u32 {
+    match a {
+        ReportArg::U32(v) => v,
+        _ => 0,
+    }
+}
+fn as_u64(a: ReportArg) -> u64 {
+    match a {
+        ReportArg::U64(v) => v,
+        _ => 0,
+    }
+}
+fn as_uint(a: ReportArg) -> u32 {
+    match a {
+        ReportArg::Uint(v) => v,
+        _ => 0,
+    }
+}
+fn as_double(a: ReportArg) -> f64 {
+    match a {
+        ReportArg::Double(v) => v,
+        _ => 0.0,
+    }
+}
+fn as_str(a: ReportArg) -> String {
+    match a {
+        ReportArg::Str(v) => v,
+        _ => String::new(),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Report renderers built on the print_report engine (client.c process_cmd_*).
+//
+// Each reproduces a chronyc report's exact format string + argument assembly,
+// composing the ported wire decoders (cmdmon report structs). The display `name`
+// column (chrony's format_name of refid/IP) and name resolution are a host
+// boundary supplied by the caller. Headers and -v legends are the verbatim text.
+// ---------------------------------------------------------------------------
+
+use crate::cmdmon::{AuthMode, AuthReport, ClientAccessReport, ManualSampleReport, SelectReport};
+
+/// `chronyc clients` column header (`process_cmd_clients`). The sixth column is `Cmd` normally
+/// or `NTS-KE` with `-k`; chrony builds it with `snprintf("%6s", ...)`, so `Cmd` is right-padded
+/// to width 6 (`"   Cmd"`) while `NTS-KE` fills it exactly.
+pub fn clients_header(nke: bool) -> String {
+    let col = if nke { "NTS-KE" } else { "Cmd" };
+    format!("Hostname                      NTP   Drop Int IntL Last  {col:>6}   Drop Int  Last")
+}
+
+/// `chronyc clients` per-client row (`process_cmd_clients`). `name` is the pre-formatted display
+/// name. With `nke`, the second counter group is the NTS-KE columns; otherwise the command
+/// columns. The `%C` interval columns are the raw signed log2 intervals (clientlog-interval
+/// formatting), and the `%I` columns are seconds-since (unit-scaled).
+pub fn render_clients_row(name: &str, r: &ClientAccessReport, nke: bool, mode: ReportMode) -> String {
+    let (hits2, drops2, interval2, last2) = if nke {
+        (r.nke_hits, r.nke_drops, r.nke_interval, r.last_nke_hit_ago)
+    } else {
+        (r.cmd_hits, r.cmd_drops, r.cmd_interval, r.last_cmd_hit_ago)
+    };
+    let args = [
+        ReportArg::Str(name.to_string()),
+        ReportArg::U32(r.ntp_hits),
+        ReportArg::U32(r.ntp_drops),
+        ReportArg::Int(r.ntp_interval as i32),
+        ReportArg::Int(r.ntp_timeout_interval as i32),
+        ReportArg::U32(r.last_ntp_hit_ago),
+        ReportArg::U32(hits2),
+        ReportArg::U32(drops2),
+        ReportArg::Int(interval2 as i32),
+        ReportArg::U32(last2),
+    ];
+    print_report("%-25s  %6U  %5U  %C  %C  %I  %6U  %5U  %C  %I\n", &args, mode)
+}
+
+/// `chronyc manual list` column header (`process_cmd_manual_list`).
+pub const MANUAL_LIST_HEADER: &str = "#    Date     Time(UTC)    Slewed   Original   Residual";
+
+/// `chronyc manual list`'s `210 n_samples = N` info line (printed before the table via
+/// `print_info_field`, which is suppressed in CSV mode).
+pub fn manual_list_info_line(n_samples: u32) -> String {
+    format!("210 n_samples = {n_samples}\n")
+}
+
+/// `chronyc manual list` per-sample row (`process_cmd_manual_list`): the index (`%2d`), the
+/// sample time as `UTI_TimeToLogForm` (`%s`, `"%Y-%m-%d %H:%M:%S"` UTC), and the slewed/original/
+/// residual offsets (`%10.2f`). Consumes a decoded [`ManualSampleReport`].
+pub fn render_manual_list_row(index: i32, r: &ManualSampleReport, mode: ReportMode) -> String {
+    let args = [
+        ReportArg::Int(index),
+        ReportArg::Str(crate::util::time_to_log_form(r.when_sec)),
+        ReportArg::Double(r.slewed_offset),
+        ReportArg::Double(r.orig_offset),
+        ReportArg::Double(r.residual),
+    ];
+    print_report("%2d %s %10.2f %10.2f %10.2f\n", &args, mode)
+}
+
+/// `chronyc authdata` column header (`process_cmd_authdata`).
+pub const AUTHDATA_HEADER: &str =
+    "Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen";
+
+/// `chronyc authdata -v` legend (the five verbatim `printf` lines).
+pub const AUTHDATA_LEGEND_LINES: &[&str] = &[
+    "                             .- Auth. mechanism (NTS, SK - symmetric key)",
+    "                            |   Key length -.  Cookie length (bytes) -.",
+    "                            |       (bits)  |  Num. of cookies --.    |",
+    "                            |               |  Key est. attempts  |   |",
+    "                            |               |           |         |   |",
+];
+
+/// `chronyc authdata` per-source row. `name` is the pre-formatted display name (chrony's
+/// `format_name`, ≤25 chars, right-padded to 27 by the `%-27s`). The auth mode renders as
+/// `-`/`SK`/`NTS`/`?` (`RPY_AD_MD_*`). Format string and argument order are exactly
+/// `process_cmd_authdata`'s.
+pub fn render_authdata_row(name: &str, r: &AuthReport, mode: ReportMode) -> String {
+    let mode_str = match r.mode {
+        AuthMode::None => "-",
+        AuthMode::Symmetric => "SK",
+        AuthMode::Nts => "NTS",
+    };
+    let args = [
+        ReportArg::Str(name.to_string()),
+        ReportArg::Str(mode_str.to_string()),
+        ReportArg::U32(r.key_id),
+        ReportArg::Int(r.key_type as i32),
+        ReportArg::Int(r.key_length as i32),
+        ReportArg::U32(r.last_ke_ago),
+        ReportArg::Int(r.ke_attempts as i32),
+        ReportArg::Int(r.nak as i32),
+        ReportArg::Int(r.cookies as i32),
+        ReportArg::Int(r.cookie_length as i32),
+    ];
+    print_report("%-27s %4s %5U %4d %4d %I %4d %4d %4d %4d\n", &args, mode)
+}
+
+/// `chronyc selectdata` column header (`process_cmd_selectdata`).
+pub const SELECTDATA_HEADER: &str =
+    "S Name/IP Address        Auth COpts EOpts Last Score     Interval  Leap";
+
+/// `chronyc selectdata -v` legend (the eight verbatim `printf` lines).
+pub const SELECTDATA_LEGEND_LINES: &[&str] = &[
+    "  . State: N - noselect, s - unsynchronised, M - missing samples,",
+    " /         d/D - large distance, ~ - jittery, w/W - waits for others,",
+    "|          S - stale, O - orphan, T - not trusted, P - not preferred,",
+    "|          U - waits for update,, x - falseticker, + - combined, * - best.",
+    "|   Effective options   ---------.  (N - noselect, P - prefer",
+    "|   Configured options  ----.     \\  T - trust, R - require)",
+    "|   Auth. enabled (Y/N) -.   \\     \\     Offset interval --.",
+    "|                        |    |     |                       |",
+];
+
+const SD_OPTION_NOSELECT: i32 = 0x1;
+const SD_OPTION_PREFER: i32 = 0x2;
+const SD_OPTION_TRUST: i32 = 0x4;
+const SD_OPTION_REQUIRE: i32 = 0x8;
+
+/// The five-character option group chrony prints for `COpts`/`EOpts`: noselect/prefer/trust/
+/// require glyphs then a trailing literal `-`.
+fn option_chars(opts: i32) -> [char; 5] {
+    [
+        if opts & SD_OPTION_NOSELECT != 0 { 'N' } else { '-' },
+        if opts & SD_OPTION_PREFER != 0 { 'P' } else { '-' },
+        if opts & SD_OPTION_TRUST != 0 { 'T' } else { '-' },
+        if opts & SD_OPTION_REQUIRE != 0 { 'R' } else { '-' },
+        '-',
+    ]
+}
+
+/// `chronyc selectdata` per-source row. `name` is the pre-formatted display name. The option
+/// masks are the `SRC_SELECT_*`/`RPY_SD_OPTION_*` bits (values coincide). Format string and
+/// argument order are exactly `process_cmd_selectdata`'s.
+pub fn render_selectdata_row(name: &str, r: &SelectReport, mode: ReportMode) -> String {
+    let conf = option_chars(r.conf_options);
+    let eff = option_chars(r.eff_options);
+    let auth = if r.authentication != 0 { 'Y' } else { 'N' };
+    let args = [
+        ReportArg::Int(r.state_char as i32),
+        ReportArg::Str(name.to_string()),
+        ReportArg::Int(auth as i32),
+        ReportArg::Int(conf[0] as i32),
+        ReportArg::Int(conf[1] as i32),
+        ReportArg::Int(conf[2] as i32),
+        ReportArg::Int(conf[3] as i32),
+        ReportArg::Int(conf[4] as i32),
+        ReportArg::Int(eff[0] as i32),
+        ReportArg::Int(eff[1] as i32),
+        ReportArg::Int(eff[2] as i32),
+        ReportArg::Int(eff[3] as i32),
+        ReportArg::Int(eff[4] as i32),
+        ReportArg::U32(r.last_sample_ago),
+        ReportArg::Double(r.score),
+        ReportArg::Double(r.lo_limit),
+        ReportArg::Double(r.hi_limit),
+        ReportArg::Int(r.leap as i32),
+    ];
+    print_report("%c %-25s %c %c%c%c%c%c %c%c%c%c%c %I %5.1f %+S %+S  %1L\n", &args, mode)
+}
+
+/// The mapping from `serverstats` **display** position to the wire-counter index in
+/// `ServerStatsReport::counters` (`RPY_ServerStats` order). chrony's `process_cmd_serverstats`
+/// prints the counters in a different order than they appear on the wire — e.g. the NTS-KE
+/// counters (wire idx 1/4) are shown after the command/log counters. Used to feed the existing
+/// [`ServerstatsReport`] (which holds display-order values) from a wire-order decode.
+pub const SERVERSTATS_DISPLAY_TO_WIRE: [usize; 17] =
+    [0, 3, 2, 5, 6, 1, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+/// Reorder the 17 wire counters (`RPY_ServerStats` order, as decoded by
+/// [`crate::cmdmon`]) into the `serverstats` display order used by [`ServerstatsReport`].
+pub fn serverstats_wire_to_display(counters: &[u64; 17]) -> Vec<u64> {
+    SERVERSTATS_DISPLAY_TO_WIRE.iter().map(|&w| counters[w]).collect()
+}
+
+/// `chronyc tracking` (`process_cmd_tracking`), driven by the [`print_report`] engine over the
+/// exact 13-line format string. `name` is the pre-formatted reference display name (chrony's
+/// `format_name` of the ref-id/IP), which the caller supplies (name resolution is a host
+/// boundary). Consumes a wire-decoded [`crate::cmdmon::TrackingReport`]. In CSV mode the labels
+/// are dropped, `%T` falls back to `%V` (the `seconds.nanoseconds` form), and the fields are
+/// comma-joined.
+pub fn render_tracking(r: &crate::cmdmon::TrackingReport, name: &str, mode: ReportMode) -> String {
+    let args = [
+        ReportArg::U32(r.ref_id),
+        ReportArg::Str(name.to_string()),
+        ReportArg::Uint(r.stratum as u32),
+        ReportArg::Timespec(r.ref_time_sec, r.ref_time_nsec),
+        ReportArg::Double(r.current_correction),
+        ReportArg::Double(r.last_offset),
+        ReportArg::Double(r.rms_offset),
+        ReportArg::Double(r.freq_ppm),
+        ReportArg::Double(r.resid_freq_ppm),
+        ReportArg::Double(r.skew_ppm),
+        ReportArg::Double(r.root_delay),
+        ReportArg::Double(r.root_dispersion),
+        ReportArg::Double(r.last_update_interval),
+        ReportArg::Int(r.leap_status as i32),
+    ];
+    print_report(
+        "Reference ID    : %R (%s)\n\
+         Stratum         : %u\n\
+         Ref time (UTC)  : %T\n\
+         System time     : %.9O of NTP time\n\
+         Last offset     : %+.9f seconds\n\
+         RMS offset      : %.9f seconds\n\
+         Frequency       : %.3F\n\
+         Residual freq   : %+.3f ppm\n\
+         Skew            : %.3f ppm\n\
+         Root delay      : %.9f seconds\n\
+         Root dispersion : %.9f seconds\n\
+         Update interval : %.1f seconds\n\
+         Leap status     : %L\n",
+        &args,
+        mode,
+    )
+}
+
+/// `chronyc ntpdata` (`process_cmd_ntpdata`), driven by the [`print_report`] engine over the
+/// exact 28-line format string. Consumes a wire-decoded [`crate::ntp::ntp_report::NtpReport`]
+/// plus the exchange's `remote_addr`/`remote_port` (which the reply carries alongside the
+/// report). Composes the ported `UTI_IPToString`/`UTI_IPToRefid` for the address+refid columns,
+/// `UTI_RefidToString` for the stratum-≤1 reference name, and `UTI_Log2ToDouble` for the
+/// poll/precision seconds. The `NTP tests` line shows the 10 test bits grouped 3-3-4 (the
+/// interleaved/authenticated flag bits sit above bit 9 and do not appear there).
+pub fn render_ntpdata(
+    r: &crate::ntp::ntp_report::NtpReport,
+    remote_addr: &crate::util::IpAddr,
+    remote_port: u16,
+    mode: ReportMode,
+) -> String {
+    use crate::util::{ip_to_refid, ip_to_string, log2_to_double, refid_to_string};
+    let ref_name = if r.stratum <= 1 { refid_to_string(r.ref_id) } else { String::new() };
+    let tests = r.tests as u32;
+    let args = [
+        ReportArg::Str(ip_to_string(remote_addr)),
+        ReportArg::U32(ip_to_refid(remote_addr)),
+        ReportArg::Uint(remote_port as u32),
+        ReportArg::Str(ip_to_string(&r.local_addr)),
+        ReportArg::U32(ip_to_refid(&r.local_addr)),
+        ReportArg::Int(r.leap as i32),
+        ReportArg::Uint(r.version as u32),
+        ReportArg::Int(r.mode as i32),
+        ReportArg::Uint(r.stratum as u32),
+        ReportArg::Int(r.poll as i32),
+        ReportArg::Double(log2_to_double(r.poll as i32)),
+        ReportArg::Int(r.precision as i32),
+        ReportArg::Double(log2_to_double(r.precision as i32)),
+        ReportArg::Double(r.root_delay),
+        ReportArg::Double(r.root_dispersion),
+        ReportArg::U32(r.ref_id),
+        ReportArg::Str(ref_name),
+        ReportArg::Timespec(r.ref_time.tv_sec, r.ref_time.tv_nsec),
+        ReportArg::Double(r.offset),
+        ReportArg::Double(r.peer_delay),
+        ReportArg::Double(r.peer_dispersion),
+        ReportArg::Double(r.response_time),
+        ReportArg::Double(r.jitter_asymmetry),
+        // The three %b test-bit groups: (tests>>7)[2:0], (tests>>4)[2:0], tests[3:0].
+        ReportArg::Uint(tests >> 7),
+        ReportArg::Uint(tests >> 4),
+        ReportArg::Uint(tests),
+        ReportArg::Int(r.interleaved as i32),
+        ReportArg::Int(r.authenticated as i32),
+        ReportArg::Int(r.tx_tss_char as i32),
+        ReportArg::Int(r.rx_tss_char as i32),
+        ReportArg::U32(r.total_tx_count),
+        ReportArg::U32(r.total_rx_count),
+        ReportArg::U32(r.total_valid_count),
+        ReportArg::U32(r.total_good_count),
+    ];
+    print_report(
+        "Remote address  : %s (%R)\n\
+         Remote port     : %u\n\
+         Local address   : %s (%R)\n\
+         Leap status     : %L\n\
+         Version         : %u\n\
+         Mode            : %M\n\
+         Stratum         : %u\n\
+         Poll interval   : %d (%.0f seconds)\n\
+         Precision       : %d (%.9f seconds)\n\
+         Root delay      : %.6f seconds\n\
+         Root dispersion : %.6f seconds\n\
+         Reference ID    : %R (%s)\n\
+         Reference time  : %T\n\
+         Offset          : %+.9f seconds\n\
+         Peer delay      : %.9f seconds\n\
+         Peer dispersion : %.9f seconds\n\
+         Response time   : %.9f seconds\n\
+         Jitter asymmetry: %+.2f\n\
+         NTP tests       : %.3b %.3b %.4b\n\
+         Interleaved     : %B\n\
+         Authenticated   : %B\n\
+         TX timestamping : %N\n\
+         RX timestamping : %N\n\
+         Total TX        : %U\n\
+         Total RX        : %U\n\
+         Total valid RX  : %U\n\
+         Total good RX   : %U\n",
+        &args,
+        mode,
+    )
+}
+
+/// `chronyc rtcdata` (`process_cmd_rtcreport`), driven by the [`print_report`] engine over the
+/// exact 6-line format string. Consumes a wire-decoded [`crate::cmdmon::RtcReport`].
+pub fn render_rtcdata(r: &crate::cmdmon::RtcReport, mode: ReportMode) -> String {
+    let args = [
+        ReportArg::Timespec(r.ref_time_sec, r.ref_time_nsec),
+        ReportArg::Uint(r.n_samples as u32),
+        ReportArg::Uint(r.n_runs as u32),
+        ReportArg::U32(r.span_seconds),
+        ReportArg::Double(r.rtc_seconds_fast),
+        ReportArg::Double(r.rtc_gain_rate_ppm),
+    ];
+    print_report(
+        "RTC ref time (UTC) : %T\n\
+         Number of samples  : %u\n\
+         Number of runs     : %u\n\
+         Sample span period : %I\n\
+         RTC is fast by     : %12.6f seconds\n\
+         RTC gains time at  : %9.3f ppm\n",
+        &args,
+        mode,
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -721,6 +1378,304 @@ Leap status     : Normal
         assert_eq!(fmt_signed_nanoseconds(-0.0034), "-3400us");
         assert_eq!(fmt_nanoseconds(0.000_012), "  12us");
         assert_eq!(fmt_nanoseconds(0.000_000_030), "  30ns");
+    }
+
+    #[test]
+    fn print_formatters_match_real_c_over_battery() {
+        // A large adversarial battery captured from the VERBATIM client.c print_* helpers
+        // (/tmp/nfmt/genfmt.c) covering every unit threshold, rounding half-point, sign edge,
+        // and negative zero. This upgrades the value formatters from live-witnessed to
+        // compiled-oracle-verified across their full domain.
+        let v = include_str!("../../../research/oracle/chronyc-fmt-c-vectors.txt");
+        for l in v.lines().filter(|l| !l.starts_with('#') && !l.trim().is_empty()) {
+            // Format: "TAG v=<value> |<output>|"
+            let (head, rest) = l.split_once('|').expect("marker");
+            let out = rest.strip_suffix('|').expect("closing marker");
+            let mut it = head.split_whitespace();
+            let tag = it.next().unwrap();
+            let val = it.next().unwrap().strip_prefix("v=").unwrap();
+            let got = match tag {
+                "SEC" => fmt_seconds(val.parse::<u32>().unwrap()),
+                "NS" => fmt_nanoseconds(val.parse::<f64>().unwrap()),
+                "SNS" => fmt_signed_nanoseconds(val.parse::<f64>().unwrap()),
+                "FQ" => fmt_freq_ppm(val.parse::<f64>().unwrap()),
+                "SFQ" => fmt_signed_freq_ppm(val.parse::<f64>().unwrap()),
+                "CLI" => fmt_clientlog_interval(val.parse::<i32>().unwrap()),
+                other => panic!("unknown tag {other}"),
+            };
+            assert_eq!(got, out, "tag={tag} value={val}");
+        }
+    }
+
+    #[test]
+    fn print_report_engine_matches_real_c() {
+        use ReportArg::*;
+        // The (format, args) for each fixture id, driven identically in Human and CSV mode.
+        // Mirrors the calls in the verbatim-engine oracle (/tmp/nutil/genreport.c).
+        let cases: &[(&str, &str, Vec<ReportArg>)] = &[
+            ("bool", "a=%B b=%B", vec![Int(1), Int(0)]),
+            ("cli", "%C %C %C", vec![Int(5), Int(127), Int(200)]),
+            ("fo", "f=%F o=%O", vec![Double(12.5), Double(-0.003)]),
+            ("fo2", "f=%F o=%O", vec![Double(-12.5), Double(0.003)]),
+            ("ivl", "%I|%I", vec![U32(1500), U32(4294967295)]),
+            ("leap", "%L/%L/%L/%L/%L", vec![Int(0), Int(1), Int(2), Int(3), Int(9)]),
+            ("leap1", "%1L%1L%1L%1L", vec![Int(0), Int(1), Int(2), Int(3)]),
+            ("mode", "%M/%M/%M/%M", vec![Int(1), Int(2), Int(4), Int(7)]),
+            ("tss", "%N/%N/%N/%N", vec![Int(b'D' as i32), Int(b'K' as i32), Int(b'H' as i32), Int(b'x' as i32)]),
+            ("ppm", "%P|%+P", vec![Double(1.25), Double(-0.5)]),
+            ("refid", "%R", vec![U32(0x0a01_0203)]),
+            ("soff", "%S|%+S", vec![Double(0.000123), Double(-0.0034)]),
+            ("u32", "[%8U][%U]", vec![U32(42), U32(7)]),
+            ("u64", "[%10Q]", vec![U64(1_099_511_627_776)]),
+            ("bin", "%b %.3b", vec![Uint(10), Uint(5)]),
+            ("chr", "%c%c", vec![Int(65), Int(66)]),
+            ("dec", "[%5d][%d]", vec![Int(-3), Int(7)]),
+            ("dbl", "[%8.2f][%+.3f]", vec![Double(3.14159), Double(-2.5)]),
+            ("oct", "[%4o]", vec![Uint(255)]),
+            ("str", "[%10s][%-10s]", vec![Str("hi".into()), Str("yo".into())]),
+            ("usr", "[%5u]", vec![Uint(12345)]),
+            ("vts", "t=%V", vec![Timespec(1_700_000_000, 123_456_789)]),
+            ("mix", "Ref %R str %2d leap %L end", vec![U32(0xdead_beef), Int(3), Int(0)]),
+        ];
+
+        let v = include_str!("../../../research/oracle/chronyc-print-report-c-vectors.txt");
+        // Fixture line: "R id=<id> mode=<HUM|CSV> |<output-with-\n-escaped>|"
+        let expected = |id: &str, mode: &str| -> String {
+            let l = v
+                .lines()
+                .find(|l| {
+                    l.contains(&format!("id={id} ")) && l.contains(&format!("mode={mode} "))
+                })
+                .unwrap_or_else(|| panic!("no fixture for id={id} mode={mode}"));
+            let start = l.find(" |").unwrap() + 2;
+            let end = l.rfind('|').unwrap();
+            l[start..end].replace("\\n", "\n")
+        };
+
+        for (id, fmt, args) in cases {
+            assert_eq!(&print_report(fmt, args, ReportMode::Human), &expected(id, "HUM"), "HUM id={id}");
+            assert_eq!(&print_report(fmt, args, ReportMode::Csv), &expected(id, "CSV"), "CSV id={id}");
+        }
+    }
+
+    #[test]
+    fn report_renderers_match_real_c() {
+        use crate::cmdmon::{AuthMode, AuthReport, SelectReport};
+        let v = include_str!("../../../research/oracle/chronyc-renderers-c-vectors.txt");
+        let expected = |id: &str, mode: &str| -> String {
+            let l = v
+                .lines()
+                .find(|l| l.contains(&format!("id={id} ")) && l.contains(&format!("mode={mode} ")))
+                .unwrap();
+            let start = l.find(" |").unwrap() + 2;
+            let end = l.rfind('|').unwrap();
+            l[start..end].replace("\\n", "\n")
+        };
+
+        // authdata row (mode SK = Symmetric).
+        let ad = AuthReport {
+            mode: AuthMode::Symmetric,
+            key_type: 1,
+            key_id: 42,
+            key_length: 128,
+            ke_attempts: 3,
+            last_ke_ago: 100,
+            cookies: 8,
+            cookie_length: 100,
+            nak: 1,
+        };
+        assert_eq!(render_authdata_row("ntp.example.org", &ad, ReportMode::Human), expected("authrow", "HUM"));
+        assert_eq!(render_authdata_row("ntp.example.org", &ad, ReportMode::Csv), expected("authrow", "CSV"));
+
+        // selectdata row (state '*', conf PREFER|TRUST, eff PREFER).
+        let sel = SelectReport {
+            ref_id: 0,
+            ip_addr: crate::util::IpAddr::Unspec,
+            state_char: '*',
+            authentication: 1,
+            leap: 0,
+            conf_options: SD_OPTION_PREFER | SD_OPTION_TRUST,
+            eff_options: SD_OPTION_PREFER,
+            last_sample_ago: 17,
+            score: 1.2,
+            lo_limit: -0.5,
+            hi_limit: 0.5,
+        };
+        assert_eq!(render_selectdata_row("192.168.1.5", &sel, ReportMode::Human), expected("selrow", "HUM"));
+        assert_eq!(render_selectdata_row("192.168.1.5", &sel, ReportMode::Csv), expected("selrow", "CSV"));
+
+        // serverstats: counters in WIRE order (RPY_ServerStats), reordered to the display order
+        // the existing ServerstatsReport renderer expects. This upgrades that renderer from
+        // live-witnessed to compiled-oracle-verified, and pins the wire->display reorder.
+        // wire: [ntp_hits, nke_hits, cmd_hits, ntp_drops, nke_drops, cmd_drops, log_drops,
+        //        ntp_auth, interleaved, timestamps, span, drx, dtx, krx, ktx, hrx, htx]
+        let wire = [1000u64, 50, 200, 3, 4, 5, 7, 900, 80, 111, 3600, 11, 12, 13, 14, 15, 16];
+        let ss = ServerstatsReport { values: serverstats_wire_to_display(&wire) };
+        assert_eq!(ss.render(), expected("srvstats", "HUM"));
+
+        // Header/legend text parity (operational-knowledge; exact strings).
+        assert_eq!(AUTHDATA_HEADER.len(), 73);
+        assert_eq!(AUTHDATA_LEGEND_LINES.len(), 5);
+        assert_eq!(SELECTDATA_LEGEND_LINES.len(), 8);
+    }
+
+    #[test]
+    fn list_row_renderers_match_real_c() {
+        use crate::cmdmon::{ClientAccessReport, ManualSampleReport};
+        let v = include_str!("../../../research/oracle/chronyc-list-rows-c-vectors.txt");
+        let expected = |id: &str, mode: &str| -> String {
+            let l = v
+                .lines()
+                .find(|l| l.contains(&format!("id={id} ")) && l.contains(&format!("mode={mode} ")))
+                .unwrap();
+            let start = l.find(" |").unwrap() + 2;
+            let end = l.rfind('|').unwrap();
+            l[start..end].replace("\\n", "\n")
+        };
+
+        // clients row: ntp group + a cmd/nke second group (interval fields are raw signed bytes).
+        let client = ClientAccessReport {
+            ip_addr: crate::util::string_to_ip("203.0.113.9").unwrap(),
+            ntp_hits: 1000,
+            nke_hits: 5,
+            cmd_hits: 2,
+            ntp_drops: 3,
+            nke_drops: 1,
+            cmd_drops: 0,
+            ntp_interval: 6,
+            nke_interval: -4,
+            cmd_interval: 8,
+            ntp_timeout_interval: -2,
+            last_ntp_hit_ago: 30,
+            last_nke_hit_ago: 3600,
+            last_cmd_hit_ago: 0,
+        };
+        assert_eq!(render_clients_row("host.example", &client, false, ReportMode::Human), expected("clirow", "HUM"));
+        assert_eq!(render_clients_row("host.example", &client, false, ReportMode::Csv), expected("clirow", "CSV"));
+        assert_eq!(render_clients_row("host.example", &client, true, ReportMode::Human), expected("clirownke", "HUM"));
+        assert_eq!(render_clients_row("host.example", &client, true, ReportMode::Csv), expected("clirownke", "CSV"));
+
+        // manual list row.
+        let sample = ManualSampleReport {
+            when_sec: 1_600_000_000,
+            when_nsec: 0,
+            slewed_offset: 0.01,
+            orig_offset: 0.02,
+            residual: -0.005,
+        };
+        assert_eq!(render_manual_list_row(3, &sample, ReportMode::Human), expected("mlrow", "HUM"));
+        assert_eq!(render_manual_list_row(3, &sample, ReportMode::Csv), expected("mlrow", "CSV"));
+
+        // Header/info text.
+        assert_eq!(clients_header(false), "Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last");
+        assert_eq!(clients_header(true), "Hostname                      NTP   Drop Int IntL Last  NTS-KE   Drop Int  Last");
+        assert_eq!(manual_list_info_line(5), "210 n_samples = 5\n");
+    }
+
+    #[test]
+    fn ntpdata_renderer_matches_real_c() {
+        use crate::ntp::ntp_report::NtpReport;
+        use crate::sys_generic::Timespec;
+        let v = include_str!("../../../research/oracle/chronyc-ntpdata-c-vectors.txt");
+        let expected = |mode: &str| -> String {
+            let l = v.lines().find(|l| l.contains(&format!("mode={mode} "))).unwrap();
+            let start = l.find(" |").unwrap() + 2;
+            let end = l.rfind('|').unwrap();
+            l[start..end].replace("\\n", "\n")
+        };
+        let report = NtpReport {
+            local_addr: crate::util::string_to_ip("192.168.1.10").unwrap(),
+            leap: 1,
+            version: 4,
+            mode: 4,
+            stratum: 1,
+            poll: 6,
+            precision: -24,
+            root_delay: 0.01,
+            root_dispersion: 0.02,
+            ref_id: 0x4750_5300, // "GPS\0"
+            ref_time: Timespec::new(1_700_000_000, 500_000_000),
+            offset: -0.00015,
+            peer_delay: 0.001,
+            peer_dispersion: 2e-6,
+            response_time: 1e-5,
+            jitter_asymmetry: 0.25,
+            tests: 0x2aa,
+            interleaved: true,
+            authenticated: true,
+            tx_tss_char: 'K',
+            rx_tss_char: 'H',
+            total_valid_count: 98,
+            total_good_count: 97,
+            total_tx_count: 100,
+            total_rx_count: 99,
+        };
+        let remote = crate::util::string_to_ip("203.0.113.9").unwrap();
+        assert_eq!(render_ntpdata(&report, &remote, 123, ReportMode::Human), expected("HUM"));
+        assert_eq!(render_ntpdata(&report, &remote, 123, ReportMode::Csv), expected("CSV"));
+    }
+
+    #[test]
+    fn gmtime_report_string_matches_real_strftime() {
+        let v = include_str!("../../../research/oracle/gmtime-report-c-vectors.txt");
+        for l in v.lines().filter(|l| l.starts_with("T ")) {
+            let sec: i64 = l
+                .split_whitespace()
+                .find_map(|t| t.strip_prefix("sec="))
+                .unwrap()
+                .parse()
+                .unwrap();
+            let start = l.find(" |").unwrap() + 2;
+            let end = l.rfind('|').unwrap();
+            assert_eq!(crate::util::gmtime_report_string(sec), &l[start..end], "sec={sec}");
+        }
+    }
+
+    #[test]
+    fn tracking_and_rtcdata_renderers_match_real_c() {
+        use crate::cmdmon::{RtcReport, TrackingReport};
+        let v = include_str!("../../../research/oracle/chronyc-tracking-rtc-c-vectors.txt");
+        let expected = |id: &str, mode: &str| -> String {
+            let l = v
+                .lines()
+                .find(|l| l.contains(&format!("id={id} ")) && l.contains(&format!("mode={mode} ")))
+                .unwrap();
+            let start = l.find(" |").unwrap() + 2;
+            let end = l.rfind('|').unwrap();
+            l[start..end].replace("\\n", "\n")
+        };
+
+        let trk = TrackingReport {
+            ref_id: 0x0a01_0203,
+            ip_addr: crate::util::IpAddr::Inet4(0xc0a8_0105),
+            stratum: 3,
+            leap_status: 0,
+            ref_time_sec: 1_700_000_000,
+            ref_time_nsec: 123_456_789,
+            current_correction: 0.0015,
+            last_offset: -0.00025,
+            rms_offset: 0.0003,
+            freq_ppm: -12.5,
+            resid_freq_ppm: 0.05,
+            skew_ppm: 0.2,
+            root_delay: 0.01,
+            root_dispersion: 0.02,
+            last_update_interval: 64.0,
+        };
+        assert_eq!(render_tracking(&trk, "foo.example", ReportMode::Human), expected("track", "HUM"));
+        assert_eq!(render_tracking(&trk, "foo.example", ReportMode::Csv), expected("track", "CSV"));
+
+        let rtc = RtcReport {
+            ref_time_sec: 1_700_000_000,
+            ref_time_nsec: 123_456_789,
+            n_samples: 40,
+            n_runs: 8,
+            span_seconds: 7200,
+            rtc_seconds_fast: 0.125,
+            rtc_gain_rate_ppm: -1.5,
+        };
+        assert_eq!(render_rtcdata(&rtc, ReportMode::Human), expected("rtc", "HUM"));
+        assert_eq!(render_rtcdata(&rtc, ReportMode::Csv), expected("rtc", "CSV"));
     }
 
     #[test]

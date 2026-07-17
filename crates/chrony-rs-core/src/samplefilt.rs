@@ -48,6 +48,7 @@ pub struct NtpSample {
 }
 
 /// The per-source sample filter (chrony's `SPF_Instance_Record`).
+#[derive(Debug)]
 pub struct SampleFilter {
     min_samples: usize,
     max_samples: usize,
@@ -165,7 +166,10 @@ impl SampleFilter {
         // Sort by offset, then drop `from` extremes on each side.
         let j = selected.len();
         selected.sort_by(|&a, &b| {
-            self.samples[a].offset.partial_cmp(&self.samples[b].offset).unwrap()
+            self.samples[a]
+                .offset
+                .partial_cmp(&self.samples[b].offset)
+                .unwrap()
         });
         let from = if j > 2 {
             ((j as f64 * (1.0 - self.combine_ratio) / 2.0) as usize).clamp(1, (j - 1) / 2)
@@ -212,7 +216,11 @@ impl SampleFilter {
             disp = r.sd_intercept;
             dof = (n - 2) as i32;
         } else if n >= 2 {
-            var = y.iter().map(|&yi| (yi - mean_y) * (yi - mean_y)).sum::<f64>() / (n - 1) as f64;
+            var = y
+                .iter()
+                .map(|&yi| (yi - mean_y) * (yi - mean_y))
+                .sum::<f64>()
+                / (n - 1) as f64;
             disp = var.sqrt();
             dof = (n - 1) as i32;
         } else {
@@ -316,7 +324,9 @@ impl SampleFilter {
 
     /// `SPF_SlewSamples`: re-base stored sample times/offsets for a clock slew.
     pub fn slew_samples(&mut self, when: f64, dfreq: f64, doffset: f64) {
-        let Some((first, last)) = self.get_first_last() else { return };
+        let Some((first, last)) = self.get_first_last() else {
+            return;
+        };
         for i in first..=last {
             let delta = (when - self.samples[i].time) * dfreq - doffset;
             self.samples[i].time += delta;
@@ -326,7 +336,9 @@ impl SampleFilter {
 
     /// `SPF_CorrectOffset`: subtract `doffset` from stored offsets.
     pub fn correct_offset(&mut self, doffset: f64) {
-        let Some((first, last)) = self.get_first_last() else { return };
+        let Some((first, last)) = self.get_first_last() else {
+            return;
+        };
         for i in first..=last {
             self.samples[i].offset -= doffset;
         }
@@ -342,8 +354,173 @@ impl SampleFilter {
 }
 
 #[cfg(test)]
+impl SampleFilter {
+    /// Test hook exposing the private `select_samples` (the buffer-index selection) so it can be
+    /// differential-tested against the verbatim C `select_samples`.
+    fn test_select_samples(&self) -> Vec<usize> {
+        self.select_samples()
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn get_filtered_sample_matches_real_c() {
+        // End-to-end differential test of SPF_GetFilteredSample (select_samples +
+        // combine_selected_samples, composing the verified regress) vs the REAL compiled
+        // samplefilt.c + regress.c (/tmp/nspf/genspf2.c, -ffp-contract=off). Sample times are
+        // exact integer seconds so the timespec<->f64 domains agree; sys_precision=1e-6 matches
+        // the oracle's LCL_GetSysPrecisionAsQuantum stub.
+        let v = include_str!("../../../research/oracle/samplefilt-filtered-c-vectors.txt");
+        let off8 = [0.005, -0.002, 0.001, 0.003, -0.001, 0.0, 0.004, -0.003];
+        let pd8 = [1e-4, 2e-4, 1.1e-4, 5e-4, 1.2e-4, 1.05e-4, 3e-4, 1.3e-4];
+        let dl8 = [0.01, 0.011, 0.012, 0.013, 0.014, 0.015, 0.016, 0.017];
+        let rd8 = [2e-4, 2.1e-4, 2.2e-4, 2.3e-4, 2.4e-4, 2.5e-4, 2.6e-4, 2.7e-4];
+        let rdl8 = [0.02, 0.021, 0.022, 0.023, 0.024, 0.025, 0.026, 0.027];
+        let off5 = &off8[..5];
+        let pd5 = &pd8[..5];
+        let dl5 = &dl8[..5];
+        let rd5 = &rd8[..5];
+        let rdl5 = &rdl8[..5];
+        // (id, min, max, max_disp, cr, n, offs, pdisp, pdelay, rdisp, rdelay)
+        #[allow(clippy::type_complexity)]
+        let cases: &[(
+            &str,
+            usize,
+            usize,
+            f64,
+            f64,
+            usize,
+            &[f64],
+            &[f64],
+            &[f64],
+            &[f64],
+            &[f64],
+        )] = &[
+            ("five", 3, 8, 1.0, 0.5, 5, off5, pd5, dl5, rd5, rdl5),
+            ("eight", 4, 8, 1.0, 0.5, 8, &off8, &pd8, &dl8, &rd8, &rdl8),
+            (
+                "eight_cr0",
+                4,
+                8,
+                1.0,
+                0.0,
+                8,
+                &off8,
+                &pd8,
+                &dl8,
+                &rd8,
+                &rdl8,
+            ),
+            ("two", 2, 8, 1.0, 0.5, 2, off5, pd5, dl5, rd5, rdl5),
+            ("three", 3, 8, 1.0, 0.5, 3, off5, pd5, dl5, rd5, rdl5),
+            (
+                "too_disp", 4, 8, 1e-5, 0.5, 8, &off8, &pd8, &dl8, &rd8, &rdl8,
+            ),
+        ];
+        let f = |l: &str, k: &str| {
+            l.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{k}=")))
+                .unwrap()
+                .parse::<f64>()
+                .unwrap()
+        };
+        for (id, min_s, max_s, max_disp, cr, n, offs, pdisp, pdelay, rdisp, rdelay) in cases {
+            let mut filt = SampleFilter::new(*min_s, *max_s, *max_disp, *cr, 1e-6);
+            for i in 0..*n {
+                filt.accumulate_sample(NtpSample {
+                    time: (i * 10) as f64,
+                    offset: offs[i],
+                    peer_delay: pdelay[i],
+                    peer_dispersion: pdisp[i],
+                    root_delay: rdelay[i],
+                    root_dispersion: rdisp[i],
+                });
+            }
+            let got = filt.get_filtered_sample();
+            let l = v
+                .lines()
+                .find(|l| l.split_whitespace().nth(1) == Some(&format!("id={id}")))
+                .unwrap();
+            if l.contains("ok=0") {
+                assert!(got.is_none(), "{id} expected filtered-out");
+                continue;
+            }
+            let s = got.unwrap_or_else(|| panic!("{id} expected a sample"));
+            // The combined time is the only field that passes through chrony's ns-granular
+            // timespec (UTI_AddDoubleToTimespec) while chrony-rs keeps f64 seconds; compare within
+            // a nanosecond (the declared "time as f64 seconds" modeling boundary). Every other
+            // field is pure f64 and matches exactly.
+            assert!(
+                (s.time - f(l, "time")).abs() < 1e-9,
+                "{id} time {} vs {}",
+                s.time,
+                f(l, "time")
+            );
+            assert_eq!(s.offset, f(l, "offset"), "{id} offset");
+            assert_eq!(s.peer_dispersion, f(l, "peer_disp"), "{id} peer_disp");
+            assert_eq!(s.root_dispersion, f(l, "root_disp"), "{id} root_disp");
+            assert_eq!(s.peer_delay, f(l, "peer_delay"), "{id} peer_delay");
+            assert_eq!(s.root_delay, f(l, "root_delay"), "{id} root_delay");
+        }
+    }
+
+    #[test]
+    fn select_samples_matches_real_c() {
+        // Differential test of the intricate index-permutation vs the VERBATIM samplefilt.c
+        // select_samples (/tmp/nspf). Each case accumulates the same samples (offset +
+        // peer_dispersion; time/delay irrelevant to the selection) and compares the buffer
+        // indices, in order.
+        let v = include_str!("../../../research/oracle/samplefilt-select-c-vectors.txt");
+        // (id, min_samples, max_samples, combine_ratio, offsets, dispersions)
+        let d5 = [1e-4, 2e-4, 1.1e-4, 5e-4, 1.2e-4];
+        let o5 = [0.005, -0.002, 0.001, 0.003, -0.001];
+        let o8 = [0.005, -0.002, 0.001, 0.003, -0.001, 0.0, 0.004, -0.003];
+        let d8 = [1e-4, 2e-4, 1.1e-4, 5e-4, 1.2e-4, 1.05e-4, 3e-4, 1.3e-4];
+        let o6 = [0.001, 0.002, 0.003, 0.004, 0.005, 0.006];
+        let d6 = [1e-4; 6];
+        let cases: &[(&str, usize, usize, f64, &[f64], &[f64])] = &[
+            ("five_a", 3, 8, 0.5, &o5, &d5),
+            ("five_tight", 3, 8, 0.5, &o5, &[1e-4; 5]),
+            ("eight_a", 4, 8, 0.5, &o8, &d8),
+            ("eight_cr0", 4, 8, 0.0, &o8, &d8),
+            ("eight_cr1", 4, 8, 1.0, &o8, &d8),
+            ("three", 3, 8, 0.5, &o5[..3], &d5[..3]),
+            ("four", 4, 8, 0.5, &o5[..4], &d5[..4]),
+            ("six_sorted", 4, 8, 0.6, &o6, &d6),
+            ("six_cr03", 4, 8, 0.3, &o6, &d6),
+        ];
+        for (id, min_s, max_s, cr, off, disp) in cases {
+            let mut f = SampleFilter::new(*min_s, *max_s, 1.0, *cr, 1e-9);
+            for i in 0..off.len() {
+                f.accumulate_sample(sample(i as f64, off[i], disp[i]));
+            }
+            let got = f.test_select_samples();
+            let l = v
+                .lines()
+                .find(|l| l.split_whitespace().nth(1) == Some(&format!("id={id}")))
+                .unwrap();
+            let count: usize = l
+                .split_whitespace()
+                .find_map(|t| t.strip_prefix("count="))
+                .unwrap()
+                .parse()
+                .unwrap();
+            let idx = l
+                .split_whitespace()
+                .find_map(|t| t.strip_prefix("indices="))
+                .unwrap();
+            let expected: Vec<usize> = if idx.is_empty() {
+                vec![]
+            } else {
+                idx.split(',').map(|s| s.parse().unwrap()).collect()
+            };
+            assert_eq!(got.len(), count, "{id} count");
+            assert_eq!(got, expected, "{id} indices");
+        }
+    }
 
     fn sample(time: f64, offset: f64, disp: f64) -> NtpSample {
         NtpSample {

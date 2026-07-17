@@ -24,6 +24,7 @@
 //! | `realloc_array` | [`Array::realloc_array`] |
 
 /// A growable array of fixed-size (`elem_size`-byte) elements.
+#[derive(Debug, Clone, PartialEq)]
 pub struct Array {
     /// Backing storage; length is `allocated * elem_size`.
     data: Vec<u8>,
@@ -190,5 +191,57 @@ mod tests {
     #[should_panic(expected = "element size must be positive")]
     fn zero_element_size_panics() {
         Array::new(0);
+    }
+
+    /// Differential oracle: replay a scripted op sequence (append / get-new /
+    /// order-preserving remove / set-size across the grow and shrink-to-min
+    /// boundaries) driven identically through the REAL compiled `array.c`
+    /// (`research/oracle/array-c-vectors.txt`), asserting `used`, the exact
+    /// `allocated` capacity trajectory (chrony's `realloc_array` doubling-up-from-1
+    /// and snap-to-`min_size` policy), and the in-use element bytes after every op.
+    ///
+    /// `cmp=0` marks `ARR_SetSize` grows, whose freshly-`Realloc`'d slots hold
+    /// indeterminate bytes in C (`Vec::resize` zeroes them here), so only `used` and
+    /// `allocated` are compared there — the capacity math is what those ops pin.
+    #[test]
+    fn matches_real_c_array_vectors() {
+        let vectors = include_str!("../../../research/oracle/array-c-vectors.txt");
+        fn field<'a>(line: &'a str, key: &str) -> &'a str {
+            line.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{key}=")))
+                .unwrap()
+        }
+
+        let mut a = Array::new(4);
+        let mut n = 0;
+        for line in vectors.lines().filter(|l| l.starts_with("OP ")) {
+            assert_eq!(field(line, "n").parse::<usize>().unwrap(), n, "step order");
+            match field(line, "op") {
+                "GETNEW" => {
+                    let v: u32 = field(line, "val").parse().unwrap();
+                    a.get_new_element().copy_from_slice(&v.to_be_bytes());
+                }
+                "APPEND" => {
+                    let v: u32 = field(line, "val").parse().unwrap();
+                    a.append_element(&v.to_be_bytes());
+                }
+                "REMOVE" => a.remove_element(field(line, "idx").parse().unwrap()),
+                "SETSIZE" => a.set_size(field(line, "sz").parse().unwrap()),
+                other => panic!("unknown op {other}"),
+            }
+
+            assert_eq!(a.used, field(line, "used").parse::<usize>().unwrap(), "op {n}: used");
+            assert_eq!(a.allocated, field(line, "alloc").parse::<usize>().unwrap(), "op {n}: alloc");
+
+            if field(line, "cmp") == "1" {
+                let want = field(line, "bytes");
+                let got: String =
+                    a.get_elements().iter().map(|b| format!("{b:02x}")).collect();
+                let got = if got.is_empty() { "-".to_string() } else { got };
+                assert_eq!(got, want, "op {n}: bytes");
+            }
+            n += 1;
+        }
+        assert_eq!(n, 25, "expected 25 recorded ops");
     }
 }

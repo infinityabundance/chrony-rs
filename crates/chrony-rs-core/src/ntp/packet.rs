@@ -43,6 +43,7 @@ pub const NTP_PACKET_MIN_LEN: usize = 48;
 
 /// Leap Indicator (RFC 5905 §7.3): the two high bits of byte 0.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+    #[non_exhaustive]
 pub enum LeapIndicator {
     /// No warning.
     NoWarning,
@@ -134,6 +135,7 @@ pub struct NtpPacket {
 /// returns one of these instead of ever panicking, which is the load-bearing
 /// safety property behind `CHRONY.PACKET.8` and `CHRONY.SECURITY.2`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum PacketError {
     /// Fewer than [`NTP_PACKET_MIN_LEN`] bytes were supplied.
     TooShort { got: usize },

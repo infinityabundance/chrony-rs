@@ -1,3 +1,30 @@
 /target
 **/target
 Cargo.lock.bak
+# Local cargo config
+.cargo/config.toml
+# Build artifacts
+cc
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.o
+*.so
+*.a
+a.out
+
+# Large binary test artifacts
+*.tar.gz
+
+# Project-specific
+reports/
+.cargo/

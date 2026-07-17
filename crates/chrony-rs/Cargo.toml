@@ -5,10 +5,18 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 description = "A forensic Rust reconstruction of chrony time-discipline behavior (umbrella crate re-exporting chrony-rs-core)."
 readme = "README.md"
 keywords = ["chrony", "ntp", "time", "clock", "forensic"]
 categories = ["date-and-time"]
+
+[lints.rust]
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+unsafe_code = "forbid"
 
 [dependencies]
 chrony-rs-core = { version = "0.1.0", path = "../chrony-rs-core" }

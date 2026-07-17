@@ -40,6 +40,7 @@ const AES128_KEY_SIZE: i32 = 16;
 
 /// chrony `SIV_Algorithm`: the AEAD algorithms in the IANA registry chrony names.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[non_exhaustive]
 pub enum SivAlgorithm {
     /// AES-SIV-CMAC-256 (the one this build implements).
     AesSivCmac256 = 15,
@@ -65,6 +66,7 @@ pub fn get_key_length(algorithm: SivAlgorithm) -> i32 {
 }
 
 /// A keyed SIV cipher instance (chrony's `SIV_Instance_Record`).
+#[derive(Debug)]
 pub struct SivInstance {
     algorithm: SivAlgorithm,
     key_set: bool,
@@ -84,7 +86,7 @@ impl SivInstance {
         let (min_nonce_length, max_nonce_length, tag_length) = match algorithm {
             SivAlgorithm::AesSivCmac256 => (SIV_MIN_NONCE_SIZE, i32::MAX, SIV_DIGEST_SIZE as i32),
             // Only CMAC-256 passes the key-length gate above in this build.
-            _ => unreachable!("unsupported algorithm passed the key-length gate"),
+            _ => return None,
         };
         Some(SivInstance {
             algorithm,
@@ -106,7 +108,7 @@ impl SivInstance {
                 let k: &[u8; 32] = key.try_into().expect("checked length 32");
                 self.ctx = Some(SivCmacAes128::set_key(k));
             }
-            _ => unreachable!(),
+            _ => return false,
         }
         self.key_set = true;
         true
@@ -160,7 +162,7 @@ impl SivInstance {
             SivAlgorithm::AesSivCmac256 => {
                 self.ctx.as_ref().unwrap().encrypt_message(nonce, assoc, ciphertext, plaintext);
             }
-            _ => unreachable!(),
+            _ => return false,
         }
         true
     }
@@ -186,7 +188,7 @@ impl SivInstance {
             SivAlgorithm::AesSivCmac256 => {
                 self.ctx.as_ref().unwrap().decrypt_message(nonce, assoc, plaintext, ciphertext)
             }
-            _ => unreachable!(),
+            _ => return false,
         }
     }
 }

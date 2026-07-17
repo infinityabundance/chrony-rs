@@ -46,6 +46,7 @@ const MOD_FREQUENCY: u32 = 0x0002;
 const MOD_MAXERROR: u32 = 0x0004;
 const MOD_ESTERROR: u32 = 0x0008;
 const MOD_STATUS: u32 = 0x0010;
+// Reserved for PLL time constant adjustment; not yet wired
 #[allow(dead_code)]
 const MOD_TIMECONST: u32 = 0x0020;
 const MOD_TAI: u32 = 0x0080;
@@ -186,7 +187,7 @@ impl SysTimex {
             if est_error > MAX_SYNC_ERROR {
                 est_error = MAX_SYNC_ERROR;
             }
-            if max_error >= MAX_SYNC_ERROR {
+            if max_error > MAX_SYNC_ERROR {
                 max_error = MAX_SYNC_ERROR;
                 synchronised = false;
             }

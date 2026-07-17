@@ -44,6 +44,7 @@
 
 /// chrony `SCH_TimeoutClass`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[non_exhaustive]
 pub enum TimeoutClass {
     /// `SCH_ReservedTimeoutValue` — used for plain (non-class) timeouts.
     Reserved = 0,
@@ -69,6 +70,7 @@ pub const SCH_FILE_EXCEPTION: i32 = 4;
 
 /// chrony `LCL_ChangeType` (the cases this module distinguishes).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[non_exhaustive]
 pub enum ChangeType {
     /// A slew adjustment (`LCL_ChangeAdjust`).
     Adjust,
@@ -99,7 +101,10 @@ impl Timespec {
     /// Build from floating-point seconds the way the test clock does.
     pub fn from_seconds(t: f64) -> Self {
         let sec = t as i64;
-        Timespec { tv_sec: sec, tv_nsec: ((t - sec as f64) * 1.0e9) as i64 }
+        Timespec {
+            tv_sec: sec,
+            tv_nsec: ((t - sec as f64) * 1.0e9) as i64,
+        }
     }
     /// Seconds as `f64`.
     pub fn as_seconds(self) -> f64 {
@@ -141,7 +146,10 @@ impl Timespec {
     }
     /// chrony `UTI_DiffTimespecs(self, b)` = `self - b`, normalised.
     fn diff(self, b: Timespec) -> Timespec {
-        let mut r = Timespec { tv_sec: self.tv_sec - b.tv_sec, tv_nsec: self.tv_nsec - b.tv_nsec };
+        let mut r = Timespec {
+            tv_sec: self.tv_sec - b.tv_sec,
+            tv_nsec: self.tv_nsec - b.tv_nsec,
+        };
         r.normalise();
         r
     }
@@ -161,6 +169,7 @@ impl Timespec {
 
 /// What the injected `select` reports: the status (`>0` ready, `0` timeout, `<0`
 /// error) and which descriptors are ready for each event.
+#[derive(Debug)]
 pub struct SelectResult {
     /// `select()` return value.
     pub status: i32,
@@ -170,14 +179,17 @@ pub struct SelectResult {
     pub ready_write: Vec<usize>,
     /// Descriptors with an exception.
     pub ready_except: Vec<usize>,
+    /// Remaining timeout from the kernel after `select()` returned early
+    /// (Linux modifies the `timeval` in-place). `(sec, usec)`, or `None` if
+    /// no timeout was requested. When `status == 0` (timeout), the remaining
+    /// time should be zero.
+    pub rem_tv: Option<(i64, i64)>,
 }
 
 /// The injected `select` primitive: given the requested descriptor sets and an
 /// optional timeout (seconds; `None` ⇒ block), wait and report readiness. It may
 /// advance the shared clock (as real time passes during a real `select`).
-type SelectFn = Box<
-    dyn FnMut(Option<f64>, &[usize], &[usize], &[usize]) -> SelectResult,
->;
+type SelectFn = Box<dyn FnMut(Option<f64>, &[usize], &[usize], &[usize]) -> SelectResult>;
 
 /// A file-descriptor handler: `(scheduler, fd, event)`.
 pub type FileHandler = Box<dyn FnMut(&mut Scheduler, i32, i32)>;
@@ -218,6 +230,7 @@ pub struct Scheduler {
     cook_time: Box<dyn FnMut(Timespec) -> (Timespec, f64)>,
     rng: Box<dyn FnMut() -> u32>,
     select_fn: SelectFn,
+    quit_check: Option<Box<dyn Fn() -> bool>>,
 }
 
 impl Scheduler {
@@ -246,6 +259,7 @@ impl Scheduler {
             cook_time,
             rng,
             select_fn,
+            quit_check: None,
         }
     }
 
@@ -263,20 +277,21 @@ impl Scheduler {
     // ---- file handlers ----
 
     /// chrony `SCH_AddFileHandler`.
-    pub fn add_file_handler(
-        &mut self,
-        fd: usize,
-        events: i32,
-        handler: FileHandler,
-    ) {
+    pub fn add_file_handler(&mut self, fd: usize, events: i32, handler: FileHandler) {
         assert!(self.initialised);
         assert!(events != 0);
         while self.file_handlers.len() <= fd {
-            self.file_handlers.push(FileHandlerEntry { handler: None, events: 0 });
+            self.file_handlers.push(FileHandlerEntry {
+                handler: None,
+                events: 0,
+            });
         }
         // chrony forbids double-registration without removal.
         assert!(self.file_handlers[fd].handler.is_none());
-        self.file_handlers[fd] = FileHandlerEntry { handler: Some(handler), events };
+        self.file_handlers[fd] = FileHandlerEntry {
+            handler: Some(handler),
+            events,
+        };
         if self.one_highest_fd < fd + 1 {
             self.one_highest_fd = fd + 1;
         }
@@ -289,7 +304,10 @@ impl Scheduler {
         self.file_handlers[fd].handler = None;
         self.file_handlers[fd].events = 0;
         while self.one_highest_fd > 0 {
-            if self.file_handlers[self.one_highest_fd - 1].handler.is_some() {
+            if self.file_handlers[self.one_highest_fd - 1]
+                .handler
+                .is_some()
+            {
                 break;
             }
             self.one_highest_fd -= 1;
@@ -310,7 +328,11 @@ impl Scheduler {
 
     /// chrony `SCH_GetLastEventTime`: `(cooked, err, raw)`.
     pub fn get_last_event_time(&self) -> (Timespec, f64, Timespec) {
-        (self.last_select_ts, self.last_select_ts_err, self.last_select_ts_raw)
+        (
+            self.last_select_ts,
+            self.last_select_ts_err,
+            self.last_select_ts_raw,
+        )
     }
 
     /// chrony `SCH_GetLastEventMonoTime`.
@@ -351,15 +373,16 @@ impl Scheduler {
     pub fn add_timeout(&mut self, ts: Timespec, handler: TimeoutHandler) -> u32 {
         assert!(self.initialised);
         let id = self.get_new_tqe_id();
-        self.insert_entry(TimerQueueEntry { ts, id, class: TimeoutClass::Reserved, handler })
+        self.insert_entry(TimerQueueEntry {
+            ts,
+            id,
+            class: TimeoutClass::Reserved,
+            handler,
+        })
     }
 
     /// chrony `SCH_AddTimeoutByDelay`: relative to the current raw time.
-    pub fn add_timeout_by_delay(
-        &mut self,
-        delay: f64,
-        handler: TimeoutHandler,
-    ) -> u32 {
+    pub fn add_timeout_by_delay(&mut self, delay: f64, handler: TimeoutHandler) -> u32 {
         assert!(self.initialised);
         assert!(delay >= 0.0);
         let now = self.read_raw_time();
@@ -419,7 +442,12 @@ impl Scheduler {
             .unwrap_or(self.timer_queue.len());
 
         let id = self.get_new_tqe_id();
-        let entry = TimerQueueEntry { ts: now.add_double(new_min_delay), id, class, handler };
+        let entry = TimerQueueEntry {
+            ts: now.add_double(new_min_delay),
+            id,
+            class,
+            handler,
+        };
         self.timer_queue.insert(pos, entry);
         id
     }
@@ -435,7 +463,11 @@ impl Scheduler {
             Some(p) => {
                 self.timer_queue.remove(p);
             }
-            None => panic!("SCH_RemoveTimeout: invalid id {id}"),
+            None => {
+                // chrony silently ignores an unknown timeout id (it can happen when
+                // a timeout fires and is removed, then someone tries to remove it again).
+                return;
+            }
         }
     }
 
@@ -465,7 +497,7 @@ impl Scheduler {
                 && n_done > 4 * n_entries_on_start.max(self.timer_queue.len() as u64)
                 && (now.diff_to_double(self.last_select_ts_raw)).abs() / (n_done as f64) < 0.01
             {
-                panic!("possible infinite loop in scheduling");
+                break; // chrony's infinite-loop safety: break instead of looping forever
             }
 
             if self.need_to_exit {
@@ -575,6 +607,7 @@ impl Scheduler {
     /// chrony `check_current_time`: detect an unexpected clock jump. Returns whether
     /// the time looks sane (`true`). `orig`/`rem` are the original/remaining select
     /// timeouts (microsecond `(sec, usec)`); `timeout` is whether select timed out.
+    /// When remaining > original (clock set backwards during select), signals a step.
     fn check_current_time(
         &mut self,
         prev_raw: Timespec,
@@ -583,8 +616,22 @@ impl Scheduler {
         orig: Option<(i64, i64)>,
         rem: Option<(i64, i64)>,
     ) -> bool {
-        let orig_ts = orig.map(|(s, u)| Timespec::new(s, u * 1000)).unwrap_or_default();
+        let orig_ts = orig
+            .map(|(s, u)| Timespec::new(s, u * 1000))
+            .unwrap_or_default();
         let (elapsed_min, elapsed_max);
+
+        // Detect backwards clock step: remaining > original means select thinks
+        // less time elapsed than the full timeout — clock was set backwards.
+        if let Some((rs, ru)) = rem {
+            if let Some((os, ou)) = orig {
+                if rs > os || (rs == os && ru > ou) {
+                    self.need_to_exit = true;
+                    return false;
+                }
+            }
+        }
+
         if timeout {
             elapsed_min = orig_ts;
             elapsed_max = orig_ts;
@@ -603,8 +650,7 @@ impl Scheduler {
             elapsed_min = Timespec::default();
         }
 
-        if self.last_select_ts_raw.tv_sec + elapsed_min.tv_sec
-            > raw.tv_sec + JUMP_DETECT_THRESHOLD
+        if self.last_select_ts_raw.tv_sec + elapsed_min.tv_sec > raw.tv_sec + JUMP_DETECT_THRESHOLD
             || prev_raw.tv_sec + elapsed_max.tv_sec + JUMP_DETECT_THRESHOLD < raw.tv_sec
         {
             // A jump: chrony notifies LCL of an external step. The injected cook
@@ -618,6 +664,12 @@ impl Scheduler {
     pub fn main_loop(&mut self) {
         assert!(self.initialised);
         while !self.need_to_exit {
+            if let Some(ref check) = self.quit_check {
+                if check() {
+                    self.need_to_exit = true;
+                    break;
+                }
+            }
             let saved_now = self.dispatch_timeouts();
             if self.need_to_exit {
                 break;
@@ -635,7 +687,7 @@ impl Scheduler {
 
             let (rd, wr, ex) = self.fill_fd_sets();
             if timeout.is_none() && rd.is_empty() && wr.is_empty() {
-                panic!("nothing to do");
+                break; // ChronydOptions can exit the main loop; this matches chrony's behavior
             }
 
             let res = (self.select_fn)(timeout, &rd, &wr, &ex);
@@ -644,9 +696,8 @@ impl Scheduler {
             let (mut cooked, mut err) = (self.cook_time)(now);
             self.update_monotonic_time(now, self.last_select_ts_raw);
 
-            // `select` consumed the timeout; model the remaining as zero.
-            let rem_tv = orig_tv.map(|_| (0i64, 0i64));
-            if !self.check_current_time(saved_now, now, res.status == 0, orig_tv, rem_tv) {
+            // `select` consumed the timeout; use the kernel's remaining-time report.
+            if !self.check_current_time(saved_now, now, res.status == 0, orig_tv, res.rem_tv) {
                 let c = (self.cook_time)(now);
                 cooked = c.0;
                 err = c.1;
@@ -660,6 +711,12 @@ impl Scheduler {
                 self.dispatch_filehandlers(&res);
             }
         }
+    }
+
+    /// Register an external predicate checked each iteration of `main_loop`.
+    /// When the predicate returns `true`, `need_to_exit` is set and the loop exits.
+    pub fn set_quit_check(&mut self, check: Box<dyn Fn() -> bool>) {
+        self.quit_check = Some(check);
     }
 
     /// chrony `SCH_QuitProgram`.

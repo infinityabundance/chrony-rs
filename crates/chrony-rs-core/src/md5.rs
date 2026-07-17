@@ -49,7 +49,7 @@ const K: [u32; 64] = [
 ];
 
 /// Streaming MD5 context — the Rust counterpart of chrony's `MD5_CTX`.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Md5 {
     /// Running state `A,B,C,D` (chrony's `buf[0..4]`).
     state: [u32; 4],
@@ -225,5 +225,41 @@ mod tests {
         for (n, h) in want {
             assert_eq!(hex(Md5::digest(&vec![b'a'; *n])), *h, "MD5(a*{n})");
         }
+    }
+
+    /// Differential oracle vs the REAL compiled chrony `md5.c`: a length sweep
+    /// `0..=130` (deterministic content `buf[i] = i*7 + 3`) whose digests are emitted
+    /// by the genuine `md5.c` (`research/oracle/md5-c-vectors.txt`). This pins byte
+    /// identity against chrony's *specific* implementation across every message-length
+    /// residue — in particular the `55/56`-byte and `63/64`, `119/120`-byte
+    /// block-padding boundaries the 7 RFC 1321 vectors don't reach — for both one-shot
+    /// digests and chunked streaming (chunk sizes 1 and 13, exercising `update()`'s
+    /// cross-block buffering).
+    #[test]
+    fn matches_real_c_md5_length_sweep() {
+        let vectors = include_str!("../../../research/oracle/md5-c-vectors.txt");
+        let field = |line: &str, key: &str| -> String {
+            line.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{key}=")))
+                .unwrap()
+                .to_string()
+        };
+        let mut seen = 0;
+        for line in vectors.lines().filter(|l| l.starts_with("MD5 ")) {
+            let len: usize = field(line, "len").parse().unwrap();
+            let want = field(line, "digest");
+            let data: Vec<u8> = (0..len).map(|i| (i * 7 + 3) as u8).collect();
+
+            assert_eq!(hex(Md5::digest(&data)), want, "one-shot MD5 len={len}");
+            for chunk_size in [1usize, 13] {
+                let mut ctx = Md5::new();
+                for chunk in data.chunks(chunk_size.max(1)) {
+                    ctx.update(chunk);
+                }
+                assert_eq!(hex(ctx.finalize()), want, "streamed({chunk_size}) MD5 len={len}");
+            }
+            seen += 1;
+        }
+        assert_eq!(seen, 131, "expected a 0..=130 length sweep");
     }
 }

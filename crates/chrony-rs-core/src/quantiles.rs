@@ -75,6 +75,7 @@ fn update_estimate(q: &mut Quantile, value: f64, p: f64, rand: f64, min_step: f6
 }
 
 /// A streaming quantile estimator (chrony's `QNT_Instance_Record`).
+#[derive(Debug)]
 pub struct QuantileEstimator {
     quants: Vec<Quantile>,
     n_quants: i32,
@@ -200,8 +201,57 @@ impl QuantileEstimator {
 }
 
 #[cfg(test)]
+impl QuantileEstimator {
+    /// Like [`Self::accumulate`] but pulls each stochastic draw from `rands` (in the same order
+    /// and count as chrony's `random()` loop) instead of the internal RNG — so it can be driven
+    /// with the exact `random()` sequence the C oracle logged.
+    fn test_accumulate(&mut self, value: f64, rands: &mut impl Iterator<Item = f64>) {
+        if self.n_set * self.repeat < self.n_quants {
+            self.insert_initial_value(value);
+            return;
+        }
+        for i in 0..self.n_quants as usize {
+            let p = (i / self.repeat as usize + self.min_k as usize) as f64 / self.q as f64;
+            let rand = rands.next().expect("ran out of oracle rands");
+            update_estimate(&mut self.quants[i], value, p, rand, self.min_step);
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn accumulate_and_get_quantile_match_real_c() {
+        // Differential test of the DETERMINISTIC estimator core (insert_initial_value +
+        // update_estimate + the RGR_FindMedian in get_quantile) vs the REAL compiled quantiles.c
+        // + regress.c. chrony's random() is the only non-determinism; the oracle logs every draw
+        // it consumed so we replay the exact same sequence (rand = int / (2^31 - 1)).
+        let v = include_str!("../../../research/oracle/quantiles-c-vectors.txt");
+        let rands_line = v.lines().find(|l| l.starts_with("RANDS ")).unwrap();
+        let mut rands = rands_line
+            .split_whitespace()
+            .skip(2) // "RANDS", "n=..."
+            .map(|t| t.parse::<i64>().unwrap() as f64 / ((1u32 << 31) - 1) as f64);
+
+        // Same parameters and value sequence as the oracle.
+        let mut q = QuantileEstimator::new(1, 3, 4, 3, 1e-6);
+        let vals = [
+            0.010, 0.005, 0.020, 0.007, 0.015, 0.003, 0.025, 0.012, 0.008, 0.018,
+            0.011, 0.006, 0.022, 0.009, 0.014, 0.004, 0.019, 0.013, 0.016, 0.021,
+        ];
+        for value in vals {
+            q.test_accumulate(value, &mut rands);
+        }
+        assert!(rands.next().is_none(), "did not consume all oracle rands");
+
+        for k in 1..=3 {
+            let l = v.lines().find(|l| l.starts_with(&format!("QNT k={k} "))).unwrap();
+            let expected: f64 = l.split_whitespace().find_map(|t| t.strip_prefix("quantile=")).unwrap().parse().unwrap();
+            assert_eq!(q.get_quantile(k), expected, "quantile k={k}");
+        }
+    }
 
     #[test]
     fn update_estimate_upward_and_downward_branches() {

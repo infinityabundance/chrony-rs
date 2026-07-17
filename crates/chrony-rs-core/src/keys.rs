@@ -62,6 +62,7 @@ pub const MAX_HASH_LENGTH: usize = 64;
 /// the rejection path is faithful, even though the internal-MD5 build supports
 /// none of them.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[non_exhaustive]
 pub enum CmacAlgorithm {
     /// Not a CMAC cipher name.
     Invalid = 0,
@@ -74,16 +75,22 @@ pub enum CmacAlgorithm {
 /// The per-class MAC material. chrony keeps a separate `KeyClass` tag (`NTP_MAC` /
 /// `CMAC`) alongside a `data` union; in Rust those collapse into one tagged enum —
 /// the variant *is* the class, so no separate tag field is needed.
+#[derive(Debug)]
 enum KeyMac {
     /// A keyed hash: the key bytes plus the hash id returned by the backend.
     NtpMac { value: Vec<u8>, hash_id: i32 },
     /// An AES CMAC key. Never constructed in the internal-MD5 build (no CMAC
     /// backend), but modeled for parity with the C union.
+    // Future CMAC authentication support
     #[allow(dead_code)]
-    Cmac { algorithm: CmacAlgorithm, key: Vec<u8> },
+    Cmac {
+        algorithm: CmacAlgorithm,
+        key: Vec<u8>,
+    },
 }
 
 /// One stored key (chrony's `Key`).
+#[derive(Debug)]
 struct Key {
     id: u32,
     /// Algorithm enum value (`HSH_*` or `CMC_*`), as chrony stores in `type`.
@@ -108,7 +115,13 @@ pub trait CryptoBackend {
 
     /// chrony `CMC_Hash`: AES CMAC of `data` under `key` into `out`. Unreachable in
     /// the internal-MD5 build (no CMAC key can load); a real CMAC backend overrides.
-    fn cmac_hash(&self, _algorithm: CmacAlgorithm, _key: &[u8], _data: &[u8], _out: &mut [u8]) -> usize {
+    fn cmac_hash(
+        &self,
+        _algorithm: CmacAlgorithm,
+        _key: &[u8],
+        _data: &[u8],
+        _out: &mut [u8],
+    ) -> usize {
         0
     }
 }
@@ -116,7 +129,7 @@ pub trait CryptoBackend {
 /// The default backend: chrony's internal MD5 hash, no crypto library. Supports
 /// only MD5 hashing; all CMAC ciphers are unsupported (key length 0), so SHA/CMAC
 /// key lines are rejected at load exactly as a no-crypto chrony rejects them.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct InternalMd5Backend;
 
 impl CryptoBackend for InternalMd5Backend {
@@ -179,6 +192,7 @@ fn decode_key(key: &str) -> Option<Vec<u8>> {
 
 /// The symmetric key store (chrony's `keys.c` module state) over an injected
 /// [`CryptoBackend`].
+#[derive(Debug)]
 pub struct KeyStore<B: CryptoBackend = InternalMd5Backend> {
     keys: Vec<Key>,
     backend: B,
@@ -236,7 +250,8 @@ impl<B: CryptoBackend> KeyStore<B> {
             }
 
             let Some((id, key_type, key_value)) = cmdparse::parse_key(&line) else {
-                self.warnings.push(format!("Could not parse key line: {raw}"));
+                self.warnings
+                    .push(format!("Could not parse key line: {raw}"));
                 continue;
             };
 
@@ -255,19 +270,24 @@ impl<B: CryptoBackend> KeyStore<B> {
             let key = if hash_algorithm != HshAlgorithm::Invalid {
                 let hash_id = self.backend.hash_id(hash_algorithm);
                 if hash_id < 0 {
-                    self.warnings.push(format!("Unsupported hash function in key {id}"));
+                    self.warnings
+                        .push(format!("Unsupported hash function in key {id}"));
                     continue;
                 }
                 Key {
                     id,
                     type_: hash_algorithm as i32,
                     length: decoded.len(),
-                    mac: KeyMac::NtpMac { value: decoded, hash_id },
+                    mac: KeyMac::NtpMac {
+                        value: decoded,
+                        hash_id,
+                    },
                 }
             } else if cmac_algorithm != CmacAlgorithm::Invalid {
                 let cmac_key_length = self.backend.cmac_key_length(cmac_algorithm);
                 if cmac_key_length == 0 {
-                    self.warnings.push(format!("Unsupported cipher in key {id}"));
+                    self.warnings
+                        .push(format!("Unsupported cipher in key {id}"));
                     continue;
                 } else if cmac_key_length != decoded.len() {
                     self.warnings.push(format!(
@@ -280,7 +300,10 @@ impl<B: CryptoBackend> KeyStore<B> {
                     id,
                     type_: cmac_algorithm as i32,
                     length: decoded.len(),
-                    mac: KeyMac::Cmac { algorithm: cmac_algorithm, key: decoded },
+                    mac: KeyMac::Cmac {
+                        algorithm: cmac_algorithm,
+                        key: decoded,
+                    },
                 }
             } else {
                 self.warnings.push(format!("Invalid type in key {id}"));
@@ -297,7 +320,8 @@ impl<B: CryptoBackend> KeyStore<B> {
         // Warn on duplicates.
         for i in 1..self.keys.len() {
             if self.keys[i - 1].id == self.keys[i].id {
-                self.warnings.push(format!("Detected duplicate key {}", self.keys[i - 1].id));
+                self.warnings
+                    .push(format!("Detected duplicate key {}", self.keys[i - 1].id));
             }
         }
     }
@@ -402,6 +426,42 @@ impl<B: CryptoBackend> KeyStore<B> {
     pub fn is_empty(&self) -> bool {
         self.keys.is_empty()
     }
+}
+
+/// Trait for file I/O operations needed by the key store.
+/// The brain (core) doesn't touch the filesystem; the IO crate provides
+/// the real implementation.
+pub trait KeyStoreBackend {
+    /// Read the contents of a file. Returns None on error.
+    fn read_file(&mut self, name: &str) -> Option<Vec<u8>>;
+    /// Estimate of authentication delay for a given message length.
+    fn get_auth_delay(&mut self, _len: i32) -> f64;
+}
+
+#[allow(non_snake_case)]
+/// chrony `KEY_Initialise`: read key file (if configured) and create a KeyStore.
+pub fn KEY_Initialise(name: Option<&str>, backend: &mut dyn KeyStoreBackend) -> KeyStore {
+    let contents = name.and_then(|n| KEY_ReadFile(n, backend));
+    let content_str = contents
+        .as_ref()
+        .and_then(|c| String::from_utf8(c.clone()).ok());
+    KeyStore::initialise(content_str.as_deref())
+}
+
+#[allow(non_snake_case)]
+/// chrony `KEY_ReadFile`: read a key file from disk via the backend.
+pub fn KEY_ReadFile(name: &str, backend: &mut dyn KeyStoreBackend) -> Option<Vec<u8>> {
+    backend.read_file(name)
+}
+
+#[allow(non_snake_case)]
+/// chrony `KEY_Reload`: re-read and reload keys into an existing store.
+pub fn KEY_Reload(store: &mut KeyStore, name: Option<&str>, backend: &mut dyn KeyStoreBackend) {
+    let contents = name.and_then(|n| KEY_ReadFile(n, backend));
+    let content_str = contents
+        .as_ref()
+        .and_then(|c| String::from_utf8(c.clone()).ok());
+    store.reload(content_str.as_deref());
 }
 
 /// The NTP symmetric MAC computed directly from the ported MD5, independent of the

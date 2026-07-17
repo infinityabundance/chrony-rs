@@ -140,6 +140,34 @@ mod tests {
     use super::*;
 
     #[test]
+    fn get_tempcomp_matches_real_c() {
+        // Differential test vs the VERBATIM tempcomp.c get_tempcomp (/tmp/ntmc,
+        // -ffp-contract=off): the quadratic formula and the point-table interpolation/
+        // extrapolation, exact f64. Upgrades tempcomp from an in-house check to
+        // compiled-oracle-backed.
+        let v = include_str!("../../../research/oracle/tempcomp-c-vectors.txt");
+        let f = |l: &str, k: &str| -> f64 {
+            l.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{k}=")))
+                .unwrap()
+                .parse()
+                .unwrap()
+        };
+
+        // Quadratic: T0=25, k0=0.5, k1=0.1, k2=-0.001 (matching the oracle).
+        let quad = TempComp::new(25.0, 0.5, 0.1, -0.001, None).unwrap();
+        for l in v.lines().filter(|l| l.starts_with("Q ")) {
+            assert_eq!(quad.get_tempcomp(f(l, "temp")), f(l, "comp"), "quad temp={}", f(l, "temp"));
+        }
+
+        // Points: the same four (temp, comp) pairs the oracle used, incl. below/above extrapolation.
+        let pts = TempComp::new(0.0, 0.0, 0.0, 0.0, Some("0 -1.0\n10 0.0\n20 0.5\n30 1.2\n")).unwrap();
+        for l in v.lines().filter(|l| l.starts_with("P ")) {
+            assert_eq!(pts.get_tempcomp(f(l, "temp")), f(l, "comp"), "points temp={}", f(l, "temp"));
+        }
+    }
+
+    #[test]
     fn quadratic_mode() {
         // k0=1, k1=0.5, k2=0.1, T0=20.
         let tc = TempComp::new(20.0, 1.0, 0.5, 0.1, None).unwrap();

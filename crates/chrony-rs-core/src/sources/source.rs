@@ -25,6 +25,7 @@ use super::reachability::Reachability;
 
 /// Online/offline status, as set by `online`/`offline` directives and commands.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+    #[non_exhaustive]
 pub enum SourceStatus {
     #[default]
     Online,

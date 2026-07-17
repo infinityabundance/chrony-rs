@@ -121,4 +121,51 @@ mod tests {
         assert_eq!(reply_length(5), 104); // TRACKING reply
         assert_eq!(reply_length(N_REPLY_TYPES), 0); // out of range
     }
+
+    /// Differential oracle: every command/reply length is re-derived by the REAL
+    /// compiled `pktlength.c` from `offsetof` against the genuine `candm.h` structs
+    /// (`research/oracle/pktlength-c-vectors.txt`), then replayed here. This pins the
+    /// hardcoded [`REQUEST_LENGTHS`]/[`REPLY_LENGTHS`] tables — which were transcribed
+    /// from those struct offsets — against the wire layout the C actually produces,
+    /// across every command type at v5 (no padding) and v6 (padding), every reply
+    /// type, and the out-of-range/boundary codes.
+    #[test]
+    fn matches_real_c_pktlength_vectors() {
+        let vectors = include_str!("../../../research/oracle/pktlength-c-vectors.txt");
+        fn field(line: &str, key: &str) -> i64 {
+            line.split_whitespace()
+                .find_map(|t| t.strip_prefix(&format!("{key}=")))
+                .unwrap()
+                .parse()
+                .unwrap()
+        }
+
+        let mut checked_req = 0;
+        let mut checked_rpy = 0;
+        for line in vectors.lines().map(str::trim) {
+            if let Some(rest) = line.strip_prefix("HDR ") {
+                // Pin the enum cardinalities against the real candm.h.
+                assert_eq!(field(rest, "NREQ") as u16, N_REQUEST_TYPES, "N_REQUEST_TYPES");
+                assert_eq!(field(rest, "NRPY") as u16, N_REPLY_TYPES, "N_REPLY_TYPES");
+                assert_eq!(field(rest, "PAD") as u8, PROTO_VERSION_PADDING, "PROTO_VERSION_PADDING");
+            } else if let Some(rest) = line.strip_prefix("REQ ") {
+                let v = field(rest, "v") as u8;
+                let t = field(rest, "t") as u16;
+                assert_eq!(command_length(v, t) as i64, field(rest, "len"), "REQ v={v} t={t} len");
+                assert_eq!(
+                    command_padding_length(v, t) as i64,
+                    field(rest, "pad"),
+                    "REQ v={v} t={t} pad"
+                );
+                checked_req += 1;
+            } else if let Some(rest) = line.strip_prefix("RPY ") {
+                let t = field(rest, "t") as u16;
+                assert_eq!(reply_length(t) as i64, field(rest, "len"), "RPY t={t} len");
+                checked_rpy += 1;
+            }
+        }
+        // (N_REQUEST_TYPES + 2) codes x 2 versions, and (N_REPLY_TYPES + 2) reply codes.
+        assert_eq!(checked_req, (N_REQUEST_TYPES as usize + 2) * 2);
+        assert_eq!(checked_rpy, N_REPLY_TYPES as usize + 2);
+    }
 }

@@ -15,55 +15,86 @@ below come from the port-parity matrix, so they cannot disagree with what is
 actually ported. See the [full matrix](../../docs/generated/port-parity.md) and the
 [per-function gap view](../../docs/generated/port-parity-functions.md).
 
-## Fully ported chrony translation units (26)
+## Fully ported chrony translation units (59)
 
 Every function in these units has a court-backed counterpart (differential tests
 against the real compiled C and/or protocol-spec vectors):
 
 - `cmdparse.c` → `config/parser.rs`, `cmdparse.rs` — command/config line parsing (CPS_*)
+- `ntp_io.c` → `ntp/packet.rs`, `ptp.rs` — NTP socket send/recv path
 - `pktlength.c` → `pktlength.rs` — cmdmon request/reply length tables (PKL_*)
+- `ntp_io_linux.c` → `ntp_io_linux.rs` — Linux HW/kernel RX timestamping
 - `ntp_ext.c` → `ntp/ext.rs` — NTP extension-field (RFC 7822) framing (NEF_*)
+- `ntp_auth.c` → `ntp_auth.rs` — NTP authentication (MAC/NTS dispatch) (NAU_*)
+- `ntp_signd.c` → `ntp_signd.rs` — Samba MS-SNTP signing-daemon bridge (NSD_*)
+- `ntp_sources.c` → `ntp_sources.rs` — NTP source record add/remove/pool (NSR_*)
+- `sources.c` → `sources/registry.rs`, `sources/combine.rs`, `sources/source.rs`, `sources/reachability.rs`, `sources/selection.rs` — source reachability + selection (SRC_*)
 - `sourcestats.c` → `sourcestats.rs` — per-source regression statistics (SST_*)
 - `regress.c` → `regress.rs` — robust linear regression + statistical primitives
 - `samplefilt.c` → `samplefilt.rs` — per-source NTP sample filtering (SPF_*)
 - `quantiles.c` → `quantiles.rs` — streaming (stochastic) quantile estimator
+- `reference.c` → `reference.rs`, `report.rs`, `clock.rs` — tracking + drift state, leap handling (REF_*)
 - `local.c` → `local.rs` — local clock hub: read/cook time, discipline, handlers (LCL_*)
 - `smooth.c` → `smooth.rs` — served-time smoothing (SMT_*)
 - `tempcomp.c` → `tempcomp.rs` — temperature compensation (TMC_*)
 - `sched.c` → `sched.rs` — timer/event scheduler (SCH_*)
+- `cmdmon.c` → `cmdmon.rs` — control/monitoring protocol server (candm)
+- `privops.c` → `privops.rs`, `chrony-rs-io/privops.rs` — privilege-separation helper (PRV_*)
 - `array.c` → `array.rs` — generic dynamic array (ARR_*)
+- `memory.c` → `memory.rs` — xmalloc/xrealloc wrappers
+- `stubs.c` → — — test-harness stub implementations
 - `keys.c` → `keys.rs` — symmetric key store (KEY_*)
 - `md5.c` → `md5.rs` — MD5 digest (RFC 1321 reference, NTP symmetric-key auth)
 - `hash_intmd5.c` → `hash_intmd5.rs` — internal MD5 hash backend (HSH_*)
+- `hash_gnutls.c` → `hash_gnutls.rs` — gnutls hash backend
+- `hash_nettle.c` → `hash_nettle.rs` — nettle hash backend
+- `hash_nss.c` → `hash_nss.rs` — NSS hash backend
+- `hash_tomcrypt.c` → `hash_tomcrypt.rs` — tomcrypt hash backend
+- `cmac_gnutls.c` → `cmac_gnutls.rs` — gnutls CMAC backend
 - `cmac_nettle.c` → `cmac_nettle.rs` — AES-CMAC keyed-MAC instance API (CMC_*)
+- `nts_ke_client.c` → `nts_ke_record.rs` — NTS-KE client message logic
+- `nts_ke_server.c` → `nts_ke_record.rs`, `nts_ke_cookie.rs`, `nts_ke_keydump.rs` — NTS-KE server message logic + cookie codec + key dump
+- `nts_ke_session.c` → `nts_ke_record.rs` — NTS-KE TLS session + record codec
 - `nts_ntp_auth.c` → `nts_ntp_auth.rs` — NTS authenticator + encrypted-EEF extension field (NNA_*)
+- `nts_ntp_client.c` → `nts_ntp_client.rs` — client-side NTS-NTP authentication (NNC_*)
+- `nts_ntp_server.c` → `nts_ntp_server.rs` — server-side NTS-NTP authentication (NNS_*)
+- `siv_gnutls.c` → `siv_gnutls.rs` — SIV-AEAD (gnutls)
 - `siv_nettle.c` → `siv_nettle.rs` — SIV AEAD instance API (SIV_*)
 - `siv_nettle_int.c` → `siv_nettle_int.rs` — AES-SIV-CMAC-256 AEAD (RFC 5297)
+- `refclock.c` → `refclock.rs` — reference-clock framework (RCL_*)
+- `refclock_shm.c` → `refclock_shm.rs` — SHM refclock driver (ntpd/gpsd shared-memory protocol)
+- `refclock_sock.c` → `refclock_sock.rs` — SOCK refclock driver (gpsd Unix-datagram sample protocol)
+- `rtc.c` → `rtc.rs` — RTC abstraction layer (RTC_*)
+- `rtc_linux.c` → `rtc_linux.rs` — Linux RTC driver (drift regression)
 - `hwclock.c` → `hwclock.rs` — hardware-clock tracking (HCL_*)
+- `sys.c` → `sys.rs` — OS adapter dispatch
 - `sys_generic.c` → `sys_generic.rs` — generic software-slew clock-discipline driver
+- `sys_linux.c` → `sys_linux.rs` — Linux clock adapter (adjtimex)
 - `sys_timex.c` → `sys_timex.rs` — adjtimex()/ntp_adjtime() clock driver
 - `sys_null.c` → `sys_null.rs` — null clock driver (the `-x` 'disabled control' driver)
+- `sys_netbsd.c` → `sys_netbsd.rs` — NetBSD clock adapter
+- `sys_solaris.c` → `sys_solaris.rs` — Solaris clock adapter
+- `socket.c` → `socket.rs`, `chrony-rs-io/socket.rs` — socket abstraction layer
 - `addrfilt.c` → `addrfilt.rs` — NTP/cmd access-control subnet trie (ADF_*)
+- `nameserv.c` → `nameserv.rs` — synchronous DNS resolution
 - `clientlog.c` → `clientlog.rs` — client access log / rate limiting
 - `manual.c` → `manual.rs` — manual time input / settime (MNL_*)
 
-## Partially ported (8)
+## Partially ported (6)
 
 Behavior ported with at least one executable court, but not every function (see the
 matrix for the exact gap):
 
-- `conf.c` → `config/parser.rs`, `config/lexer.rs`, `config/diagnostics.rs`, `config/model.rs`, `config/mod.rs` — config file parser + 93-directive dispatch (CNF_*)
-- `ntp_core.c` → `ntp/measurements.rs`, `ntp/packet.rs` — NTP protocol engine: poll, process-response, offset/delay (NCR_*)
-- `sources.c` → `sources/source.rs`, `sources/reachability.rs`, `sources/selection.rs` — source reachability + selection (SRC_*)
-- `reference.c` → `report.rs`, `clock.rs` — tracking + drift state, leap handling (REF_*)
-- `client.c` → `report.rs`, `../chronyc-rs/src/main.rs` — chronyc CLI: command dispatch + report formatters
-- `main.c` → `../chronyd-rs/src/main.rs` — daemon entry, arg parsing, lifecycle
+- `conf.c` → `config/parser.rs`, `config/lexer.rs`, `config/diagnostics.rs`, `config/model.rs`, `config/accessors.rs`, `config/mod.rs` — config file parser + 93-directive dispatch (CNF_*)
+- `ntp_core.c` → `ntp/measurements.rs`, `ntp/packet.rs`, `ntp/poll.rs`, `ntp/parse.rs` — NTP protocol engine: poll, process-response, offset/delay (NCR_*)
+- `client.c` → `report.rs`, `client.rs`, `../chronyc-rs/src/main.rs` — chronyc CLI: command dispatch + report formatters
+- `main.c` → `cmdline.rs`, `../chronyd-rs/src/main.rs` — daemon entry, arg parsing, lifecycle
 - `util.c` → `util.rs`, `ntp/timestamp.rs`, `ntp/measurements.rs` — time/UTI/byte utilities (UTI_*)
-- `nameserv.c` → `nameserv.rs` — synchronous DNS resolution
+- `logging.c` → `logging.rs`, `chrony-rs-io/logging.rs` — logging subsystem (LOG_*)
 
 ## Invariants
 
-- **`unsafe` blocks:** 0 (scanned across `crates/*/src`).
+- **`unsafe` blocks:** 127 (scanned across `crates/*/src`).
 - **Target chrony oracle:** 4.5.
 - **Trace schema:** `chrony-rs-trace-v1`.
 
