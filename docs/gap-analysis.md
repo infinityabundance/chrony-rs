@@ -1,15 +1,20 @@
 # Chrony-rs: Comprehensive Gap Analysis and Implementation Plan
 
-> **NOTE:** This document was written during early development and has NOT been
-> updated. Many items listed as gaps here have since been implemented. For the
-> current status, see [negative-capabilities.md](negative-capabilities.md).
+> **⚠️ ARCHIVAL REFERENCE ONLY — DO NOT USE FOR CURRENT STATUS**
+>
+> This document was written during early development and has **not** been
+> maintained. Almost every item listed as a gap here has since been implemented.
+> It is preserved for historical reference of the development trajectory.
+>
+> **For current status, see:**
+> - [`negative-capabilities.md`](negative-capabilities.md) — what is genuinely not done
+> - [`deployment-boundary.md`](deployment-boundary.md) — staged ladder status
+> - [`status.md`](generated/status.md) — generated parity status
 
-**Status: 2026-07-16 | Targeting chrony 4.5 | Function-level parity: 100%**
+**Status: 2026-07-16 (archival) | Targeting chrony 4.5 | Function-level parity: ~98%**
 
-This document catalogs **every remaining gap** between chrony-rs and chrony 4.5.
-Each entry includes current status, chrony behavior, chrony-rs behavior, and
-concrete implementation steps. **This is the single source of truth for what
-remains to be built.**
+This document was the original gap analysis. Most gaps are now closed.
+It is preserved as a record of the development trajectory.
 
 ---
 

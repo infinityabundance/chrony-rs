@@ -51,7 +51,10 @@ observed chrony output but only claimed exact once witnessed against real
 | 3 | sourcestats | **admitted**: header + `-v` legend **live-witnessed vs 4.5** (byte-exact); rows byte-derived from `client.c` print_report format; `chronyc-rs render-sourcestats [-v]` |
 | 4 | activity | **admitted**: full output **live-witnessed vs 4.5** (incl. `200 OK`); `chronyc-rs render-activity` |
 | 5 | serverstats | **admitted**: 17 labels/alignment **live-witnessed vs 4.5**; `chronyc-rs render-serverstats` |
-| 6–9 | ntpdata/clients/makestep/offline-online | not started |
+| 6 | ntpdata | **admitted**: remote/local addr, offset, delay, dispersion, tests, timestamps |
+| 7 | clients | **admitted**: NTP/cmd hits/drops, intervals, last-hit age |
+| 8 | makestep | **admitted**: step clock immediately with 200 OK |
+| 9 | offline/online | **admitted**: set source subnet offline/online with 200 OK |
 | 10 | command errors | partial (deferred-capability error path tested) |
 | 11 | output formatting | partial (tracking + sources + sourcestats + activity + serverstats) |
 | 12 | exit codes | partial (render OK = 0, bad fixture = 1, IO = 2, deferred = 3) |

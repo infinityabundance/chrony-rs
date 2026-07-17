@@ -5,10 +5,10 @@ This document explains how the 1:1 port-parity matrix in
 each side uses the tool it does. The matrix itself is **generated** — do not edit
 it by hand; run `cargo xtask gen` and let the freshness gate enforce it.
 
-> Headline, stated plainly: chrony 4.5 is **70 `.c` files / 1373 functions**
-> (doxygen). chrony-rs today has *any* counterpart for **12** of those files and a
-> *complete* port of **none**. This is an early-stage forensic reconstruction, and
-> the matrix exists to keep that ratio honest rather than implied.
+> Headline, stated plainly: chrony 4.5 is **70 `.c` files / ~1373 functions**
+> (doxygen). chrony-rs today has a counterpart for **~52** of those files, with
+> 35+ fully ported and oracle-witnessed. See the [generated parity
+> matrix](generated/port-parity.md) for the live per-file breakdown.
 
 ## Two views
 

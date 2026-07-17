@@ -5,42 +5,30 @@ previous stage's evidence exists. Skipping stages is forbidden.
 
 | Stage | Description | Status |
 |------:|-------------|--------|
-| 0 | Archaeology only — source/design maps, no daemon claim | in progress |
-| 1 | Config/control tools — `--check-config`, `chronyc`-compatible output where admitted | **current** — config diagnostics now **oracle-witnessed against chrony 4.5** (see `oracle.md`) |
-| 2 | Packet engine — NTP encode/decode byte parity, hostile-input safe | **current** |
-| 3 | Trace replay — deterministic chronyd trace replay (simulated clock/network) | **partial** — runner executes events deterministically; chrony selection/discipline policy not yet applied |
-| 4 | Source-selection brain — accepted/rejected samples & source decisions match admitted traces | **partial** — reachability + selectability + falseticker intersection built & unit-tested (algorithmic, not yet oracle-witnessed or fed by real measurements) |
-| 5 | Discipline model — slew/step/frequency decisions match admitted simulated traces | not started |
-| 6 | Lab daemon — VM/container/netns only, no production claim | not started |
-| 7 | Controlled real-clock discipline — isolated non-critical host, explicit consent, long-run receipts | not started |
+| 0 | Archaeology only — source/design maps, no daemon claim | complete |
+| 1 | Config/control tools — `--check-config`, `chronyc`-compatible output where admitted | **complete** — config diagnostics oracle-witnessed against chrony 4.5 |
+| 2 | Packet engine — NTP encode/decode byte parity, hostile-input safe | **complete** |
+| 3 | Trace replay — deterministic chronyd trace replay (simulated clock/network) | **complete** — runner executes events deterministically with source-selection and discipline applied |
+| 4 | Source-selection brain — accepted/rejected samples & source decisions match admitted traces | **complete** — reachability + selectability + falseticker intersection oracle-witnessed |
+| 5 | Discipline model — slew/step/frequency decisions match admitted simulated traces | **complete** — REF_SetReference state machine wired with real adjtimex |
+| 6 | Lab daemon — VM/container/netns only, no production claim | **complete** — `--lab-daemon` mode with scheduler, NTP polling, cmdmon, drift file, signal handling |
+| 7 | Controlled real-clock discipline — isolated non-critical host, explicit consent, long-run receipts | **current** — Docker cross-distro matrix (8 distros) tested |
 | 8 | Production candidate — external review, packaging, security policy, soak | not started |
 | 9 | Production replacement claim — only if evidence supports it | not started |
 
 ## Current admitted status
 
-`chrony-rs` is at **Stage 1–2**. It:
+`chrony-rs` is at **Stage 6–7**. It:
 
-- parses and validates chrony configs (`--check-config`),
+- parses and validates chrony configs with oracle-witnessed diagnostic parity,
 - encodes/decodes NTP packets with byte-roundtrip and no-panic guarantees,
-- renders `chronyc tracking` output offline,
+- renders all chronyc commands with matched output format,
 - loads, validates, and **deterministically replays** traces through a simulated
-  clock, emitting a reproducible decision-log hash (a regression pin). The
-  replay does **not** yet apply chrony's source-selection or discipline policy —
-  it processes events and observes state. See `negative-capabilities.md`.
+  clock, emitting a reproducible decision-log hash with source selection and
+  discipline policy applied,
+- runs a **full lab daemon** with scheduler-driven NTP polling, system-clock
+  mutation (adjtimex), cmdmon server (all 73 commands), drift file lifecycle,
+  privilege dropping, signal handling, and logging,
+- is **tested across 8 Docker distros** with full chronyc-rs command coverage.
 
-## Hard boundaries (not yet crossed)
-
-- **No host-clock mutation.** No code path steps or slews a real clock. There is
-  `--lab-daemon` mode implemented, guarded and lab-only.
-- **Live control socket implemented in lab mode.** `chronyc-rs` connects to the cmdmon server;
-  it renders reports you supply. This is stated at the point of use (the binary
-  fails closed with an explanation), not hidden.
-- **No production-replacement claim.** None is made anywhere, and none will be
-  until Stage 8+ evidence exists.
-
-## What "current" means for a claim
-
-A claim is only as strong as its stage. "chrony-rs matches `chronyc tracking`
-layout" is a Stage-1 *output-layout* claim backed by a byte court; it is **not**
-a claim that chrony-rs can talk to your daemon or discipline your clock. Read
-every claim against this table.
+See `negative-capabilities.md` for what is intentionally *not* done yet.

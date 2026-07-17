@@ -18,13 +18,15 @@ in the main event loop thread. The design is:
 
 ## Unsafe code audit
 
-Total `unsafe` blocks across workspace: ~143.
+Total `unsafe` blocks across workspace: **127** (see [`security-boundary.md`](security-boundary.md) for the live count).
 
 | Crate | Count | Notes |
 |-------|-------|-------|
-| `chrony-rs-io` | ~113 | All libc FFI syscall wrappers (socket, select, clock, ioctl, etc.) |
-| `chronyd-rs` | ~30 | Signal handlers, process control (fork/setsid), clock discipline syscalls |
-| `chrony-rs-core` | 0 | Verified — `grep -rn "unsafe" crates/chrony-rs-core/src` → 0 matches |
+| `chrony-rs-io` | 75 | All libc FFI syscall wrappers (socket, select, clock, ioctl, etc.) |
+| `chronyd-rs` | 40 | Signal handlers, process control (fork/setsid), clock discipline syscalls, refclock device I/O |
+| `chrony-rs-core` | 12 | SHM `read_volatile`, refclock ioctl helpers, libc FFI in refclock drivers |
+| `chrony-rs` (facade) | 0 | `#![forbid(unsafe_code)]` |
+| `chronyc-rs` | 0 | |
 | `chrony-rs` (facade) | 0 | `#![forbid(unsafe_code)]` |
 | `chronyc-rs` | 0 | |
 

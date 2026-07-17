@@ -12,9 +12,9 @@ reproducible test or receipt.
 > Claim language is bounded. "Admitted under court X" means: matches the declared
 > behavior in the test/receipt for X, under the stated version and inputs. It does
 > **not** imply parity with real `chronyd` output until a differential oracle
-> receipt exists (none yet — see "Oracle status" below).
+> receipt exists (see `research/oracle/` for 100+ differential vector files).
 
-## Admitted courts (v0.1.0)
+## Admitted courts (v0.2.0)
 
 | Court | What it asserts | Evidence |
 |-------|-----------------|----------|

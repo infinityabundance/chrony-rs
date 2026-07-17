@@ -9,43 +9,38 @@ depends on replaying behavior without a real clock, real network, or privileges.
 
 ```
 crates/
-  chrony-rs-core   the deterministic time-discipline brain
-  chronyd-rs       daemon/replay binary (offline & lab modes only today)
+  chrony-rs-core   the deterministic time-discipline brain (~50+ ported modules)
+  chrony-rs-io     real OS I/O layer (libc syscall wrappers)
+  chronyd-rs       daemon/replay binary (lab daemon, replay, --cmdmon)
   chronyc-rs       control client & output-parity tool
+  chrony-rs        facade crate re-exporting chrony-rs-core
+  xtask            build/automation (doc generation, freshness gate, comparative diagnostics)
+  fuzz             fuzz targets (packet-decode, cmdmon-validate, config-parse, ntp-header)
 ```
 
 The crate is kept lean; the GitHub repository carries the wider archaeology
 archive (`docs/`, `reports/`, and — as campaigns land — `research/`).
 
-## `chrony-rs-core` modules
+## Deterministic-core principle
 
-| Module | Responsibility | Parity kind |
-|--------|----------------|-------------|
-| `ntp` | NTP wire format: packet + timestamp/short fixed-point | byte |
-| `config` | lexer → model → parser → diagnostics | behavior |
-| `report` | `chronyc` output rendering (`tracking` today) | byte (output) |
-| `trace` | `chrony-rs-trace-v1` schema + structural validation | foundation |
+Everything in `chrony-rs-core` is total and side-effect-free — no file I/O, no
+sockets, no clock reads — **with one documented exception**:
+[`nameserv`](../crates/chrony-rs-core/src/nameserv.rs) performs hostname resolution
+via the system resolver (`getaddrinfo`), because chrony's `allow`/`deny` parsing
+(`CPS_ParseAllowDeny`) resolves hostnames and that branch is ported rather than
+deferred. The rest of `core` stays deterministic, which keeps the unit tests
+reproducible and lets the same code run under a simulated clock during replay.
 
-Everything in `core` is total and side-effect-free — no file I/O, no sockets, no
-clock reads — **with one documented exception**: [`nameserv`](../crates/chrony-rs-core/src/nameserv.rs)
-performs hostname resolution via the system resolver (`getaddrinfo`), because
-chrony's `allow`/`deny` parsing (`CPS_ParseAllowDeny`) resolves hostnames and that
-branch is ported rather than deferred. Resolution is the single non-deterministic,
-network-capable entry point; it is isolated in that one module, clearly labelled,
-and nothing on the pure path calls it (its tests use only `localhost`/`.invalid`).
-The rest of `core` stays deterministic, which keeps the unit tests reproducible and
-lets the same code run under a simulated clock during replay.
+## Trait boundaries (implemented)
 
-## Trait boundaries (planned)
-
-Host mutation will live behind narrow traits so the brain never depends on the
-real environment. The intended seams (not yet all implemented) are:
+Host mutation lives behind narrow traits so the brain never depends on the
+real environment. The implemented seams are:
 
 ```rust
-trait SystemClock { /* now, step, slew, read/set frequency */ }
-trait NetworkIo   { /* recv_ntp, send_ntp */ }
-trait StateStore  { /* load/save drift */ }
-trait ControlSocket { /* recv command, send response */ }
+trait SystemClock  { /* now, step, slew, read/set frequency — via adjtimex */ }
+trait NetworkIo    { /* recv_ntp, send_ntp — via NTP/UDP sockets */ }
+trait StateStore   { /* load/save drift — via atomic temp+rename files */ }
+trait ControlSocket{ /* recv command, send response — via cmdmon UDP */ }
 ```
 
 with three wirings:
@@ -56,8 +51,7 @@ replay:       SimulatedClock  + TraceNetwork + MemoryStateStore + TraceControlSo
 oracle:       captured chronyd trace + chrony-rs replay + byte/behavior compare
 ```
 
-Only the replay wiring is on the near horizon; the real-daemon wiring is gated
-behind the deployment ladder (`deployment-boundary.md`).
+All four traits are wired in the `--lab-daemon` mode.
 
 ## Why not one big async daemon
 
